@@ -72,3 +72,6 @@ dev-dist
 # Test scripts
 test-*.js
 
+# Mobile
+mobile/
+
