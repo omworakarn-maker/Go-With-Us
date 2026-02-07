@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { TravelStyleQuizModal } from '../components/TravelStyleQuizModal';
 
 const Register: React.FC = () => {
     const navigate = useNavigate();
@@ -21,6 +22,8 @@ const Register: React.FC = () => {
         });
     };
 
+    const [showQuiz, setShowQuiz] = useState(false);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
@@ -39,12 +42,17 @@ const Register: React.FC = () => {
 
         try {
             await register(formData.name, formData.email, formData.password);
-            navigate('/');
+            setLoading(false);
+            setShowQuiz(true); // Open Quiz after successful registration
         } catch (err: any) {
             setError(err.message || 'เกิดข้อผิดพลาดในการสมัครสมาชิก');
-        } finally {
             setLoading(false);
         }
+    };
+
+    const handleQuizComplete = (style: any) => {
+        // In a real app, we would save the style here
+        navigate('/');
     };
 
     return (
@@ -206,6 +214,12 @@ const Register: React.FC = () => {
                     </Link>
                 </div>
             </div>
+
+            <TravelStyleQuizModal
+                isOpen={showQuiz}
+                onClose={() => navigate('/')}
+                onSave={handleQuizComplete}
+            />
         </div>
     );
 };

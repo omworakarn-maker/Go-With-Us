@@ -49,4 +49,26 @@ go-with-us-backend/.env
 go-with-us-backend/dist
 
 # Test scripts (contain API keys)
+
+# Xcode
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.uistate
+*.xcuserstate
+xcuserdata/
+DerivedData/
+*.moved-aside
+*.xccheckout
+*.ipa
+
+# Vite
+dev-dist
+
+
+# Misc
+.DS_Store
+
+# Test scripts
 test-*.js
+

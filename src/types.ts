@@ -25,11 +25,33 @@ export interface Trip {
   groupAnalysis?: string;
 }
 
+
+export interface TravelStyle {
+  budget: 'budget' | 'moderate' | 'luxury';
+  pace: 'relaxed' | 'moderate' | 'fast';
+  interests: string[]; // e.g., ["Nature", "Culture"]
+  social: 'solo' | 'small_group' | 'large_group';
+  accommodation: 'hostel' | 'hotel' | 'resort' | 'camping';
+  food?: 'street' | 'cafe' | 'local' | 'fine_dining';
+  nightlife?: 'party' | 'chill' | 'quiet';
+  transport?: 'public' | 'rent_car' | 'private_driver';
+  photography?: 'pro' | 'instagram' | 'snap' | 'none';
+}
+
+export interface TripHistoryItem {
+  tripId: string;
+  role: 'creator' | 'participant';
+  status: 'completed' | 'upcoming' | 'cancelled';
+  joinedAt: string; // ISO Date string
+}
+
 export interface User {
   id: string;
   name: string;
   email: string;
   role: 'user' | 'admin';
+  travelStyle?: TravelStyle;
+  tripHistory?: TripHistoryItem[];
 }
 
 export interface Participant {

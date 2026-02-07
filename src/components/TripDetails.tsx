@@ -444,7 +444,7 @@ export const TripDetails: React.FC = () => {
         </div>
       )}
 
-      <div className="max-w-6xl mx-auto py-8 px-4 pt-24 animate-in fade-in duration-500 h-fit">
+      <div className="max-w-6xl mx-auto py-8 px-4 pt-8 animate-in fade-in duration-500 h-fit">
 
         {/* Navigation & Actions Bar */}
         <div className="flex justify-between items-center mb-8">

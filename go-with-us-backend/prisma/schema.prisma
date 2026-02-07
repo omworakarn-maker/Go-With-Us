@@ -19,6 +19,7 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   interests String[] @default([])
+  embedding Json?    // AI Vector for recommendation
   
   // Relations
   trips     Trip[]   // Trips created by this user
@@ -42,6 +43,7 @@ model Trip {
   imageUrl        String?  @db.Text // Base64 image data (main image)
   gallery         String[] @default([]) // Additional images (array of URLs or base64)
   itinerary       Json?    // Custom itinerary created by trip creator
+  embedding       Json?    // AI Vector for recommendation
   creatorId       String   @map("creator_id")
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")

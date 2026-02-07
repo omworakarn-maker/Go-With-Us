@@ -5,6 +5,7 @@ import { userAPI } from '../services/api';
 import { Trip } from '../types';
 import { TRIP_CATEGORIES } from '../constants/categories';
 import Loader from '../components/Loader';
+import { TravelStyleQuizModal } from '../components/TravelStyleQuizModal';
 
 interface ExtendedUser {
     id: string;
@@ -22,6 +23,7 @@ const Profile: React.FC = () => {
     const [profile, setProfile] = useState<ExtendedUser | null>(null);
     const [loading, setLoading] = useState(true);
     const [isEditing, setIsEditing] = useState(false);
+    const [showQuiz, setShowQuiz] = useState(false);
 
     // Edit Form States
     const [newName, setNewName] = useState('');
@@ -66,7 +68,8 @@ const Profile: React.FC = () => {
             setSaving(true);
             const updateData: any = {
                 name: newName,
-                interests: newInterests
+                interests: newInterests,
+                travelStyle: profile.travelStyle // Include travel style in update
             };
             if (newPassword) updateData.password = newPassword;
 
@@ -113,7 +116,7 @@ const Profile: React.FC = () => {
     return (
         <div className="min-h-screen bg-white pb-20">
 
-            <div className="max-w-6xl mx-auto px-6 pt-32 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div className="max-w-6xl mx-auto px-6 pt-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
                 {/* Profile Card - Centered */}
                 <div className="max-w-xl mx-auto mb-16">
                     <div className="bg-white rounded-[2rem] shadow-xl shadow-gray-200/50 p-8 border border-gray-100 flex flex-col items-center text-center relative overflow-hidden">
@@ -216,6 +219,40 @@ const Profile: React.FC = () => {
                                         })}
                                     </div>
                                     <p className="text-[10px] text-gray-400 mt-1 pl-1">* ระบบจะนำไปช่วยแนะนำทริปที่คุณน่าจะชอบ</p>
+                                </div>
+
+                                {/* Travel Style Display (ReadOnly in Edit Mode) */}
+                                <div className="pt-4 border-t border-gray-100">
+                                    <div className="flex justify-between items-center mb-3">
+                                        <h3 className="text-sm font-bold text-black text-center w-full">Lifestyle & Travel Style</h3>
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowQuiz(true)}
+                                        className="w-full py-3 mb-4 bg-black text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 hover:bg-gray-800 transition-all"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                        </svg>
+                                        ทำแบบสำรวจไลฟ์สไตล์ใหม่
+                                    </button>
+
+                                    {/* Display Tags */}
+                                    {profile.travelStyle && (
+                                        <div className="flex flex-wrap gap-2 justify-center">
+                                            {Object.entries(profile.travelStyle).map(([key, value]) => {
+                                                if (key === 'interests') return null; // Skip interests array here
+                                                const label = typeof value === 'string' ? value : '';
+                                                if (!label) return null;
+                                                return (
+                                                    <span key={key} className="px-3 py-1 bg-black text-white text-[10px] font-bold rounded-full uppercase tracking-wider border border-white shadow-sm">
+                                                        {label.replace('_', ' ')}
+                                                    </span>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="pt-2 border-t border-gray-100 mt-2">
@@ -336,7 +373,18 @@ const Profile: React.FC = () => {
                     </div>
                 </div>
             </div>
-        </div>
+
+
+            <TravelStyleQuizModal
+                isOpen={showQuiz}
+                onClose={() => setShowQuiz(false)}
+                initialData={profile?.travelStyle}
+                onSave={async (newStyle) => {
+                    await fetchProfile(); // Refresh profile to show new tags
+                    setShowQuiz(false);
+                }}
+            />
+        </div >
     );
 };
 

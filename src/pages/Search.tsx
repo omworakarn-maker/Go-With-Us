@@ -61,9 +61,9 @@ const SearchPage: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-white flex flex-col">
-            <Navbar />
 
-            <div className="flex-1 pt-24 pb-12 px-4 md:px-8 max-w-7xl mx-auto w-full">
+
+            <div className="flex-1 pt-8 pb-0 md:pb-8 px-4 md:px-8 max-w-7xl mx-auto w-full">
 
                 {/* Search Header */}
                 <div className="max-w-3xl mx-auto mb-12 text-center space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">

@@ -207,3 +207,49 @@ export const exploreTrips = async (
     };
   }
 };
+
+// ==========================================
+// NEW: Risk Assessment (Consultative AI)
+// ==========================================
+export const analyzeTripRisk = async (trip: Trip): Promise<{ riskLevel: string; analysis: string }> => {
+  if (!genAI) throw new Error('Gemini API is not configured.');
+
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
+
+  const prompt = `
+    Role: Professional Travel Risk Consultant.
+    Task: Analyze the following trip plan for potential risks.
+
+    Trip Details:
+    - Title: ${trip.title}
+    - Destination: ${trip.destination}
+    - Date: ${trip.startDate} to ${trip.endDate}
+    - Participants: ${JSON.stringify(trip.participants)}
+    - Itinerary: ${JSON.stringify(trip.itinerary)}
+
+    Analysis Criteria:
+    1. Schedule Tightness: Is it too rushed? (Especially for diverse age groups if mentioned in participants, assume mixed if unknown).
+    2. Weather/Location: Is the destination safe/suitable for the season (Date)? e.g. Monsoon season.
+    3. Activity Risks: Are there dangerous activities?
+
+    Output strictly in JSON:
+    {
+      "riskLevel": "Low" | "Medium" | "High",
+      "analysis": "A concise paragraph explaining the risks and suggestions in Thai (ภาษาไทย)."
+    }
+  `;
+
+  try {
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    let text = response.text();
+    text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("Risk Analysis Error:", error);
+    return {
+      riskLevel: "Unknown",
+      analysis: "ไม่สามารถวิเคราะห์ความเสี่ยงได้ในขณะนี้ (AI Error)"
+    };
+  }
+};

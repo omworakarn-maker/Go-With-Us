@@ -15,7 +15,12 @@ const port = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    // Allow any origin for development convenience (or specify exact IP)
+    return callback(null, true);
+  },
   credentials: true,
 }));
 // Increase payload limit to handle base64 images (5MB image = ~6.7MB base64)

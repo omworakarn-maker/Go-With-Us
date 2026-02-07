@@ -98,7 +98,7 @@ const Home: React.FC = () => {
       {selectedTrip ? (
         <TripDetails trip={selectedTrip} onBack={() => setSelectedTrip(null)} />
       ) : (
-        <main className="flex-1 w-full max-w-6xl mx-auto px-6 pt-32 pb-24">
+        <main className="flex-1 w-full max-w-6xl mx-auto px-6 pt-8 pb-24">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12">
             <header className="space-y-4">
               <div className="inline-block px-3 py-1 bg-indigo-50 text-indigo-600 text-[10px] font-bold rounded uppercase tracking-widest">beta version</div>

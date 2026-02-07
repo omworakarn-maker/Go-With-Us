@@ -160,12 +160,20 @@ const Chat: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-white flex flex-col">
-            <Navbar />
 
-            <div className="flex-1 max-w-6xl mx-auto w-full pt-20 pb-4 px-4 flex gap-6 h-[calc(100vh-2rem)]">
+
+            <div className="flex-1 max-w-6xl mx-auto w-full pt-4 md:pt-8 pb-4 px-4 flex gap-6 h-[calc(100vh-2rem)]">
                 {/* Sidebar - Conversation List */}
                 <div className={`w-full md:w-80 flex flex-col border-r border-gray-100 ${isMobileView && activeConversation ? 'hidden' : 'block'}`}>
-                    <div className="py-4 px-2 border-b border-gray-100 flex items-center justify-between">
+                    <div className="py-4 px-2 border-b border-gray-100 flex items-center gap-3">
+                        {isMobileView && (
+                            <button
+                                onClick={() => navigate(-1)}
+                                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+                            >
+                                <svg className="w-6 h-6 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" /></svg>
+                            </button>
+                        )}
                         <h2 className="text-2xl font-black">Messages</h2>
                     </div>
                     {/* Search Bar */}

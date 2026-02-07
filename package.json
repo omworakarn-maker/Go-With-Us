@@ -10,6 +10,10 @@
     "postinstall": "prisma generate --schema=./go-with-us-backend/prisma/schema.prisma"
   },
   "dependencies": {
+    "@capacitor/android": "^8.0.2",
+    "@capacitor/cli": "^8.0.2",
+    "@capacitor/core": "^8.0.2",
+    "@capacitor/ios": "^8.0.2",
     "@faker-js/faker": "^10.2.0",
     "@google/generative-ai": "^0.12.0",
     "@heroicons/react": "^2.2.0",
@@ -34,6 +38,7 @@
     "@vitejs/plugin-react": "^5.0.0",
     "prisma": "^5.22.0",
     "typescript": "~5.8.2",
-    "vite": "^6.4.1"
+    "vite": "^6.4.1",
+    "vite-plugin-pwa": "^1.2.0"
   }
 }

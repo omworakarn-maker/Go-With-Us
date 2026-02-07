@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { PrismaClient } from '@prisma/client';
+import { generateEmbedding } from '../utils/gemini.js';
 
 const prisma = new PrismaClient();
 
@@ -64,7 +65,16 @@ export const updateProfile = async (req, res) => {
 
         const updateData = {};
         if (name) updateData.name = name;
-        if (interests) updateData.interests = interests; // Array of strings
+        if (interests) {
+            updateData.interests = interests; // Array of strings
+
+            // Generate AI Vector from interests
+            const vector = await generateEmbedding(interests);
+            if (vector) {
+                updateData.embedding = vector; // Save to Json field
+            }
+        }
+
         if (password) {
             const salt = await bcrypt.genSalt(10);
             updateData.password = await bcrypt.hash(password, salt);

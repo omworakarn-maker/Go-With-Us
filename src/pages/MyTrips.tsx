@@ -47,7 +47,7 @@ const MyTrips: React.FC = () => {
     <div className="min-h-screen bg-[#FFFFFF] flex flex-col text-[#121212]">
 
 
-      <main className="flex-1 w-full max-w-6xl mx-auto px-6 pt-32 pb-24">
+      <main className="flex-1 w-full max-w-6xl mx-auto px-6 pt-8 pb-24">
         <header className="mb-12">
           <div className="inline-block px-3 py-1 bg-black text-white text-[10px] font-bold rounded uppercase tracking-widest mb-4">Creator Mode</div>
           <h1 className="text-5xl font-black tracking-tight text-black mb-4">ทริปของฉัน.</h1>

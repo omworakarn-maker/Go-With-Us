@@ -142,7 +142,7 @@ const Explore: React.FC = () => {
     <div className="min-h-screen bg-white flex flex-col text-[#121212]">
 
 
-      <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full pt-24 pb-6 px-4">
+      <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full pt-8 pb-6 px-4">
         {/* Header */}
         <div className="text-center mb-8 animate-in slide-in-from-top-4">
           <div className="w-16 h-16 bg-black rounded-2xl mx-auto mb-4 flex items-center justify-center shadow-lg">

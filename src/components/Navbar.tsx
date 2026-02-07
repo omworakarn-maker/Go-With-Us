@@ -41,7 +41,8 @@ const Navbar: React.FC<NavbarProps> = ({ onCreateActivity }) => {
 
   return (
     <>
-      <div className="fixed top-0 left-0 right-0 z-[900] px-3 md:px-6 py-3 md:py-4">
+      <div className="block relative w-full z-[900] px-3 md:px-6 py-3 md:py-4"
+        style={{ paddingTop: 'max(env(safe-area-inset-top), 20px)' }}>
         {/* Glass Background Layer - Separated to prevent fixed children trapping */}
         <div className="absolute inset-0 bg-white/80 backdrop-blur-md border-b border-gray-100 shadow-sm"></div>
 
@@ -57,6 +58,7 @@ const Navbar: React.FC<NavbarProps> = ({ onCreateActivity }) => {
             <div className="hidden md:flex items-center gap-8">
               <Link to="/" className={`text-xs font-bold transition-colors uppercase tracking-widest ${location.pathname === '/' ? 'text-black' : 'text-gray-400 hover:text-black'}`}>หน้าหลัก</Link>
               <Link to="/explore" className={`text-xs font-bold transition-colors uppercase tracking-widest ${location.pathname === '/explore' ? 'text-black' : 'text-gray-400 hover:text-black'}`}>ที่ปรึกษา</Link>
+              <Link to="/find-buddy" className={`text-xs font-bold transition-colors uppercase tracking-widest ${location.pathname === '/find-buddy' ? 'text-black' : 'text-gray-400 hover:text-black'}`}>หาเพื่อน</Link>
               <Link to="/activities" className={`text-xs font-bold transition-colors uppercase tracking-widest ${location.pathname === '/activities' ? 'text-black' : 'text-gray-400 hover:text-black'}`}>กิจกรรม</Link>
               <Link to="/mytrips" className={`text-xs font-bold transition-colors uppercase tracking-widest ${location.pathname === '/mytrips' ? 'text-black' : 'text-gray-400 hover:text-black'}`}>ทริปของฉัน</Link>
             </div>
@@ -133,6 +135,13 @@ const Navbar: React.FC<NavbarProps> = ({ onCreateActivity }) => {
                               className="block px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-50 transition-colors"
                             >
                               ทริปของฉัน
+                            </Link>
+                            <Link
+                              to="/history"
+                              onClick={() => setShowProfileMenu(false)}
+                              className="block px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-50 transition-colors"
+                            >
+                              ประวัติการเดินทาง
                             </Link>
                             <button
                               onClick={handleLogout}
@@ -211,6 +220,13 @@ const Navbar: React.FC<NavbarProps> = ({ onCreateActivity }) => {
                   className={`block px-4 py-3 rounded-xl text-sm font-bold transition-colors ${location.pathname === '/explore' ? 'bg-black text-white' : 'text-gray-600 hover:bg-gray-50'}`}
                 >
                   ที่ปรึกษา
+                </Link>
+                <Link
+                  to="/find-buddy"
+                  onClick={() => setShowMobileMenu(false)}
+                  className={`block px-4 py-3 rounded-xl text-sm font-bold transition-colors ${location.pathname === '/find-buddy' ? 'bg-black text-white' : 'text-gray-600 hover:bg-gray-50'}`}
+                >
+                  หาเพื่อน
                 </Link>
                 <Link
                   to="/activities"

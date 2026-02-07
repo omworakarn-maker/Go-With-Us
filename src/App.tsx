@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Trip } from './types';
 import { TripCard } from './components/TripCard';
 import { TripDetails } from './components/TripDetails';
 import Navbar from './components/Navbar';
+import MobileHeader from './components/MobileHeader';
 import { tripsAPI, userAPI } from './services/api';
 import { useAuth } from './contexts/AuthContext';
 import { InterestModal } from './components/InterestModal';
 import CreateActivity from './pages/CreateActivity';
+import { isNativeApp } from './utils/platform';
+
 
 const PROVINCES = [
 	'ทุกจังหวัด', 'กรุงเทพฯ', 'เชียงใหม่', 'ภูเก็ต', 'ชลบุรี', 'กระบี่',
@@ -87,171 +91,119 @@ const App = () => {
 	};
 
 	return (
-		<div className="min-h-screen bg-[#FFFFFF] flex flex-col text-[#121212] pb-20">
-			<Navbar />
+		<div
+			className="min-h-screen bg-white flex flex-col text-[#121212] md:pb-0 font-sans"
+			style={{
+				paddingBottom: isNativeApp() ? 'calc(60px + env(safe-area-inset-bottom, 0px))' : '0'
+			}}
+		>
+			{/* Show Top Navbar ONLY on Desktop */}
+			<div className="hidden md:block">
+				<Navbar />
+			</div>
 
 			<InterestModal
 				isOpen={showInterestModal}
 				onClose={() => setShowInterestModal(false)}
 				onSave={() => {
 					setShowInterestModal(false);
-					// Refresh trips if on recommended tab
 					if (activeTab === 'แนะนำ') fetchTrips();
 				}}
 			/>
 
-			<main className="flex-1 w-full max-w-6xl mx-auto px-6 pt-32">
+			{/* Mobile Header (New Component) */}
+			<MobileHeader />
+
+			<main className="flex-1 w-full max-w-6xl mx-auto md:px-6 md:pt-8 overflow-x-hidden">
 				{!selectedTrip ? (
-					<div className="animate-in fade-in slide-in-from-bottom-2 duration-700">
-						{/* Header Section */}
-						<div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12">
-							<header className="space-y-4">
+					<div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+
+						{/* Desktop Hero Section */}
+						<div className="hidden md:flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12">
+							<header className="space-y-4 pt-12">
 								<div className="inline-block px-3 py-1 bg-indigo-50 text-indigo-600 text-[10px] font-bold rounded uppercase tracking-widest">
 									ประสบการณ์ใหม่
 								</div>
-								<h1 className="text-6xl md:text-7xl font-black text-black tracking-tighter leading-[0.85]">
+								<h1 className="text-7xl font-black text-black tracking-tighter leading-[0.85]">
 									ไปกับเรา<br />สนุกกว่า.
 								</h1>
-								<p className="text-gray-400 text-lg font-medium max-w-md">
-									ค้นหากิจกรรมที่คุณสนใจและทำความรู้จักกับเพื่อนใหม่ในสไตล์ที่เป็นคุณ
-								</p>
 							</header>
+						</div>
 
-							<div className="flex gap-1 p-1 bg-gray-100 rounded-full overflow-x-auto max-w-full">
-								{(['แนะนำ', 'มาใหม่', 'ยอดนิยม'] as const).map((tab) => (
-									<button
-										key={tab}
-										onClick={() => setActiveTab(tab)}
-										className={`px-6 py-2.5 rounded-full text-xs font-bold transition-all whitespace-nowrap ${activeTab === tab
-											? 'bg-white text-black shadow-sm'
-											: 'text-gray-400 hover:text-gray-600'
-											}`}
+						{/* Categories (Story Style) */}
+						<div className="px-6 md:px-0 mb-8 overflow-x-auto no-scrollbar pb-2">
+							<div className="flex gap-4 min-w-max">
+								<div className="flex flex-col items-center gap-2 cursor-pointer group">
+									<div className="w-16 h-16 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50 group-hover:border-black transition-colors">
+										<span className="text-xl">🔥</span>
+									</div>
+									<span className="text-[10px] font-bold text-gray-500">ทั้งหมด</span>
+								</div>
+								{CATEGORIES.slice(1).map((cat, index) => (
+									<div
+										key={cat}
+										onClick={() => setSelectedCategory(cat)}
+										className="flex flex-col items-center gap-2 cursor-pointer group"
 									>
-										{tab}
-									</button>
+										<div className={`w-16 h-16 rounded-full p-0.5 border-2 ${selectedCategory === cat ? 'border-indigo-500' : 'border-red-500/30'} flex items-center justify-center`}>
+											<div className="w-full h-full rounded-full bg-gray-100 overflow-hidden flex items-center justify-center text-xl font-bold text-gray-400 group-active:scale-95 transition-transform">
+												{/* Placeholder Icons based on category */}
+												{cat === 'กินเที่ยว' && '🍜'}
+												{cat === 'กีฬา' && '⚽️'}
+												{cat === 'ปาร์ตี้' && '🎉'}
+												{cat === 'ธรรมชาติ' && '🏔️'}
+												{cat === 'ถ่ายรูป' && '📸'}
+												{cat === 'เวิร์กชอป' && '🎨'}
+												{cat === 'คอนเสิร์ต' && '🎸'}
+											</div>
+										</div>
+										<span className={`text-[10px] font-bold ${selectedCategory === cat ? 'text-black' : 'text-gray-500'}`}>{cat}</span>
+									</div>
 								))}
 							</div>
 						</div>
 
-						{/* Filters Section */}
-						<div className="flex flex-wrap gap-3 overflow-visible mb-12 relative z-30">
-							{/* Province Selector */}
-							<div className="relative">
-								<button
-									onClick={() => setShowProvinceDropdown(!showProvinceDropdown)}
-									className="flex items-center gap-2 px-6 py-3 bg-white rounded-full border border-gray-200 text-xs font-bold text-gray-600 shadow-sm hover:border-black transition-all"
-								>
-									📍 {selectedProvince}
-									<svg className={`w-3 h-3 transition-transform ${showProvinceDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7" /></svg>
-								</button>
-
-								{showProvinceDropdown && (
-									<>
-										<div className="fixed inset-0 z-10" onClick={() => setShowProvinceDropdown(false)}></div>
-										<div className="absolute top-full left-0 mt-2 w-64 bg-white border border-gray-100 rounded-2xl shadow-2xl py-2 z-20 animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
-											<div className="max-h-80 overflow-y-auto">
-												{PROVINCES.map((province) => (
-													<button
-														key={province}
-														onClick={() => {
-															setSelectedProvince(province);
-															setShowProvinceDropdown(false);
-														}}
-														className={`w-full text-left px-6 py-3 text-xs font-bold transition-colors hover:bg-gray-50 ${selectedProvince === province ? 'text-indigo-600 bg-indigo-50/50' : 'text-gray-600'}`}
-													>
-														{province}
-													</button>
-												))}
-											</div>
-										</div>
-									</>
-								)}
+						{/* Section: Trending (Horizontal Scroll) */}
+						<div className="mb-10">
+							<div className="px-6 md:px-0 flex justify-between items-end mb-4">
+								<h2 className="text-xl md:text-2xl font-black tracking-tight">กำลังมาแรง 🔥</h2>
+								<button className="text-xs font-bold text-indigo-600 hover:text-indigo-800">ดูทั้งหมด</button>
 							</div>
 
-							{/* Date Selector */}
-							<div className="relative group">
-								<div className="flex items-center gap-2 px-6 py-3 bg-white rounded-full border border-gray-200 text-xs font-bold text-gray-600 shadow-sm hover:border-black transition-all">
-									📅 {formatDateLabel(selectedDate)}
-									<input
-										type="date"
-										value={selectedDate}
-										onChange={(e) => setSelectedDate(e.target.value)}
-										className="absolute inset-0 opacity-0 cursor-pointer w-full"
-									/>
-									{selectedDate && (
-										<button onClick={(e) => { e.stopPropagation(); setSelectedDate(''); }} className="ml-1 text-gray-300 hover:text-black">✕</button>
-									)}
+							{loading ? (
+								<div className="flex px-6 gap-4 overflow-x-auto no-scrollbar">
+									{[1, 2, 3].map(i => <div key={i} className="min-w-[280px] h-[340px] bg-gray-100 rounded-3xl animate-pulse" />)}
 								</div>
-							</div>
-
-							{/* Category Selector */}
-							<div className="relative">
-								<button
-									onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
-									className="flex items-center gap-2 px-6 py-3 bg-black text-white rounded-full text-xs font-bold shadow-lg shadow-black/10 hover:bg-gray-800 transition-all"
-								>
-									✨ {selectedCategory}
-									<svg className={`w-3 h-3 transition-transform ${showCategoryDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7" /></svg>
-								</button>
-
-								{showCategoryDropdown && (
-									<>
-										<div className="fixed inset-0 z-10" onClick={() => setShowCategoryDropdown(false)}></div>
-										<div className="absolute top-full left-0 mt-2 w-48 bg-white border border-gray-100 rounded-2xl shadow-2xl py-2 z-20 animate-in fade-in zoom-in-95 duration-200">
-											{CATEGORIES.map((cat) => (
-												<button
-													key={cat}
-													onClick={() => {
-														setSelectedCategory(cat);
-														setShowCategoryDropdown(false);
-													}}
-													className={`w-full text-left px-6 py-3 text-xs font-bold transition-colors hover:bg-gray-50 ${selectedCategory === cat ? 'text-indigo-600 bg-indigo-50/50' : 'text-gray-600'}`}
-												>
-													{cat}
-												</button>
-											))}
+							) : (
+								<div className="flex px-6 md:px-0 gap-4 overflow-x-auto no-scrollbar pb-4 snap-x snap-mandatory">
+									{trips.map((trip) => (
+										<div key={trip.id} className="min-w-[85%] md:min-w-[320px] snap-center">
+											<TripCard trip={trip} onClick={setSelectedTrip} />
 										</div>
-									</>
-								)}
+									))}
+								</div>
+							)}
+						</div>
+
+						{/* Section: Suggest for You */}
+						<div className="mb-24 md:mb-12 px-6 md:px-0">
+							<div className="flex justify-between items-end mb-4">
+								<h2 className="text-xl md:text-2xl font-black tracking-tight">แนะนำสำหรับคุณ ✨</h2>
+							</div>
+							<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+								{trips.slice(0, 3).map((trip) => (
+									<TripCard key={trip.id} trip={trip} onClick={setSelectedTrip} />
+								))}
 							</div>
 						</div>
 
-						{/* Trips Grid */}
-						{loading ? (
-							<div className="flex justify-center py-20">
-								<div className="w-10 h-10 border-4 border-black border-t-transparent rounded-full animate-spin"></div>
-							</div>
-						) : (
-							<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-								{trips.length > 0 ? (
-									trips.map((trip) => (
-										<TripCard key={trip.id} trip={trip} onClick={setSelectedTrip} />
-									))
-								) : (
-									<div className="col-span-full py-20 text-center border border-dashed border-gray-200 rounded-3xl bg-gray-50/50">
-										<p className="text-gray-400 font-medium">
-											ไม่พบกิจกรรมในตอนนี้ ลองเปลี่ยนเงื่อนไขการค้นหาดูนะ
-										</p>
-										<button
-											onClick={() => {
-												setSelectedProvince('ทุกจังหวัด');
-												setSelectedDate('');
-												setSelectedCategory('ทุกหมวดหมู่');
-												setActiveTab('มาใหม่');
-											}}
-											className="mt-4 text-xs font-bold text-indigo-600 hover:underline"
-										>
-											ดูทริปมาใหม่ทั้งหมด
-										</button>
-									</div>
-								)}
-							</div>
-						)}
 					</div>
 				) : (
 					<TripDetails trip={selectedTrip} onBack={() => setSelectedTrip(null)} />
 				)}
 			</main>
+
+			{/* Sidebar / Bottom Nav handled globally */}
 		</div>
 	);
 };

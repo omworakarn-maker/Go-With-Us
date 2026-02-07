@@ -9,7 +9,7 @@ const Activities: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#FFFFFF] flex flex-col text-[#121212]">
 
-      <main className="flex-1 w-full max-w-6xl mx-auto px-6 pt-32 pb-24">
+      <main className="flex-1 w-full max-w-6xl mx-auto px-6 pt-8 pb-24">
         <h1 className="text-4xl font-black mb-8">Coming Soon</h1>
       </main>
     </div>
