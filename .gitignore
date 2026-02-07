@@ -72,9 +72,5 @@ dev-dist
 # Test scripts
 test-*.js
 
-# Mobile
-mobile/
-android/
-ios/
-native-ios/
+
 

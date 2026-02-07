@@ -1,0 +1,100 @@
+import Foundation
+import Combine
+
+// MARK: - Auth ViewModel
+@MainActor
+class AuthViewModel: ObservableObject {
+    @Published var email = ""
+    @Published var password = ""
+    @Published var name = ""
+    @Published var isLoading = false
+    @Published var errorMessage: String?
+    @Published var isAuthenticated = false
+    @Published var currentUser: User?
+    
+    init() {
+        checkAuthStatus()
+    }
+    
+    // MARK: - Check Auth Status
+    func checkAuthStatus() {
+        isAuthenticated = AuthService.shared.isLoggedIn()
+        
+        if isAuthenticated {
+            Task {
+                await loadCurrentUser()
+            }
+        }
+    }
+    
+    // MARK: - Load Current User
+    func loadCurrentUser() async {
+        do {
+            currentUser = try await AuthService.shared.getCurrentUser()
+        } catch {
+            // Token might be expired, logout
+            logout()
+        }
+    }
+    
+    // MARK: - Login
+    func login() async {
+        guard !email.isEmpty, !password.isEmpty else {
+            errorMessage = "กรุณากรอกอีเมลและรหัสผ่าน"
+            return
+        }
+        
+        isLoading = true
+        errorMessage = nil
+        
+        do {
+            print("🔐 Starting login...")
+            let user = try await AuthService.shared.login(email: email, password: password)
+            print("✅ Login successful! User: \(user.name)")
+            currentUser = user
+            isAuthenticated = true
+            print("✅ isAuthenticated set to: \(isAuthenticated)")
+        } catch {
+            print("❌ Login failed: \(error.localizedDescription)")
+            errorMessage = error.localizedDescription
+        }
+        
+        isLoading = false
+    }
+    
+    // MARK: - Register
+    func register() async {
+        guard !name.isEmpty, !email.isEmpty, !password.isEmpty else {
+            errorMessage = "กรุณากรอกข้อมูลให้ครบถ้วน"
+            return
+        }
+        
+        guard password.count >= 6 else {
+            errorMessage = "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร"
+            return
+        }
+        
+        isLoading = true
+        errorMessage = nil
+        
+        do {
+            let user = try await AuthService.shared.register(name: name, email: email, password: password)
+            currentUser = user
+            isAuthenticated = true
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        
+        isLoading = false
+    }
+    
+    // MARK: - Logout
+    func logout() {
+        AuthService.shared.logout()
+        isAuthenticated = false
+        currentUser = nil
+        email = ""
+        password = ""
+        name = ""
+    }
+}
