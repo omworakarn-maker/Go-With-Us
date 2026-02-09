@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 
 struct CreateTripView: View {
     @Environment(\.dismiss) private var dismiss
@@ -11,6 +12,8 @@ struct CreateTripView: View {
     @State private var maxParticipants = "10"
     @State private var selectedCategory: TripCategory = .adventure
     @State private var imageUrl = ""
+    @State private var selectedItem: PhotosPickerItem? = nil
+    @State private var selectedImage: UIImage? = nil
     @State private var isLoading = false
     @State private var errorMessage: String?
     
@@ -40,8 +43,12 @@ struct CreateTripView: View {
                             // Title
                             FormField(label: "ชื่อทริป", placeholder: "เช่น เที่ยวเชียงใหม่ 3 วัน 2 คืน", text: $title)
                             
-                            // Image URL
-                            FormField(label: "URL รูปภาพ หรือ ชื่อรูปใน Assets", placeholder: "เช่น https://... หรือ trip_chiangmai", text: $imageUrl)
+                            // Image Section
+                            TripImagePickerView(
+                                selectedItem: $selectedItem,
+                                selectedImage: $selectedImage,
+                                imageUrl: $imageUrl
+                            )
                             
                             // Destination
                             FormField(label: "สถานที่", placeholder: "เช่น เชียงใหม่", text: $destination)
@@ -99,45 +106,7 @@ struct CreateTripView: View {
                             }
                             
                             // Dates
-                            HStack(spacing: 12) {
-                                VStack(alignment: .leading, spacing: 8) {
-                                    Text("วันเริ่ม")
-                                        .font(.system(size: 11, weight: .bold))
-                                        .foregroundColor(.gray)
-                                        .textCase(.uppercase)
-                                        .tracking(1)
-                                    
-                                    DatePicker("", selection: $startDate, displayedComponents: .date)
-                                        .labelsHidden()
-                                        .frame(maxWidth: .infinity)
-                                        .padding()
-                                        .background(Color.gray.opacity(0.05))
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 12)
-                                                .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                                        )
-                                        .cornerRadius(12)
-                                }
-                                
-                                VStack(alignment: .leading, spacing: 8) {
-                                    Text("วันสิ้นสุด")
-                                        .font(.system(size: 11, weight: .bold))
-                                        .foregroundColor(.gray)
-                                        .textCase(.uppercase)
-                                        .tracking(1)
-                                    
-                                    DatePicker("", selection: $endDate, displayedComponents: .date)
-                                        .labelsHidden()
-                                        .frame(maxWidth: .infinity)
-                                        .padding()
-                                        .background(Color.gray.opacity(0.05))
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 12)
-                                                .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                                        )
-                                        .cornerRadius(12)
-                                }
-                            }
+                            TripDateInputView(startDate: $startDate, endDate: $endDate)
                             
                             // Budget & Max Participants
                             HStack(spacing: 12) {
@@ -224,7 +193,7 @@ struct CreateTripView: View {
         
         Task {
             do {
-                let trip = try await TripService.shared.createTrip(
+                _ = try await TripService.shared.createTrip(
                     title: title,
                     destination: destination,
                     description: description.isEmpty ? "ไม่มีรายละเอียด" : description,
@@ -241,6 +210,142 @@ struct CreateTripView: View {
             } catch {
                 isLoading = false
                 errorMessage = error.localizedDescription
+            }
+        }
+    }
+}
+
+// MARK: - Subviews
+struct TripImagePickerView: View {
+    @Binding var selectedItem: PhotosPickerItem?
+    @Binding var selectedImage: UIImage?
+    @Binding var imageUrl: String
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("รูปภาพ")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundColor(.gray)
+                .textCase(.uppercase)
+                .tracking(1)
+            
+            if let selectedImage = selectedImage {
+                Image(uiImage: selectedImage)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(height: 200)
+                    .frame(maxWidth: .infinity)
+                    .cornerRadius(12)
+                    .clipped()
+                    .overlay(
+                        Button(action: {
+                            self.selectedImage = nil
+                            self.selectedItem = nil
+                            self.imageUrl = ""
+                        }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(.white)
+                                .padding(8)
+                                .background(Color.black.opacity(0.5))
+                                .clipShape(Circle())
+                        }
+                        .padding(8),
+                        alignment: .topTrailing
+                    )
+            } else {
+                PhotosPicker(selection: $selectedItem, matching: .images, photoLibrary: .shared()) {
+                    VStack(spacing: 8) {
+                        Image(systemName: "photo.badge.plus")
+                            .font(.system(size: 32))
+                        Text("เลือกรูปภาพจากเครื่อง")
+                            .font(.system(size: 14, weight: .bold))
+                    }
+                    .foregroundColor(.gray)
+                    .frame(height: 120)
+                    .frame(maxWidth: .infinity)
+                    .background(Color.gray.opacity(0.05))
+                    .cornerRadius(12)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.gray.opacity(0.2), style: StrokeStyle(lineWidth: 1, dash: [5]))
+                    )
+                }
+                .onChange(of: selectedItem) { _, newItem in
+                    Task {
+                        if let data = try? await newItem?.loadTransferable(type: Data.self),
+                           let image = UIImage(data: data) {
+                            selectedImage = image
+                            // Compress and convert to Base64
+                            if let compressedData = image.jpegData(compressionQuality: 0.6) {
+                                let base64String = compressedData.base64EncodedString()
+                                imageUrl = "data:image/jpeg;base64,\(base64String)"
+                            }
+                        }
+                    }
+                }
+                
+                // Fallback URL input
+                Text("หรือใส่ URL / ชื่อรูปใน Assets")
+                    .font(.system(size: 10))
+                    .foregroundColor(.gray)
+                    .padding(.top, 4)
+                
+                TextField("https://... หรือ trip_chiangmai", text: $imageUrl)
+                    .foregroundColor(.black)
+                    .padding()
+                    .background(Color.gray.opacity(0.05))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                    )
+                    .cornerRadius(12)
+            }
+        }
+    }
+}
+
+struct TripDateInputView: View {
+    @Binding var startDate: Date
+    @Binding var endDate: Date
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("วันเริ่ม")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(.gray)
+                    .textCase(.uppercase)
+                    .tracking(1)
+                
+                DatePicker("", selection: $startDate, displayedComponents: .date)
+                    .labelsHidden()
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.gray.opacity(0.05))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                    )
+                    .cornerRadius(12)
+            }
+            
+            VStack(alignment: .leading, spacing: 8) {
+                Text("วันสิ้นสุด")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(.gray)
+                    .textCase(.uppercase)
+                    .tracking(1)
+                
+                DatePicker("", selection: $endDate, displayedComponents: .date)
+                    .labelsHidden()
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.gray.opacity(0.05))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                    )
+                    .cornerRadius(12)
             }
         }
     }

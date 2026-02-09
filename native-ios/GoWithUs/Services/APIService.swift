@@ -4,9 +4,9 @@ import Foundation
 class APIService {
     static let shared = APIService()
     
-    // Base URL - Backend running locally
-    // Use Mac's IP address for iOS Simulator to connect
-    private let baseURL = "http://192.168.1.88:3000/api"
+    // Base URL - Production (Vercel)
+    private let baseURL = "https://go-with-us.vercel.app/api"
+    // private let baseURL = "http://192.168.1.88:3000/api" // Local backup
     
     private init() {}
     

@@ -97,4 +97,18 @@ class AuthViewModel: ObservableObject {
         password = ""
         name = ""
     }
+    
+    // MARK: - Update Profile
+    func updateProfile(name: String, interests: [String]) async {
+        isLoading = true
+        errorMessage = nil
+        
+        do {
+            currentUser = try await AuthService.shared.updateProfile(name: name, interests: interests)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        
+        isLoading = false
+    }
 }

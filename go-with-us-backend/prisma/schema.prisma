@@ -80,21 +80,38 @@ model Participant {
 
 // Message model (for both group chat and private chat)
 model Message {
-  id          String   @id @default(uuid())
-  content     String   @db.Text
-  senderId    String   @map("sender_id")
-  recipientId String?  @map("recipient_id") // For private chat (null = group chat)
-  tripId      String?  @map("trip_id")      // For group chat (null = private chat)
-  createdAt   DateTime @default(now()) @map("created_at")
+  id         String   @id @default(uuid())
+  content    String   @db.Text
+  senderId   String   @map("sender_id")
+  receiverId String?  @map("receiver_id") // Null for group messages
+  tripId     String?  @map("trip_id") // For group chat
+  createdAt  DateTime @default(now()) @map("created_at")
+  isRead     Boolean  @default(false) @map("is_read")
   
   // Relations
-  sender    User  @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
-  recipient User? @relation("ReceivedMessages", fields: [recipientId], references: [id], onDelete: Cascade)
-  trip      Trip? @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  sender   User  @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver User? @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+  trip     Trip? @relation(fields: [tripId], references: [id], onDelete: Cascade)
   
   @@map("messages")
   @@index([senderId])
-  @@index([recipientId])
+  @@index([receiverId])
   @@index([tripId])
+}
+
+// Notification model
+model Notification {
+  id        String   @id @default(uuid())
+  title     String
+  message   String?  @db.Text
+  type      String   @default("alert") // "alert", "trip", "system"
+  targetId  String?  @map("target_id") // Trip ID if type is "trip"
+  userId    String?  @map("user_id") // Null = send to all users
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  @@map("notifications")
+  @@index([userId])
+  @@index([targetId])
   @@index([createdAt])
 }

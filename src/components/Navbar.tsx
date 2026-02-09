@@ -1,8 +1,10 @@
-﻿import React, { useState } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { useModal } from '../contexts/ModalContext';
+import NotificationDropdown from './NotificationDropdown';
+import { notificationService } from '../services/notificationService';
 
 
 
@@ -17,6 +19,27 @@ const Navbar: React.FC<NavbarProps> = ({ onCreateActivity }) => {
   const { openCreateModal } = useModal();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // Poll for unread notifications every 30 seconds
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const loadUnreadCount = async () => {
+      try {
+        const count = await notificationService.getUnreadCount();
+        setUnreadCount(count);
+      } catch (error) {
+        console.error('Error loading unread count:', error);
+      }
+    };
+
+    loadUnreadCount();
+    const interval = setInterval(loadUnreadCount, 30000);
+
+    return () => clearInterval(interval);
+  }, [isAuthenticated]);
 
   const handleCreateClick = () => {
     if (!isAuthenticated) {
@@ -59,7 +82,7 @@ const Navbar: React.FC<NavbarProps> = ({ onCreateActivity }) => {
               <Link to="/" className={`text-xs font-bold transition-colors uppercase tracking-widest ${location.pathname === '/' ? 'text-black' : 'text-gray-400 hover:text-black'}`}>หน้าหลัก</Link>
               <Link to="/explore" className={`text-xs font-bold transition-colors uppercase tracking-widest ${location.pathname === '/explore' ? 'text-black' : 'text-gray-400 hover:text-black'}`}>ที่ปรึกษา</Link>
               <Link to="/find-buddy" className={`text-xs font-bold transition-colors uppercase tracking-widest ${location.pathname === '/find-buddy' ? 'text-black' : 'text-gray-400 hover:text-black'}`}>หาเพื่อน</Link>
-              <Link to="/activities" className={`text-xs font-bold transition-colors uppercase tracking-widest ${location.pathname === '/activities' ? 'text-black' : 'text-gray-400 hover:text-black'}`}>กิจกรรม</Link>
+              <Link to="/activities" className={`text-xs font-bold transition-colors uppercase tracking-widest ${location.pathname === '/activities' ? 'text-black' : 'text-gray-400 hover:text-black'}`}>แมตช์ทริป</Link>
               <Link to="/mytrips" className={`text-xs font-bold transition-colors uppercase tracking-widest ${location.pathname === '/mytrips' ? 'text-black' : 'text-gray-400 hover:text-black'}`}>ทริปของฉัน</Link>
             </div>
             <div className="flex items-center gap-2">
@@ -95,6 +118,28 @@ const Navbar: React.FC<NavbarProps> = ({ onCreateActivity }) => {
                       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                     </svg>
                   </Link>
+
+                  {/* Notification Bell */}
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowNotifications(!showNotifications)}
+                      className="w-9 h-9 bg-white border border-gray-200 text-gray-600 rounded-full flex items-center justify-center hover:bg-black hover:text-white hover:border-black transition-all shadow-sm active:scale-95 relative"
+                      title="การแจ้งเตือน"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                      </svg>
+                      {unreadCount > 0 && (
+                        <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                          {unreadCount > 9 ? '9+' : unreadCount}
+                        </div>
+                      )}
+                    </button>
+                    <NotificationDropdown
+                      isOpen={showNotifications}
+                      onClose={() => setShowNotifications(false)}
+                    />
+                  </div>
 
                   <div className="relative">
                     <button
@@ -233,7 +278,7 @@ const Navbar: React.FC<NavbarProps> = ({ onCreateActivity }) => {
                   onClick={() => setShowMobileMenu(false)}
                   className={`block px-4 py-3 rounded-xl text-sm font-bold transition-colors ${location.pathname === '/activities' ? 'bg-black text-white' : 'text-gray-600 hover:bg-gray-50'}`}
                 >
-                  กิจกรรม
+                  แมตช์ทริป
                 </Link>
                 <Link
                   to="/mytrips"

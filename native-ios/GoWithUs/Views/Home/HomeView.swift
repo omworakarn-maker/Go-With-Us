@@ -2,11 +2,12 @@ import SwiftUI
 
 struct HomeView: View {
     @StateObject private var viewModel = TripListViewModel()
-
+    @State private var showNotifications = false
+    @State private var unreadCount = 0
 
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ZStack(alignment: .bottomTrailing) {
                 Color.white
                     .ignoresSafeArea()
@@ -14,15 +15,46 @@ struct HomeView: View {
                 VStack(spacing: 0) {
                     // Header
                     VStack(spacing: 16) {
-                        // Title & Segmented Control
+                        // Title & Menu
                         HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("GoWithUs")
-                                    .font(.system(size: 28, weight: .black))
+                            Button(action: {
+                                // Action for menu (e.g., open drawer)
+                                print("Menu tapped")
+                            }) {
+                                Image(systemName: "line.3.horizontal")
+                                    .font(.system(size: 24, weight: .bold))
                                     .foregroundColor(.black)
-                                    .tracking(-1)
                             }
+                            
                             Spacer()
+                            
+                            Text("GoWithUs")
+                                .font(.system(size: 28, weight: .black))
+                                .foregroundColor(.black)
+                                .tracking(-1)
+                            
+                            Spacer()
+                            
+                            // Notification Bell
+                            Button(action: {
+                                showNotifications = true
+                            }) {
+                                ZStack(alignment: .topTrailing) {
+                                    Image(systemName: "bell.fill")
+                                        .font(.system(size: 22, weight: .bold))
+                                        .foregroundColor(.black)
+                                    
+                                    if unreadCount > 0 {
+                                        Text("\(unreadCount)")
+                                            .font(.system(size: 10, weight: .bold))
+                                            .foregroundColor(.white)
+                                            .padding(4)
+                                            .background(Color.red)
+                                            .clipShape(Circle())
+                                            .offset(x: 8, y: -8)
+                                    }
+                                }
+                            }
                         }
                         .padding(.horizontal)
                         .padding(.top, 8)
@@ -129,6 +161,7 @@ struct HomeView: View {
                                 }
                             }
                             .padding()
+                            .padding(.bottom, 100)
                         }
                         .refreshable {
                             await viewModel.loadTrips()
@@ -137,9 +170,21 @@ struct HomeView: View {
                 }
             }
             .navigationBarHidden(true)
+            .sheet(isPresented: $showNotifications) {
+                NotificationView()
+            }
         }
         .task {
             await viewModel.loadTrips()
+            await loadUnreadCount()
+        }
+    }
+    
+    private func loadUnreadCount() async {
+        do {
+            unreadCount = try await NotificationService.shared.getUnreadCount()
+        } catch {
+            print("Error loading unread count: \(error)")
         }
     }
 }

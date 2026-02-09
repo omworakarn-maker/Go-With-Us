@@ -18,6 +18,7 @@ struct ContentView: View {
 struct MainTabView: View {
     @State private var selectedTab: Tab = .home
     @State private var showingCreateTrip = false
+    @State private var isTabBarHidden = false
     
     // Hide default tab bar
     init() {
@@ -45,11 +46,19 @@ struct MainTabView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 
                 // Custom Tab Bar
-                CustomTabBar(selectedTab: $selectedTab, onCreateTap: {
-                    showingCreateTrip = true
-                }, bottomPadding: geometry.safeAreaInsets.bottom)
+                if !isTabBarHidden {
+                    CustomTabBar(selectedTab: $selectedTab, onCreateTap: {
+                        showingCreateTrip = true
+                    }, bottomPadding: geometry.safeAreaInsets.bottom)
+                    .transition(.move(edge: .bottom))
+                }
             }
             .edgesIgnoringSafeArea(.bottom) // Allow tab bar to extend to bottom
+            .onPreferenceChange(TabBarHiddenKey.self) { hidden in
+                withAnimation {
+                    self.isTabBarHidden = hidden
+                }
+            }
             .sheet(isPresented: $showingCreateTrip) {
                 CreateTripView()
             }

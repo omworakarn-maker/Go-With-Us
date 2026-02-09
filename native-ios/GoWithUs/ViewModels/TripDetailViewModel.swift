@@ -14,9 +14,9 @@ class TripDetailViewModel: ObservableObject {
     @Published var isDeleting = false
     
     let tripId: String
-    private var currentUserId: String? {
-        // Get from AuthService or UserDefaults
-        return KeychainService.shared.getToken() != nil ? "current-user-id" : nil
+    
+    var currentUserId: String? {
+        return AuthService.shared.getCurrentUserId()
     }
     
     init(tripId: String) {
@@ -54,18 +54,23 @@ class TripDetailViewModel: ObservableObject {
     }
     
     // MARK: - Join Trip
-    func joinTrip(interests: [String]) async {
+    func joinTrip(interests: [String]) async -> Bool {
         isJoining = true
         errorMessage = nil
         
         do {
-            trip = try await TripService.shared.joinTrip(id: tripId, interests: interests)
+            // Get current user's name
+            let user = try await AuthService.shared.getCurrentUser()
+            
+            trip = try await TripService.shared.joinTrip(id: tripId, name: user.name, interests: interests)
             showJoinSheet = false
+            isJoining = false
+            return true
         } catch {
             errorMessage = error.localizedDescription
+            isJoining = false
+            return false
         }
-        
-        isJoining = false
     }
     
     // MARK: - Leave Trip

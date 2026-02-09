@@ -12,6 +12,7 @@ struct Trip: Codable, Identifiable {
     let maxParticipants: Int
     let category: TripCategory
     let imageUrl: String? // Added for image display
+    let gallery: [String]? // Added for additional images
     let creatorId: String
     let creator: User
     let participants: [Participant]?  // Optional since backend doesn't always include it
@@ -31,6 +32,7 @@ struct Trip: Codable, Identifiable {
         maxParticipants: Int,
         category: TripCategory,
         imageUrl: String? = nil,
+        gallery: [String]? = nil,
         creator: User,
         participants: [Participant]? = nil,
         creatorId: String? = nil,
@@ -48,6 +50,7 @@ struct Trip: Codable, Identifiable {
         self.maxParticipants = maxParticipants
         self.category = category
         self.imageUrl = imageUrl
+        self.gallery = gallery
         self.creator = creator
         self.participants = participants
         self.creatorId = creatorId ?? creator.id
@@ -87,26 +90,39 @@ enum TripCategory: String, Codable, CaseIterable {
     case adventure = "ผจญภัย"
     case beach = "ทะเล"
     case mountain = "ภูเขา"
+    case camping = "แคมป์ปิ้ง"
     case city = "เมือง"
     case culture = "วัฒนธรรม"
+    case history = "ประวัติศาสตร์"
     case food = "อาหาร"
+    case cafe = "คาเฟ่"
     case nature = "ธรรมชาติ"
+    case photography = "ถ่ายรูป"
     case shopping = "ช้อปปิ้ง"
     case sport = "กีฬา"
+    case party = "ปาร์ตี้"
+    case volunteer = "จิตอาสา"
+    case family = "ครอบครัว"
     case other = "อื่นๆ"
     
     var icon: String {
         switch self {
-        case .adventure: return "🏔️"
+        case .adventure: return "🧗"
         case .beach: return "🏖️"
         case .mountain: return "⛰️"
+        case .camping: return "⛺"
         case .city: return "🏙️"
         case .culture: return "🎭"
+        case .history: return "🏛️"
         case .food: return "🍜"
-        case .nature: return "🌿"
-
+        case .cafe: return "☕"
+        case .nature: return "🌳"
+        case .photography: return "📸"
         case .shopping: return "🛍️"
-        case .sport: return "⚽️"
+        case .sport: return "🏃"
+        case .party: return "🎉"
+        case .volunteer: return "🤝"
+        case .family: return "👨‍👩‍👧‍👦"
         case .other: return "✨"
         }
     }
@@ -116,12 +132,19 @@ enum TripCategory: String, Codable, CaseIterable {
         case .adventure: return "category_adventure"
         case .beach: return "category_beach"
         case .mountain: return "category_mountain"
+        case .camping: return "category_camping" // Ensure asset exists or use placeholder logic
         case .city: return "category_city"
         case .culture: return "category_culture"
+        case .history: return "category_history"
         case .food: return "category_food"
+        case .cafe: return "category_cafe"
         case .nature: return "category_nature"
+        case .photography: return "category_photography"
         case .shopping: return "category_shopping"
         case .sport: return "category_sport"
+        case .party: return "category_party"
+        case .volunteer: return "category_volunteer"
+        case .family: return "category_family"
         case .other: return "category_other"
         }
     }

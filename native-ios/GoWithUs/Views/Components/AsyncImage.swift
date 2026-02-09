@@ -23,7 +23,7 @@ struct CustomAsyncImage: View {
         .onAppear {
             loader.load(from: url)
         }
-        .onChange(of: url) { newUrl in
+        .onChange(of: url) { _, newUrl in
             loader.load(from: newUrl)
         }
     }

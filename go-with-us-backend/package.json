@@ -25,5 +25,8 @@
     "@types/jsonwebtoken": "^9.0.10",
     "nodemon": "latest",
     "prisma": "^5.22.0"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
   }
 }

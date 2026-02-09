@@ -3,9 +3,12 @@ import SwiftUI
 struct ProfileView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @State private var showLogoutAlert = false
+    @State private var showEditProfile = false
+    @State private var showAdminAlert = false
     
     var body: some View {
-        NavigationView {
+
+        NavigationStack {
             ZStack {
                 Color.white
                     .ignoresSafeArea()
@@ -86,6 +89,22 @@ struct ProfileView: View {
                                 }
                             }
                             
+                            // Admin Alert Button (Admin Only)
+                            if user.role == .admin {
+                                Button(action: { showAdminAlert = true }) {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: "bell.badge.fill")
+                                        Text("สร้างการแจ้งเตือน")
+                                            .font(.system(size: 15, weight: .bold))
+                                    }
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 16)
+                                    .background(Color.black)
+                                    .cornerRadius(12)
+                                }
+                            }
+                            
                             // Logout Button
                             Button(action: { showLogoutAlert = true }) {
                                 HStack(spacing: 8) {
@@ -119,6 +138,21 @@ struct ProfileView: View {
             }
             .navigationTitle("โปรไฟล์")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("แก้ไข") {
+                        showEditProfile = true
+                    }
+                    .foregroundColor(.black)
+                }
+            }
+            .sheet(isPresented: $showEditProfile) {
+                EditProfileView()
+                    .environmentObject(authViewModel)
+            }
+            .sheet(isPresented: $showAdminAlert) {
+                AdminAlertView()
+            }
         }
         .alert("ออกจากระบบ", isPresented: $showLogoutAlert) {
             Button("ยกเลิก", role: .cancel) {}

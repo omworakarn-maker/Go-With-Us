@@ -5,6 +5,12 @@ struct TripDetailView: View {
     @StateObject private var viewModel: TripDetailViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var showDeleteAlert = false
+    @State private var selectedImage: ImageViewerItem? = nil
+    
+    struct ImageViewerItem: Identifiable {
+        let id = UUID()
+        let url: String
+    }
     
     init(tripId: String) {
         self.tripId = tripId
@@ -22,12 +28,23 @@ struct TripDetailView: View {
             } else if let trip = viewModel.trip {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
-                        // Image Header
+                        // Image Header (Swipeable)
                         ZStack(alignment: .topLeading) {
-                            if let imageUrl = trip.imageUrl, !imageUrl.isEmpty {
-                                CustomAsyncImage(url: imageUrl)
-                                    .frame(height: 280)
-                                    .clipped()
+                            let allImages = [trip.imageUrl].compactMap { $0 } + (trip.gallery ?? [])
+                            
+                            if !allImages.isEmpty {
+                                TabView {
+                                    ForEach(allImages, id: \.self) { imageUrl in
+                                        CustomAsyncImage(url: imageUrl)
+                                            .frame(height: 280)
+                                            .clipped()
+                                            .onTapGesture {
+                                                selectedImage = ImageViewerItem(url: imageUrl)
+                                            }
+                                    }
+                                }
+                                .tabViewStyle(.page)
+                                .frame(height: 280)
                             } else {
                                 Image("sosuke")
                                     .resizable()
@@ -36,16 +53,38 @@ struct TripDetailView: View {
                                     .clipped()
                             }
                             
-                            // Back Button
-                            Button(action: { dismiss() }) {
-                                Circle()
-                                    .fill(Color.white)
-                                    .frame(width: 40, height: 40)
-                                    .overlay(
-                                        Image(systemName: "arrow.left")
-                                            .font(.system(size: 16, weight: .semibold))
-                                            .foregroundColor(.black)
-                                    )
+                            // Header Buttons
+                            HStack {
+                                Button(action: { dismiss() }) {
+                                    Circle()
+                                        .fill(Color.white)
+                                        .frame(width: 40, height: 40)
+                                        .overlay(
+                                            Image(systemName: "arrow.left")
+                                                .font(.system(size: 16, weight: .semibold))
+                                                .foregroundColor(.black)
+                                        )
+                                }
+                                
+                                Spacer()
+                                
+                                // Chat Button (Group Chat)
+                                if viewModel.hasJoined {
+                                    NavigationLink(destination: ChatDetailView(
+                                        chatTitle: trip.title,
+                                        tripId: trip.id,
+                                        partnerId: nil
+                                    )) {
+                                        Circle()
+                                            .fill(Color.white)
+                                            .frame(width: 40, height: 40)
+                                            .overlay(
+                                                Image(systemName: "message.fill")
+                                                    .font(.system(size: 16, weight: .semibold))
+                                                    .foregroundColor(.black)
+                                            )
+                                    }
+                                }
                             }
                             .padding()
                         }
@@ -88,6 +127,32 @@ struct TripDetailView: View {
                                     .font(.system(size: 14))
                                     .foregroundColor(.gray)
                                     .lineSpacing(4)
+                            }
+                            
+                            // Gallery Section
+                            if let gallery = trip.gallery, !gallery.isEmpty {
+                                Divider()
+                                    .background(Color.gray.opacity(0.2))
+                                
+                                VStack(alignment: .leading, spacing: 12) {
+                                    Text("รูปภาพเพิ่มเติม")
+                                        .font(.system(size: 16, weight: .bold))
+                                        .foregroundColor(.black)
+                                    
+                                    ScrollView(.horizontal, showsIndicators: false) {
+                                        HStack(spacing: 12) {
+                                            ForEach(gallery, id: \.self) { imageUrl in
+                                                CustomAsyncImage(url: imageUrl)
+                                                    .frame(width: 200, height: 150)
+                                                    .cornerRadius(12)
+                                                    .clipped()
+                                                    .onTapGesture {
+                                                        selectedImage = ImageViewerItem(url: imageUrl)
+                                                    }
+                                            }
+                                        }
+                                    }
+                                }
                             }
                             
                             Divider()
@@ -138,25 +203,65 @@ struct TripDetailView: View {
                                         .foregroundColor(.black)
                                     
                                     ForEach(participants) { participant in
-                                        HStack(spacing: 12) {
-                                            Circle()
-                                                .fill(Color.gray.opacity(0.2))
-                                                .frame(width: 36, height: 36)
-                                                .overlay(
-                                                    Text(String((participant.user?.name ?? participant.name).prefix(1)))
-                                                        .font(.system(size: 14, weight: .bold))
+                                        let isCurrentUser = participant.userId == viewModel.currentUserId
+                                        
+                                        if isCurrentUser {
+                                            // Current user - not tappable
+                                            HStack(spacing: 12) {
+                                                Circle()
+                                                    .fill(Color.gray.opacity(0.2))
+                                                    .frame(width: 36, height: 36)
+                                                    .overlay(
+                                                        Text(String((participant.user?.name ?? participant.name).prefix(1)))
+                                                            .font(.system(size: 14, weight: .bold))
+                                                            .foregroundColor(.black)
+                                                    )
+                                                
+                                                Text(participant.user?.name ?? participant.name)
+                                                    .font(.system(size: 14, weight: .medium))
+                                                    .foregroundColor(.black)
+                                                
+                                                Spacer()
+                                                
+                                                Text("(คุณ)")
+                                                    .font(.system(size: 12, weight: .medium))
+                                                    .foregroundColor(.gray)
+                                            }
+                                        } else {
+                                            // Other participants - tappable for private chat
+                                            NavigationLink(destination: ChatDetailView(
+                                                chatTitle: participant.user?.name ?? participant.name,
+                                                tripId: nil,
+                                                partnerId: participant.userId
+                                            )) {
+                                                HStack(spacing: 12) {
+                                                    Circle()
+                                                        .fill(Color.gray.opacity(0.2))
+                                                        .frame(width: 36, height: 36)
+                                                        .overlay(
+                                                            Text(String((participant.user?.name ?? participant.name).prefix(1)))
+                                                                .font(.system(size: 14, weight: .bold))
+                                                                .foregroundColor(.black)
+                                                        )
+                                                    
+                                                    Text(participant.user?.name ?? participant.name)
+                                                        .font(.system(size: 14, weight: .medium))
                                                         .foregroundColor(.black)
-                                                )
-                                            
-                                            Text(participant.user?.name ?? participant.name)
-                                                .font(.system(size: 14, weight: .medium))
-                                                .foregroundColor(.black)
+                                                    
+                                                    Spacer()
+                                                    
+                                                    Image(systemName: "chevron.right")
+                                                        .font(.system(size: 12, weight: .semibold))
+                                                        .foregroundColor(.gray)
+                                                }
+                                            }
                                         }
                                     }
                                 }
                             }
                         }
                         .padding(24)
+                        .padding(.bottom, 100)
                     }
                 }
                 
@@ -204,6 +309,18 @@ struct TripDetailView: View {
                                     .background(Color.black)
                                     .cornerRadius(12)
                             }
+                        } else {
+                            // Trip is full
+                            Button(action: {}) {
+                                Text("ทริปเต็มแล้ว")
+                                    .font(.system(size: 15, weight: .bold))
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 16)
+                                    .background(Color.gray)
+                                    .cornerRadius(12)
+                            }
+                            .disabled(true)
                         }
                     }
                     .padding()
@@ -212,6 +329,7 @@ struct TripDetailView: View {
             }
         }
         .navigationBarHidden(true)
+        .hideTabBar(true)
         .task {
             await viewModel.loadTrip()
         }
@@ -230,110 +348,34 @@ struct TripDetailView: View {
         .sheet(isPresented: $viewModel.showJoinSheet) {
             JoinTripSheet(viewModel: viewModel)
         }
-    }
-}
-
-// MARK: - Info Row
-struct InfoRow: View {
-    let icon: String
-    let title: String
-    let value: String
-    
-    var body: some View {
-        HStack(spacing: 12) {
-            Circle()
-                .stroke(Color.black, lineWidth: 1.5)
-                .frame(width: 32, height: 32)
-                .overlay(
-                    Image(systemName: icon)
-                        .font(.system(size: 14))
-                        .foregroundColor(.black)
-                )
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(.gray)
+        .fullScreenCover(item: $selectedImage) { item in
+            ZStack {
+                Color.black.ignoresSafeArea()
                 
-                Text(value)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.black)
-            }
-            
-            Spacer()
-        }
-    }
-}
-
-// MARK: - Join Trip Sheet
-struct JoinTripSheet: View {
-    @ObservedObject var viewModel: TripDetailViewModel
-    @Environment(\.dismiss) private var dismiss
-    @State private var interests = ""
-    
-    var body: some View {
-        NavigationView {
-            VStack(spacing: 24) {
-                VStack(spacing: 8) {
-                    Text("เข้าร่วมทริป")
-                        .font(.system(size: 24, weight: .black))
-                        .foregroundColor(.black)
-                    
-                    Text("บอกเราเกี่ยวกับความสนใจของคุณ")
-                        .font(.system(size: 14))
-                        .foregroundColor(.gray)
-                }
-                .padding(.top, 32)
+                CustomAsyncImage(url: item.url)
+                    .scaledToFit()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("ความสนใจ (ไม่บังคับ)")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundColor(.gray)
-                        .textCase(.uppercase)
-                    
-                    TextField("เช่น ถ่ายรูป, ปีนเขา, ดำน้ำ", text: $interests)
-                        .foregroundColor(.black)
-                        .padding()
-                        .background(Color.gray.opacity(0.05))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                        )
-                        .cornerRadius(12)
-                }
-                
-                Button(action: {
-                    Task {
-                        let interestArray = interests.split(separator: ",").map { String($0.trimmingCharacters(in: .whitespaces)) }
-                        await viewModel.joinTrip(interests: interestArray)
-                        dismiss()
+                VStack {
+                    HStack {
+                        Spacer()
+                        Button(action: { selectedImage = nil }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 30))
+                                .foregroundColor(.white)
+                                .padding()
+                        }
                     }
-                }) {
-                    Text(viewModel.isLoading ? "กำลังเข้าร่วม..." : "ยืนยัน")
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(Color.black)
-                        .cornerRadius(12)
-                }
-                .disabled(viewModel.isLoading)
-                
-                Spacer()
-            }
-            .padding()
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("ปิด") {
-                        dismiss()
-                    }
-                    .foregroundColor(.black)
+                    Spacer()
                 }
             }
         }
     }
 }
+
+
+
+
 
 #Preview {
     TripDetailView(tripId: "1")

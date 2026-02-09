@@ -159,18 +159,27 @@ class TripService {
     }
     
     // MARK: - Join Trip
-    func joinTrip(id: String, interests: [String]) async throws -> Trip {
+    func joinTrip(id: String, name: String, interests: [String]) async throws -> Trip {
         struct JoinTripRequest: Encodable {
+            let name: String
             let interests: [String]
         }
         
-        let request = JoinTripRequest(interests: interests)
+        struct JoinTripResponse: Decodable {
+            let message: String
+            let participant: Participant
+        }
         
-        return try await APIService.shared.request(
+        let request = JoinTripRequest(name: name, interests: interests)
+        
+        let _: JoinTripResponse = try await APIService.shared.request(
             endpoint: "/trips/\(id)/join",
             method: .post,
             body: request
         )
+        
+        // After joining, fetch the updated trip details
+        return try await getTrip(id: id)
     }
     
     // MARK: - Leave Trip

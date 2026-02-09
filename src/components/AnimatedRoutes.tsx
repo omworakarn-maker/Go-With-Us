@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 
 // Pages
 import Home from '../pages/Home';
-import Activities from '../pages/Activities';
+import MatchTrip from '../pages/MatchTrip';
 import MyTrips from '../pages/MyTrips';
 import Explore from '../pages/Explore';
 import CreateActivity from '../pages/CreateActivity';
@@ -14,6 +14,7 @@ import Profile from '../pages/Profile';
 import Chat from '../pages/Chat';
 import SearchPage from '../pages/Search';
 import TripHistory from '../pages/TripHistory';
+import AdminAlert from '../pages/AdminAlert';
 import { TripDetails } from './TripDetails';
 import { CreateTripModal } from './CreateTripModal';
 import ProtectedRoute from './ProtectedRoute';
@@ -148,7 +149,7 @@ const AnimatedRoutes: React.FC = () => {
                                 exit="exit"
                                 className="w-full h-full min-h-screen"
                             >
-                                <Activities />
+                                <MatchTrip />
                             </motion.div>
                         }
                     />
@@ -225,6 +226,14 @@ const AnimatedRoutes: React.FC = () => {
                         }
                     />
                     <Route path="/search" element={<SearchPage />} />
+                    <Route
+                        path="/admin/alerts"
+                        element={
+                            <ProtectedRoute>
+                                <AdminAlert />
+                            </ProtectedRoute>
+                        }
+                    />
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
             </AnimatePresence>

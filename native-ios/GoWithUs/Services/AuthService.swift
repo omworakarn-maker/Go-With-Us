@@ -23,6 +23,8 @@ class AuthService {
         
         // Save token to keychain
         _ = KeychainService.shared.saveToken(response.token)
+        // Save user ID to UserDefaults
+        UserDefaults.standard.set(response.user.id, forKey: "current_user_id")
         
         return response.user
     }
@@ -45,6 +47,8 @@ class AuthService {
         
         // Save token to keychain
         _ = KeychainService.shared.saveToken(response.token)
+        // Save user ID to UserDefaults
+        UserDefaults.standard.set(response.user.id, forKey: "current_user_id")
         
         return response.user
     }
@@ -52,6 +56,7 @@ class AuthService {
     // MARK: - Logout
     func logout() {
         _ = KeychainService.shared.deleteToken()
+        UserDefaults.standard.removeObject(forKey: "current_user_id")
     }
     
     // MARK: - Get Current User
@@ -64,7 +69,42 @@ class AuthService {
             endpoint: "/auth/me",
             method: .get
         )
+        
+        // Update stored user ID just in case
+        UserDefaults.standard.set(response.user.id, forKey: "current_user_id")
+        
         return response.user
+    }
+    
+    // MARK: - Update Profile
+    func updateProfile(name: String, interests: [String]) async throws -> User {
+        struct UpdateProfileRequest: Encodable {
+            let name: String
+            let interests: [String]
+        }
+        
+        struct UpdateProfileResponse: Decodable {
+            let message: String
+            let user: User
+        }
+        
+        let request = UpdateProfileRequest(name: name, interests: interests)
+        
+        let response: UpdateProfileResponse = try await APIService.shared.request(
+            endpoint: "/users/profile",
+            method: .put,
+            body: request
+        )
+        
+        // Update stored user ID just in case
+        UserDefaults.standard.set(response.user.id, forKey: "current_user_id")
+        
+        return response.user
+    }
+    
+    // MARK: - Get Current User ID
+    func getCurrentUserId() -> String? {
+        return UserDefaults.standard.string(forKey: "current_user_id")
     }
     
     // MARK: - Check if Logged In

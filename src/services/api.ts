@@ -53,6 +53,9 @@ const authFetch = async (url: string, options: RequestInit = {}) => {
     }
 };
 
+// Export authFetch for use in other services
+export { authFetch };
+
 // ==================== AUTH API ====================
 
 export interface RegisterData {

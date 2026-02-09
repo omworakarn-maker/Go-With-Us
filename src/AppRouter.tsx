@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Home from './pages/Home';
-import Activities from './pages/Activities';
+import MatchTrip from './pages/MatchTrip';
 import MyTrips from './pages/MyTrips';
 import Explore from './pages/Explore';
 import CreateActivity from './pages/CreateActivity';
