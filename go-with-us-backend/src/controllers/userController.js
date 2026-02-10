@@ -135,3 +135,25 @@ export const getAllUsers = async (req, res) => {
         res.status(500).json({ message: 'Error fetching users' });
     }
 };
+
+// Register FCM Device Token
+export const registerDeviceToken = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const { token } = req.body;
+
+        if (!token) {
+            return res.status(400).json({ message: 'Token is required' });
+        }
+
+        await prisma.user.update({
+            where: { id: userId },
+            data: { fcmToken: token }
+        });
+
+        res.json({ message: 'Device token registered successfully' });
+    } catch (error) {
+        console.error('Register device token error:', error);
+        res.status(500).json({ message: 'Error registering device token' });
+    }
+};

@@ -2,6 +2,7 @@ import SwiftUI
 
 @main
 struct GoWithUsApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var authViewModel = AuthViewModel()
     @State private var showSplash = true
     
@@ -20,6 +21,7 @@ struct GoWithUsApp: App {
                 }
             }
             .onAppear {
+                NotificationPoller.shared.startPolling()
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
                     withAnimation(.easeOut(duration: 0.5)) {
                         self.showSplash = false

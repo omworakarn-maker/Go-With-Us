@@ -10,6 +10,7 @@ import { useAuth } from './contexts/AuthContext';
 import { InterestModal } from './components/InterestModal';
 import CreateActivity from './pages/CreateActivity';
 import { isNativeApp } from './utils/platform';
+import { PushNotificationService } from './services/PushNotificationService';
 
 
 const PROVINCES = [
@@ -40,6 +41,9 @@ const App = () => {
 	const [showInterestModal, setShowInterestModal] = useState(false);
 
 	useEffect(() => {
+		// Initialize Push Notifications
+		PushNotificationService.init();
+
 		checkUserInterests();
 	}, [user]);
 

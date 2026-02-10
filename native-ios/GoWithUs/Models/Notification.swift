@@ -7,7 +7,7 @@ struct AppNotification: Codable, Identifiable {
     let message: String
     let type: String // "alert", "trip", "system"
     let targetId: String? // Trip ID if type is "trip"
-    let createdAt: Date
+    let createdAt: String // API returns ISO string
     let isRead: Bool
 }
 

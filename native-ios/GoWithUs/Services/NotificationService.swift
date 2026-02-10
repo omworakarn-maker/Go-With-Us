@@ -66,6 +66,20 @@ class NotificationService {
             method: .delete
         )
     }
+    // MARK: - Register Device Token
+    func registerDeviceToken(token: String) async throws {
+        struct TokenRequest: Encodable {
+            let token: String
+        }
+        
+        let request = TokenRequest(token: token)
+        
+        let _: EmptyResponse = try await APIService.shared.request(
+            endpoint: "/users/device-token",
+            method: .post,
+            body: request
+        )
+    }
 }
 
 // Empty response for endpoints that don't return data

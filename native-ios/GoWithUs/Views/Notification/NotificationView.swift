@@ -101,7 +101,7 @@ struct NotificationRow: View {
                             .lineLimit(2)
                     }
                     
-                    Text(timeAgoDisplay(date: notification.createdAt))
+                    Text(timeAgoDisplay(dateString: notification.createdAt))
                         .font(.caption)
                         .foregroundColor(.gray)
                 }
@@ -128,10 +128,17 @@ struct NotificationRow: View {
         }
     }
     
-    private func timeAgoDisplay(date: Date) -> String {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .abbreviated
-        return formatter.localizedString(for: date, relativeTo: Date())
+    private func timeAgoDisplay(dateString: String) -> String {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        
+        guard let date = formatter.date(from: dateString) else {
+            return "เมื่อสักครู่"
+        }
+        
+        let relFormatter = RelativeDateTimeFormatter()
+        relFormatter.unitsStyle = .abbreviated
+        return relFormatter.localizedString(for: date, relativeTo: Date())
     }
 }
 
@@ -139,6 +146,20 @@ struct NotificationRow: View {
 class NotificationViewModel: ObservableObject {
     @Published var notifications: [AppNotification] = []
     @Published var isLoading = false
+    
+    init() {
+        NotificationCenter.default.addObserver(self, selector: #selector(handleNewNotification), name: NSNotification.Name("NewNotificationReceived"), object: nil)
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+    
+    @objc private func handleNewNotification() {
+        Task {
+            await loadNotifications()
+        }
+    }
     
     func loadNotifications() async {
         isLoading = true

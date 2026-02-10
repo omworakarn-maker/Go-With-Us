@@ -6,20 +6,21 @@ struct HomeView: View {
     @State private var unreadCount = 0
 
     
+    @State private var showSideMenu = false
+    
     var body: some View {
         NavigationStack {
-            ZStack(alignment: .bottomTrailing) {
-                Color.white
-                    .ignoresSafeArea()
-                
+            ZStack(alignment: .leading) {
+                // Main Content
                 VStack(spacing: 0) {
                     // Header
                     VStack(spacing: 16) {
                         // Title & Menu
                         HStack {
                             Button(action: {
-                                // Action for menu (e.g., open drawer)
-                                print("Menu tapped")
+                                withAnimation {
+                                    showSideMenu.toggle()
+                                }
                             }) {
                                 Image(systemName: "line.3.horizontal")
                                     .font(.system(size: 24, weight: .bold))
@@ -168,6 +169,8 @@ struct HomeView: View {
                         }
                     }
                 }
+                // Side Menu Overlay
+                SideMenuView(isShowing: $showSideMenu)
             }
             .navigationBarHidden(true)
             .sheet(isPresented: $showNotifications) {

@@ -294,6 +294,10 @@ export const userAPI = {
         body: JSON.stringify(data),
     }),
     getAll: (search?: string) => authFetch(`${API_BASE_URL}/users${search ? `?search=${search}` : ''}`),
+    registerDeviceToken: (token: string) => authFetch(`${API_BASE_URL}/users/device-token`, {
+        method: 'POST',
+        body: JSON.stringify({ token }),
+    }),
 };
 
 export default {

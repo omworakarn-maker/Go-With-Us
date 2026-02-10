@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { sendPushNotification } from '../utils/firebase.js';
 
 const prisma = new PrismaClient();
 
@@ -84,6 +85,24 @@ export const createNotification = async (req, res, next) => {
                 userId: userId || null, // null for global notifications
             },
         });
+
+        // Send Push Notification
+        if (userId) {
+            const user = await prisma.user.findUnique({
+                where: { id: userId },
+                select: { fcmToken: true }
+            });
+
+            if (user?.fcmToken) {
+                // Import dynamically or at top level. Top level is better.
+                // Assuming imported at top: import { sendPushNotification } from '../utils/firebase.js';
+                await sendPushNotification(user.fcmToken, title, message, {
+                    type,
+                    targetId: targetId || '',
+                    notificationId: notification.id
+                });
+            }
+        }
 
         res.status(201).json(notification);
     } catch (error) {

@@ -1,46 +1,101 @@
 import SwiftUI
 
 struct FindBuddyView: View {
+    @StateObject private var viewModel = FindBuddyViewModel()
+    
     var body: some View {
         NavigationView {
             ZStack {
-                Color.white
-                    .ignoresSafeArea()
+                Color.white.ignoresSafeArea()
                 
-                VStack(spacing: 24) {
-                    Spacer()
-                    
-                    // Icon
-                    Circle()
-                        .stroke(Color.black, lineWidth: 2)
-                        .frame(width: 100, height: 100)
-                        .overlay(
-                            Image(systemName: "person.2")
-                                .font(.system(size: 40, weight: .semibold))
-                                .foregroundColor(.black)
-                        )
-                    
-                    // Text
-                    VStack(spacing: 12) {
-                        Text("หาเพื่อนร่วมทาง")
-                            .font(.system(size: 28, weight: .black))
-                            .foregroundColor(.black)
-                            .tracking(-0.5)
-                        
-                        Text("ฟีเจอร์นี้กำลังพัฒนา\nเร็วๆ นี้...")
-                            .font(.system(size: 14, weight: .medium))
+                if viewModel.isLoading {
+                    ProgressView("กำลังค้นหาเพื่อนที่แมตช์กัน...")
+                } else if let error = viewModel.errorMessage {
+                    VStack {
+                        Image(systemName: "exclamationmark.triangle")
+                            .font(.largeTitle)
+                            .foregroundColor(.orange)
+                        Text(error)
                             .foregroundColor(.gray)
-                            .multilineTextAlignment(.center)
-                            .lineSpacing(4)
+                        Button("ลองใหม่") {
+                            Task { await viewModel.fetchMatches() }
+                        }
+                        .padding()
                     }
-                    
-                    Spacer()
+                } else if viewModel.matches.isEmpty {
+                    VStack {
+                        Image(systemName: "person.slash")
+                            .font(.largeTitle)
+                            .foregroundColor(.gray)
+                        Text("ยังไม่พบเพื่อนที่แมตช์กันในขณะนี้")
+                            .foregroundColor(.gray)
+                            .padding(.top)
+                    }
+                } else {
+                    List(viewModel.matches) { user in
+                        HStack(spacing: 16) {
+                            // Avatar Placeholder
+                            Circle()
+                                .fill(Color.gray.opacity(0.1))
+                                .frame(width: 50, height: 50)
+                                .overlay(
+                                    Text(String(user.name.prefix(1)).uppercased())
+                                        .font(.headline)
+                                        .foregroundColor(.gray)
+                                )
+                            
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(user.name)
+                                    .font(.headline)
+                                    .foregroundColor(.black)
+                                
+                                if let interests = user.interests, !interests.isEmpty {
+                                    Text(interests.prefix(3).joined(separator: ", "))
+                                        .font(.caption)
+                                        .foregroundColor(.gray)
+                                        .lineLimit(1)
+                                }
+                            }
+                            
+                            Spacer()
+                            
+                            if let score = user.matchScore {
+                                VStack {
+                                    Text("\(score)%")
+                                        .font(.caption)
+                                        .fontWeight(.bold)
+                                        .foregroundColor(scoreColor(score))
+                                    Text("Match")
+                                        .font(.caption2)
+                                        .foregroundColor(.gray)
+                                }
+                                .padding(8)
+                                .background(Color.gray.opacity(0.05))
+                                .cornerRadius(8)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    .listStyle(PlainListStyle())
+                    .refreshable {
+                        await viewModel.fetchMatches()
+                    }
                 }
-                .padding()
             }
             .navigationTitle("หาเพื่อน")
             .navigationBarTitleDisplayMode(.inline)
+            .onAppear {
+                Task {
+                    await viewModel.fetchMatches()
+                }
+            }
         }
+    }
+    
+    func scoreColor(_ score: Int) -> Color {
+        if score >= 80 { return .green }
+        if score >= 50 { return .orange }
+        return .red
     }
 }
 

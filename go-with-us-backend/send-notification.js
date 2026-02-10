@@ -17,26 +17,47 @@ async function sendNotification() {
     try {
         console.log('⏳ Sending notification...');
 
-        const notification = await prisma.notification.create({
-            data: {
-                title,
-                message: message || '',
-                type,
-                userId: userId || null, // null for all users
-            },
-        });
+        let count = 0;
 
-        console.log('\n✅ Notification Sent Successfully!');
-        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        console.log(`🆔 ID:      ${notification.id}`);
-        console.log(`📌 Title:   ${notification.title}`);
-        console.log(`📝 Message: ${notification.message || '(No message)'}`);
-        console.log(`🏷️  Type:    ${notification.type}`);
-        console.log(`👤 Target:  ${notification.userId ? `User ${notification.userId}` : 'All Users'}`);
-        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+        if (userId) {
+            // Create for single user
+            const notification = await prisma.notification.create({
+                data: {
+                    title,
+                    message: message || '',
+                    type,
+                    userId: userId,
+                },
+            });
+            console.log(`✅ Notification created for user: ${userId}`);
+            console.log(`🆔 ID: ${notification.id}`);
+            count = 1;
+        } else {
+            // Create for ALL users
+            const users = await prisma.user.findMany({ select: { id: true } });
+            console.log(`✨ Found ${users.length} users. Creating notifications...`);
+
+            // Create in batches to avoid overwhelming DB connection
+            for (const user of users) {
+                await prisma.notification.create({
+                    data: {
+                        title,
+                        message: message || '',
+                        type,
+                        userId: user.id,
+                    },
+                });
+            }
+            count = users.length;
+            console.log(`✅ Created ${count} notification records.`);
+        }
+
+        // Send Push Notification (Disabled for Free Tier - using Polling)
+        console.log('\n🚀 Notification queued for local polling.');
+        console.log('   (App will pick this up automatically within 10 seconds)');
 
     } catch (error) {
-        console.error('\n❌ Failed to send notification:', error.message);
+        console.error('\n❌ Failed to create notification:', error.message);
     } finally {
         await prisma.$disconnect();
     }

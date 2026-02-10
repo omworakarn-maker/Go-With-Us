@@ -17,6 +17,7 @@ struct Trip: Codable, Identifiable {
     let creator: User
     let participants: [Participant]?  // Optional since backend doesn't always include it
     let aiAnalysis: AIAnalysis?
+    let matchScore: Int? // Added for match percentage
     let createdAt: Date?
     let updatedAt: Date?
     
@@ -37,6 +38,7 @@ struct Trip: Codable, Identifiable {
         participants: [Participant]? = nil,
         creatorId: String? = nil,
         aiAnalysis: AIAnalysis? = nil,
+        matchScore: Int? = nil,
         createdAt: Date? = nil,
         updatedAt: Date? = nil
     ) {
@@ -55,6 +57,7 @@ struct Trip: Codable, Identifiable {
         self.participants = participants
         self.creatorId = creatorId ?? creator.id
         self.aiAnalysis = aiAnalysis
+        self.matchScore = matchScore
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
@@ -106,7 +109,15 @@ enum TripCategory: String, Codable, CaseIterable {
     case eatAndTravel = "กินเที่ยว"
     case workshop = "เวิร์กชอป"
     case concert = "คอนเสิร์ต"
+    case relax = "พักผ่อน"
     case other = "อื่นๆ"
+    
+    // implement safe decoding
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let rawValue = try container.decode(String.self)
+        self = TripCategory(rawValue: rawValue) ?? .other
+    }
     
     var icon: String {
         switch self {
@@ -129,6 +140,7 @@ enum TripCategory: String, Codable, CaseIterable {
         case .eatAndTravel: return "🍜"
         case .workshop: return "🎨"
         case .concert: return "🎸"
+        case .relax: return "zzz"
         case .other: return "✨"
         }
     }
@@ -154,6 +166,7 @@ enum TripCategory: String, Codable, CaseIterable {
         case .eatAndTravel: return "category_food" // Reuse food asset
         case .workshop: return "category_culture" // Reuse culture asset
         case .concert: return "category_party"  // Reuse party asset
+        case .relax: return "category_nature" // Reuse nature asset
         case .other: return "category_other"
         }
     }

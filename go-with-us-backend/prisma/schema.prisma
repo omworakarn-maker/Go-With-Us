@@ -20,6 +20,7 @@ model User {
   updatedAt DateTime @updatedAt
   interests String[] @default([])
   embedding Json?    // AI Vector for recommendation
+  fcmToken  String?  // Firebase Cloud Messaging Token for Push Notifications
   
   // Relations
   trips     Trip[]   // Trips created by this user
