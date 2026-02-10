@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npx prisma db push --schema=./go-with-us-backend/prisma/schema.prisma && vite build",
+    "build": "vite build",
     "preview": "vite preview",
     "postinstall": "prisma generate --schema=./go-with-us-backend/prisma/schema.prisma"
   },
