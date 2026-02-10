@@ -75,3 +75,4 @@ test-*.js
 
 
 go-with-us-backend/serviceAccountKey.json
+go-with-us-backend/prisma/dev.db
