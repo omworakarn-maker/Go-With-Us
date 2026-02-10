@@ -103,6 +103,9 @@ enum TripCategory: String, Codable, CaseIterable {
     case party = "ปาร์ตี้"
     case volunteer = "จิตอาสา"
     case family = "ครอบครัว"
+    case eatAndTravel = "กินเที่ยว"
+    case workshop = "เวิร์กชอป"
+    case concert = "คอนเสิร์ต"
     case other = "อื่นๆ"
     
     var icon: String {
@@ -123,6 +126,9 @@ enum TripCategory: String, Codable, CaseIterable {
         case .party: return "🎉"
         case .volunteer: return "🤝"
         case .family: return "👨‍👩‍👧‍👦"
+        case .eatAndTravel: return "🍜"
+        case .workshop: return "🎨"
+        case .concert: return "🎸"
         case .other: return "✨"
         }
     }
@@ -132,7 +138,7 @@ enum TripCategory: String, Codable, CaseIterable {
         case .adventure: return "category_adventure"
         case .beach: return "category_beach"
         case .mountain: return "category_mountain"
-        case .camping: return "category_camping" // Ensure asset exists or use placeholder logic
+        case .camping: return "category_camping"
         case .city: return "category_city"
         case .culture: return "category_culture"
         case .history: return "category_history"
@@ -145,6 +151,9 @@ enum TripCategory: String, Codable, CaseIterable {
         case .party: return "category_party"
         case .volunteer: return "category_volunteer"
         case .family: return "category_family"
+        case .eatAndTravel: return "category_food" // Reuse food asset
+        case .workshop: return "category_culture" // Reuse culture asset
+        case .concert: return "category_party"  // Reuse party asset
         case .other: return "category_other"
         }
     }

@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { generateEmbedding } from '../utils/gemini.js';
 
 const prisma = new PrismaClient();
 
@@ -161,7 +162,10 @@ export const createTrip = async (req, res, next) => {
                 maxParticipants: maxParticipants || 10,
                 category: category || null,
                 imageUrl: imageUrl || null,
+                category: category || null,
+                imageUrl: imageUrl || null,
                 creatorId: req.user.userId,
+                embedding: await generateEmbedding(`${title} ${description || ''} ${category || ''} ${destination}`),
             },
             include: {
                 creator: {
@@ -239,6 +243,12 @@ export const updateTrip = async (req, res, next) => {
                 ...(itinerary !== undefined && { itinerary }),
                 ...(summary !== undefined && { summary }),
                 ...(groupAnalysis !== undefined && { groupAnalysis }),
+                // Regenerate embedding if key fields change
+                ...((title || description || category || destination) && {
+                    embedding: await generateEmbedding(
+                        `${title || existingTrip.title} ${description !== undefined ? description : (existingTrip.description || '')} ${category !== undefined ? category : (existingTrip.category || '')} ${destination || existingTrip.destination}`
+                    )
+                }),
             },
             include: {
                 creator: {

@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 // Get all notifications for current user
 export const getNotifications = async (req, res, next) => {
     try {
-        const userId = req.user.id;
+        const userId = req.user.userId;
         const userRole = req.user.role;
         const { all } = req.query;
 
@@ -34,7 +34,7 @@ export const getNotifications = async (req, res, next) => {
 // Get unread notification count
 export const getUnreadCount = async (req, res, next) => {
     try {
-        const userId = req.user.id;
+        const userId = req.user.userId;
         const count = await prisma.notification.count({
             where: {
                 userId: userId,
@@ -51,7 +51,7 @@ export const getUnreadCount = async (req, res, next) => {
 export const markAsRead = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const userId = req.user.id;
+        const userId = req.user.userId;
 
         const notification = await prisma.notification.update({
             where: { id, userId },
@@ -67,6 +67,12 @@ export const markAsRead = async (req, res, next) => {
 // Create notification (Admin only)
 export const createNotification = async (req, res, next) => {
     try {
+        const userRole = req.user.role;
+
+        if (userRole !== 'admin') {
+            return res.status(403).json({ error: 'Permission denied. Admin role required.' });
+        }
+
         const { title, message, type, targetId, userId } = req.body;
 
         const notification = await prisma.notification.create({
@@ -89,7 +95,7 @@ export const createNotification = async (req, res, next) => {
 export const deleteNotification = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const userId = req.user.id;
+        const userId = req.user.userId;
         const userRole = req.user.role;
 
         const notification = await prisma.notification.findUnique({
@@ -117,7 +123,7 @@ export const deleteNotification = async (req, res, next) => {
 // Clear all notifications for user
 export const clearAllNotifications = async (req, res, next) => {
     try {
-        const userId = req.user.id;
+        const userId = req.user.userId;
         const userRole = req.user.role;
         const { scope } = req.query;
 

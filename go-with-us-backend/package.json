@@ -8,7 +8,9 @@
     "start": "node src/index.js",
     "prisma": "prisma",
     "seed": "node prisma/seed.js",
-    "create-admin": "node create-admin.js"
+    "create-admin": "node create-admin.js",
+    "send-noti": "node send-notification.js",
+    "del-noti": "node delete-notification.js"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",

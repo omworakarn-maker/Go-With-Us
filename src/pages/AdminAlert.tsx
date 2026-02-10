@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { notificationService, Notification } from '../services/notificationService';
+import { useAuth } from '../contexts/AuthContext';
 
 const AdminAlert: React.FC = () => {
     const navigate = useNavigate();
+    const { user, isLoading: authLoading } = useAuth();
     const [formData, setFormData] = useState({
         title: '',
         message: '',
@@ -19,8 +21,12 @@ const AdminAlert: React.FC = () => {
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
+        if (!authLoading && user?.role !== 'admin') {
+            navigate('/');
+            return;
+        }
         loadAllNotifications();
-    }, []);
+    }, [user, authLoading, navigate]);
 
     const loadAllNotifications = async () => {
         setIsLoading(true);
@@ -76,6 +82,9 @@ const AdminAlert: React.FC = () => {
             alert('ล้างระบบไม่สำเร็จ');
         }
     };
+
+    if (authLoading) return null;
+    if (user?.role !== 'admin') return null;
 
     return (
         <div className="min-h-screen bg-gray-50 py-8">

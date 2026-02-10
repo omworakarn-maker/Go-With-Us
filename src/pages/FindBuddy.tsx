@@ -1,52 +1,113 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { matchAPI, MatchUser } from "../services/matchService";
+import { UserCircleIcon, ChatBubbleLeftIcon, ArrowPathIcon } from "@heroicons/react/24/outline";
 
 export const FindBuddy: React.FC = () => {
+    const [matches, setMatches] = useState<MatchUser[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
+
+    useEffect(() => {
+        fetchMatches();
+    }, []);
+
+    const fetchMatches = async () => {
+        try {
+            setLoading(true);
+            const data = await matchAPI.getBuddyMatches();
+            setMatches(data.matches || []);
+        } catch (err: any) {
+            console.error("Failed to fetch buddy matches:", err);
+            // setError("ไม่สามาถค้นหาเพื่อนได้ในขณะนี้"); 
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
-        <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6 text-center">
-            <div className="max-w-md w-full animate-in fade-in zoom-in duration-500">
-                <div className="w-24 h-24 bg-black rounded-full flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-black/20 text-white">
-                    <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-.1283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
+        <div className="min-h-screen bg-gray-50 flex flex-col items-center pb-24">
+            {/* Header */}
+            <div className="w-full bg-white shadow-sm pt-8 pb-6 px-6 mb-6">
+                <div className="max-w-md mx-auto flex items-center justify-between">
+                    <div>
+                        <h1 className="text-3xl font-black text-black tracking-tight">
+                            Find Buddy
+                        </h1>
+                        <p className="text-gray-500 text-sm">
+                            เพื่อนเที่ยวที่ "เคมีตรงกัน" กับคุณ
+                        </p>
+                    </div>
+                    <button
+                        onClick={fetchMatches}
+                        disabled={loading}
+                        className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors"
+                    >
+                        <ArrowPathIcon className={`w-6 h-6 text-gray-700 ${loading ? 'animate-spin' : ''}`} />
+                    </button>
                 </div>
+            </div>
 
-                <h1 className="text-4xl font-black text-black mb-4 tracking-tight">
-                    Find Your Buddy
-                    <br />
-                    <span className="text-gray-200">Coming Soon</span>
-                </h1>
+            <div className="w-full max-w-md px-6 space-y-4">
+                {loading && matches.length === 0 ? (
+                    // Loading State
+                    [1, 2, 3].map(i => (
+                        <div key={i} className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 animate-pulse flex items-center gap-4">
+                            <div className="w-16 h-16 bg-gray-200 rounded-full"></div>
+                            <div className="flex-1 space-y-2">
+                                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                                <div className="h-3 bg-gray-200 rounded w-3/4"></div>
+                            </div>
+                        </div>
+                    ))
+                ) : matches.length > 0 ? (
+                    matches.map(user => (
+                        <div key={user.id} className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex items-center gap-5 transition-all hover:shadow-md hover:scale-[1.02]">
+                            {/* Avatar / Score */}
+                            <div className="relative">
+                                <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-2xl shadow-lg shadow-indigo-200">
+                                    {user.name.charAt(0).toUpperCase()}
+                                </div>
+                                <div className="absolute -bottom-2 -right-2 bg-black text-white text-[10px] font-bold px-2 py-1 rounded-full border-2 border-white shadow-sm">
+                                    {user.matchScore}%
+                                </div>
+                            </div>
 
-                <p className="text-gray-500 font-medium text-lg mb-10 leading-relaxed">
-                    เรากำลังพัฒนาระบบจับคู่เพื่อนเที่ยวด้วย AI
-                    <br />
-                    ที่จะช่วยให้คุณเจอเพื่อนที่ "เคมีตรงกัน" ที่สุด
-                </p>
+                            {/* Info */}
+                            <div className="flex-1 min-w-0">
+                                <h3 className="font-bold text-lg text-gray-900 truncate">{user.name}</h3>
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                    {user.interests.slice(0, 3).map((interest, i) => (
+                                        <span key={i} className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md">
+                                            {interest}
+                                        </span>
+                                    ))}
+                                    {user.interests.length > 3 && (
+                                        <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md">
+                                            +{user.interests.length - 3}
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
 
-                <div className="p-6 bg-gray-50 rounded-3xl border border-gray-100 mb-8">
-                    <h3 className="font-bold text-black mb-2">✨ ฟีเจอร์ที่จะมาเร็วๆ นี้</h3>
-                    <ul className="text-sm text-gray-500 space-y-2 text-left px-4">
-                        <li className="flex items-center gap-2">
-                            <span className="w-1.5 h-1.5 bg-black rounded-full"></span>
-                            ระบบจับคู่ด้วย AI จากไลฟ์สไตล์การเที่ยว
-                        </li>
-                        <li className="flex items-center gap-2">
-                            <span className="w-1.5 h-1.5 bg-black rounded-full"></span>
-                            โปรไฟล์ผู้ใช้ที่ยืนยันตัวตนแล้ว
-                        </li>
-                        <li className="flex items-center gap-2">
-                            <span className="w-1.5 h-1.5 bg-black rounded-full"></span>
-                            ระบบแชทและกลุ่มแบบอัจฉริยะ
-                        </li>
-                    </ul>
-                </div>
-
-                <Link
-                    to="/"
-                    className="inline-flex items-center justify-center px-8 py-3 bg-black text-white font-bold rounded-full hover:bg-gray-800 transition-all active:scale-95 shadow-lg shadow-black/20"
-                >
-                    กลับสู่หน้าหลัก
-                </Link>
+                            {/* Action */}
+                            <button className="p-3 bg-black text-white rounded-2xl hover:bg-gray-800 transition-colors shadow-lg shadow-black/10 active:scale-95">
+                                <ChatBubbleLeftIcon className="w-5 h-5" />
+                            </button>
+                        </div>
+                    ))
+                ) : (
+                    <div className="text-center py-20">
+                        <UserCircleIcon className="w-20 h-20 text-gray-300 mx-auto mb-4" />
+                        <h3 className="text-lg font-bold text-gray-900">ยังไม่พบเพื่อนที่ตรงกัน</h3>
+                        <p className="text-gray-500 text-sm mt-2 max-w-xs mx-auto">
+                            ลองเพิ่มความสนใจในโปรไฟล์ของคุณเพื่อให้เราจับคู่ได้แม่นยำขึ้น
+                        </p>
+                        <Link to="/profile" className="mt-6 inline-block px-6 py-2 bg-black text-white rounded-full text-sm font-bold">
+                            แก้ไขโปรไฟล์
+                        </Link>
+                    </div>
+                )}
             </div>
         </div>
     );

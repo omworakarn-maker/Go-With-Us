@@ -105,12 +105,12 @@ export const getPrivateMessages = async (req, res, next) => {
                             // Messages sent by current user to other user
                             {
                                 senderId: currentUserId,
-                                recipientId: userId,
+                                receiverId: userId,
                             },
                             // Messages sent by other user to current user
                             {
                                 senderId: userId,
-                                recipientId: currentUserId,
+                                receiverId: currentUserId,
                             },
                         ],
                     },
@@ -124,7 +124,7 @@ export const getPrivateMessages = async (req, res, next) => {
                         email: true,
                     },
                 },
-                recipient: {
+                receiver: {
                     select: {
                         id: true,
                         name: true,
@@ -166,7 +166,7 @@ export const sendPrivateMessage = async (req, res, next) => {
             data: {
                 content: content.trim(),
                 senderId: req.user.userId,
-                recipientId: userId,
+                receiverId: userId,
             },
             include: {
                 sender: {
@@ -176,7 +176,7 @@ export const sendPrivateMessage = async (req, res, next) => {
                         email: true,
                     },
                 },
-                recipient: {
+                receiver: {
                     select: {
                         id: true,
                         name: true,
@@ -205,7 +205,7 @@ export const getConversations = async (req, res, next) => {
                     {
                         OR: [
                             { senderId: currentUserId },
-                            { recipientId: currentUserId },
+                            { receiverId: currentUserId },
                         ],
                     },
                 ],
@@ -218,7 +218,7 @@ export const getConversations = async (req, res, next) => {
                         email: true,
                     },
                 },
-                recipient: {
+                receiver: {
                     select: {
                         id: true,
                         name: true,
@@ -234,7 +234,7 @@ export const getConversations = async (req, res, next) => {
         // Extract unique users (excluding current user)
         const userMap = new Map();
         messages.forEach(msg => {
-            const otherUser = msg.senderId === currentUserId ? msg.recipient : msg.sender;
+            const otherUser = msg.senderId === currentUserId ? msg.receiver : msg.sender;
             if (otherUser && !userMap.has(otherUser.id)) {
                 userMap.set(otherUser.id, {
                     user: otherUser,
@@ -263,8 +263,8 @@ export const deleteConversation = async (req, res, next) => {
                     { tripId: null }, // Private messages only
                     {
                         OR: [
-                            { senderId: currentUserId, recipientId: userId },
-                            { senderId: userId, recipientId: currentUserId }
+                            { senderId: currentUserId, receiverId: userId },
+                            { senderId: userId, receiverId: currentUserId }
                         ]
                     }
                 ]
