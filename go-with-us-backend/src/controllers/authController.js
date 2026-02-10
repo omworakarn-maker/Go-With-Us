@@ -22,6 +22,7 @@ export const register = async (req, res, next) => {
         // Check if user exists
         const existingUser = await prisma.user.findUnique({
             where: { email },
+            select: { id: true }
         });
 
         if (existingUser) {
@@ -76,6 +77,14 @@ export const login = async (req, res, next) => {
         // Find user
         const user = await prisma.user.findUnique({
             where: { email },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                password: true,
+                role: true,
+                interests: true,
+            }
         });
 
         if (!user) {
