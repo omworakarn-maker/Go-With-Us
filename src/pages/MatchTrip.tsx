@@ -5,7 +5,7 @@ import { SparklesIcon, MapIcon, ArrowPathIcon } from '@heroicons/react/24/outlin
 import { matchAPI, MatchTrip as MatchTripType } from '../services/matchService';
 import { TripCard } from '../components/TripCard';
 
-const MatchTrip: React.FC = () => {
+const MatchTripPage: React.FC = () => {
   const [matches, setMatches] = useState<MatchTripType[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -83,4 +83,4 @@ const MatchTrip: React.FC = () => {
   );
 };
 
-export default MatchTrip;
+export default MatchTripPage;
