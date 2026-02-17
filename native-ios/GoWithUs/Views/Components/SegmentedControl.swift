@@ -14,7 +14,7 @@ struct SegmentedControl: View {
                 }) {
                     Text(option)
                         .font(.system(size: 14, weight: selected == option ? .bold : .medium))
-                        .foregroundColor(selected == option ? .black : .gray)
+                        .foregroundColor(selected == option ? .appAccent : .gray)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
                         .background(

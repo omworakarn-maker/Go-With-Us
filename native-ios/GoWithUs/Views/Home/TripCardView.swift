@@ -3,12 +3,20 @@ import SwiftUI
 struct TripCardView: View {
     let trip: Trip
     
+    // Extract #hashtags from description
+    private var tags: [String] {
+        guard let desc = trip.description else { return [] }
+        let words = desc.components(separatedBy: .whitespacesAndNewlines)
+        return words.filter { $0.hasPrefix("#") && $0.count > 1 }
+            .map { String($0.dropFirst()) }
+            .prefix(3).map { $0 } // Max 3 tags on card
+    }
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Image
             ZStack(alignment: .topTrailing) {
             if let imageUrl = trip.imageUrl, !imageUrl.isEmpty {
-                CustomAsyncImage(url: imageUrl)
+                CustomAsyncImage(url: imageUrl, contentMode: .fill)
                     .frame(height: 200)
                     .clipped()
             } else {
@@ -20,14 +28,26 @@ struct TripCardView: View {
             }
                 
                 // Category Badge
-                Text(trip.category.rawValue)
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundColor(.black)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(Color.white)
-                    .cornerRadius(20)
-                    .padding(12)
+                HStack(spacing: 6) {
+                    Text(trip.category.rawValue)
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(.black)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Color.white)
+                        .cornerRadius(20)
+                    
+                    ForEach(tags, id: \.self) { tag in
+                        Text("#\(tag)")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundColor(.appPrimary)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 6)
+                            .background(Color.appPrimary.opacity(0.15))
+                            .cornerRadius(20)
+                    }
+                }
+                .padding(12)
             }
             
             // Content
@@ -35,14 +55,14 @@ struct TripCardView: View {
                 // Title
                 Text(trip.title)
                     .font(.system(size: 18, weight: .black))
-                    .foregroundColor(.black)
+                    .foregroundColor(.adaptiveText)
                     .tracking(-0.5)
                     .lineLimit(2)
                 
                 // Destination
                 HStack(spacing: 6) {
                     Circle()
-                        .fill(Color.black)
+                        .fill(Color.appAccent)
                         .frame(width: 4, height: 4)
                     
                     Text(trip.destination)
@@ -63,12 +83,12 @@ struct TripCardView: View {
                     // Participants
                     HStack(spacing: 4) {
                         Circle()
-                            .stroke(Color.black, lineWidth: 1.5)
+                            .stroke(Color.appAccent, lineWidth: 1.5)
                             .frame(width: 20, height: 20)
                             .overlay(
                                 Text("\(trip.currentParticipants)")
                                     .font(.system(size: 9, weight: .bold))
-                                    .foregroundColor(.black)
+                                    .foregroundColor(.appAccent)
                             )
                         
                         Text("/\(trip.maxParticipants)")
@@ -80,25 +100,31 @@ struct TripCardView: View {
                     
                     // Creator
                     HStack(spacing: 6) {
-                        Circle()
-                            .fill(Color.black)
-                            .frame(width: 24, height: 24)
-                            .overlay(
-                                Text(String(trip.creator.name.prefix(1)))
-                                    .font(.system(size: 11, weight: .bold))
-                                    .foregroundColor(.white)
-                            )
+                        if let profileImage = trip.creator.profileImage, !profileImage.isEmpty {
+                            CustomAsyncImage(url: profileImage, contentMode: .fill)
+                                .frame(width: 24, height: 24)
+                                .clipShape(Circle())
+                        } else {
+                            Circle()
+                                .fill(Color.appAccent)
+                                .frame(width: 24, height: 24)
+                                .overlay(
+                                    Text(String(trip.creator.name.prefix(1)))
+                                        .font(.system(size: 11, weight: .bold))
+                                        .foregroundColor(.white)
+                                )
+                        }
                         
                         Text(trip.creator.name)
                             .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.black)
+                            .foregroundColor(.adaptiveText)
                             .lineLimit(1)
                     }
                 }
             }
             .padding(16)
         }
-        .background(Color.white)
+        .background(Color.adaptiveCardBackground)
         .overlay(
             RoundedRectangle(cornerRadius: 20)
                 .stroke(Color.gray.opacity(0.15), lineWidth: 1)

@@ -41,6 +41,7 @@ struct ChatDetailView: View {
                     LazyVStack(spacing: 12) {
                         ForEach(viewModel.messages) { message in
                             MessageBubble(message: message, isCurrentUser: viewModel.isFromCurrentUser(message: message))
+                                .id(message.id)
                         }
                     }
                     .padding()
@@ -52,32 +53,40 @@ struct ChatDetailView: View {
                     }
                 }
             }
+            .frame(maxHeight: .infinity)
+            .background(Color(UIColor.systemGroupedBackground))
             
-            // Input Bar
-            HStack(spacing: 12) {
-                TextField("พิมพ์ข้อความ...", text: $messageText)
-                    .padding(12)
-                    .background(Color.gray.opacity(0.1))
-                    .cornerRadius(24)
-                
-                Button(action: sendMessage) {
-                    Circle()
-                        .fill(messageText.trimmingCharacters(in: .whitespaces).isEmpty ? Color.gray.opacity(0.3) : Color.black)
-                        .frame(width: 44, height: 44)
-                        .overlay(
-                            Image(systemName: "paperplane.fill")
-                                .font(.system(size: 18))
-                                .foregroundColor(.white)
-                                .offset(x: -2, y: 2) // Visual correction
-                        )
+            // Input Bar (directly inline for pixel-perfect keyboard fit)
+            VStack(spacing: 0) {
+                Divider()
+                HStack(spacing: 12) {
+                    TextField("พิมพ์ข้อความ...", text: $messageText)
+                        .padding(12)
+                        .background(Color.gray.opacity(0.1))
+                        .cornerRadius(24)
+
+                    Button(action: {
+                        let content = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
+                        guard !content.isEmpty else { return }
+                        messageText = ""
+                        Task { await sendMessageWithContent(content) }
+                    }) {
+                        Circle()
+                            .fill(messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? Color.gray.opacity(0.3) : Color.black)
+                            .frame(width: 44, height: 44)
+                            .overlay(
+                                Image(systemName: "paperplane.fill")
+                                    .font(.system(size: 18))
+                                    .foregroundColor(.white)
+                                    .offset(x: -2, y: 2)
+                            )
+                    }
+                    .disabled(messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
-                .disabled(messageText.trimmingCharacters(in: .whitespaces).isEmpty)
+                .padding(12)
+                .background(Color.white)
             }
-            .padding(.horizontal)
-            .padding(.vertical, 12)
             .background(Color.white)
-            .clipShape(RoundedCorner(radius: 24, corners: [.topLeft, .topRight]))
-            .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: -2)
         }
         .navigationBarHidden(true)
         .hideTabBar(true)
@@ -121,6 +130,15 @@ struct ChatDetailView: View {
             } else if let partnerId = partnerId {
                 await viewModel.sendPrivateMessage(userId: partnerId, content: content)
             }
+        }
+    }
+
+    // Helper used by accessory send (keeps previous behavior)
+    private func sendMessageWithContent(_ content: String) async {
+        if let tripId = tripId {
+            await viewModel.sendTripMessage(tripId: tripId, content: content)
+        } else if let partnerId = partnerId {
+            await viewModel.sendPrivateMessage(userId: partnerId, content: content)
         }
     }
 }

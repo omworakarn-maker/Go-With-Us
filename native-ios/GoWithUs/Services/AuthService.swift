@@ -77,10 +77,25 @@ class AuthService {
     }
     
     // MARK: - Update Profile
-    func updateProfile(name: String, interests: [String]) async throws -> User {
+    func updateProfile(
+        name: String,
+        interests: [String],
+        gender: String? = nil,
+        age: Int? = nil,
+        bio: String? = nil,
+        birthDate: Date? = nil,
+        travelStyle: TravelStyle? = nil,
+        profileImage: String? = nil
+    ) async throws -> User {
         struct UpdateProfileRequest: Encodable {
             let name: String
             let interests: [String]
+            let gender: String?
+            let age: Int?
+            let bio: String?
+            let birthDate: Date?
+            let travelStyle: TravelStyle?
+            let profileImage: String?
         }
         
         struct UpdateProfileResponse: Decodable {
@@ -88,7 +103,16 @@ class AuthService {
             let user: User
         }
         
-        let request = UpdateProfileRequest(name: name, interests: interests)
+        let request = UpdateProfileRequest(
+            name: name,
+            interests: interests,
+            gender: gender,
+            age: age,
+            bio: bio,
+            birthDate: birthDate,
+            travelStyle: travelStyle,
+            profileImage: profileImage
+        )
         
         let response: UpdateProfileResponse = try await APIService.shared.request(
             endpoint: "/users/profile",
@@ -101,6 +125,29 @@ class AuthService {
         
         return response.user
     }
+
+    // MARK: - Update FCM Token
+    func updateFcmToken(token: String) async {
+        guard isLoggedIn() else { return }
+        
+        struct TokenRequest: Encodable {
+            let token: String
+        }
+        
+        let request = TokenRequest(token: token)
+        
+        do {
+            let _: MessageResponse = try await APIService.shared.request(
+                endpoint: "/users/device-token",
+                method: .post,
+                body: request
+            )
+            print("✅ FCM Token updated on backend")
+        } catch {
+            print("❌ Failed to update FCM token: \(error)")
+        }
+    }
+
     
     // MARK: - Get Current User ID
     func getCurrentUserId() -> String? {

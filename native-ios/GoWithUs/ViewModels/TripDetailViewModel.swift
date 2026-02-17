@@ -8,10 +8,13 @@ class TripDetailViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var showJoinSheet = false
+    @Published var showLeaveSheet = false
     @Published var interests: [String] = []
     @Published var isJoining = false
     @Published var isLeaving = false
     @Published var isDeleting = false
+    
+    @Published var currentUser: User?
     
     let tripId: String
     
@@ -21,6 +24,9 @@ class TripDetailViewModel: ObservableObject {
     
     init(tripId: String) {
         self.tripId = tripId
+        Task {
+            await fetchCurrentUser()
+        }
     }
     
     // MARK: - Computed Properties
@@ -30,13 +36,21 @@ class TripDetailViewModel: ObservableObject {
     }
     
     var isAdmin: Bool {
-        // Check if current user is admin
-        return false // TODO: Implement admin check
+        return currentUser?.role == .admin
     }
     
     var hasJoined: Bool {
         guard let trip = trip, let userId = currentUserId else { return false }
         return trip.participants?.contains(where: { $0.userId == userId }) ?? false
+    }
+    
+    // MARK: - Load Utils
+    func fetchCurrentUser() async {
+        do {
+             currentUser = try await AuthService.shared.getCurrentUser()
+        } catch {
+            print("Failed to fetch current user: \(error)")
+        }
     }
     
     // MARK: - Load Trip
@@ -46,6 +60,7 @@ class TripDetailViewModel: ObservableObject {
         
         do {
             trip = try await TripService.shared.getTrip(id: tripId)
+            await fetchCurrentUser() // Refresh user data as well
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -74,18 +89,21 @@ class TripDetailViewModel: ObservableObject {
     }
     
     // MARK: - Leave Trip
-    func leaveTrip() async {
+    func leaveTrip() async -> Bool {
         isLeaving = true
         errorMessage = nil
         
         do {
             try await TripService.shared.leaveTrip(id: tripId)
             await loadTrip() // Reload to get updated participant list
+            showLeaveSheet = false
+            isLeaving = false
+            return true
         } catch {
             errorMessage = error.localizedDescription
+            isLeaving = false
+            return false
         }
-        
-        isLeaving = false
     }
     
     // MARK: - Delete Trip
@@ -99,6 +117,19 @@ class TripDetailViewModel: ObservableObject {
         } catch {
             errorMessage = error.localizedDescription
             return false
+        }
+    }
+    
+    // MARK: - Remove Participant
+    func removeParticipant(userId: String) async {
+        guard let tripId = trip?.id else { return }
+        errorMessage = nil
+        
+        do {
+            try await TripService.shared.removeParticipant(tripId: tripId, userId: userId)
+            await loadTrip() // Reload participants
+        } catch {
+            errorMessage = error.localizedDescription
         }
     }
 }

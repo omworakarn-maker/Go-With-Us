@@ -293,6 +293,10 @@ export const userAPI = {
         method: 'PUT',
         body: JSON.stringify(data),
     }),
+    updatePrivacySettings: (data: any) => authFetch(`${API_BASE_URL}/users/privacy-settings`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+    }),
     getAll: (search?: string) => authFetch(`${API_BASE_URL}/users${search ? `?search=${search}` : ''}`),
     registerDeviceToken: (token: string) => authFetch(`${API_BASE_URL}/users/device-token`, {
         method: 'POST',

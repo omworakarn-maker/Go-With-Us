@@ -63,10 +63,14 @@ const Chat: React.FC = () => {
 
     // Load Messages when active conversation changes
     useEffect(() => {
-        if (activeConversation) {
+        if (activeConversation?.user?.id) {
             loadMessages(activeConversation.user.id);
             // Polling for real-time (simplified)
-            const interval = setInterval(() => loadMessages(activeConversation.user.id), 3000);
+            const interval = setInterval(() => {
+                if (activeConversation?.user?.id) {
+                    loadMessages(activeConversation.user.id);
+                }
+            }, 3000);
             return () => clearInterval(interval);
         }
     }, [activeConversation]);
@@ -100,33 +104,19 @@ const Chat: React.FC = () => {
         if (existing) {
             setActiveConversation(existing);
         } else {
-            // If not in list, create a temporary conversation object
-            // Ideally we should fetch user details first, but for MVP we might need an endpoint or pass name via state
-            // For now, let's try to assume we can get it or reload conversations after sending first message
-            // Wait, getPrivateMessages doesn't give us user info if no messages.
-
-            // Hack: Just set active ID and let UI handle it?
-            // Better: We need to fetch user info if not in list. 
-            // Since we don't have getUserById API exposed yet, let's assume valid ID and we'll see empty chat
-            // Adjust: Update backend or API to get user info. 
-            // For MVP: Let's assume we clicked from a place that has user info (Participant List).
-            // But URL param only has ID.
-
-            // Workaround: Load messages. If there are messages, we get user info from message.sender/recipient
+            // Use provided userId at varying degrees of confidence
             try {
                 const data = await messagesAPI.getPrivateMessages(userId);
                 if (data.messages.length > 0) {
                     // Extract user info from messages
                     const firstMsg = data.messages[0];
-                    const otherUser = firstMsg.senderId === user?.id ? firstMsg.recipient : firstMsg.sender;
+                    const otherUser = (firstMsg.senderId === user?.id ? firstMsg.recipient : firstMsg.sender) || { id: userId, name: 'User', email: '' };
+
                     setActiveConversation({
                         user: otherUser,
                         lastMessage: data.messages[data.messages.length - 1]
                     });
                 } else {
-                    // Empty chat. We need a way to show "New Chat" header.
-                    // Let's create a dummy conversation for display
-                    // We might need to pass name in URL too ?userId=123&name=John
                     const userName = searchParams.get('userName') || 'User';
                     setActiveConversation({
                         user: { id: userId, name: userName, email: '' },
@@ -141,7 +131,7 @@ const Chat: React.FC = () => {
 
     const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!newMessage.trim() || !activeConversation) return;
+        if (!newMessage.trim() || !activeConversation?.user?.id) return;
 
         try {
             setLoading(true);
@@ -159,10 +149,10 @@ const Chat: React.FC = () => {
     if (!user) return null;
 
     return (
-        <div className="min-h-screen bg-white flex flex-col">
+        <div className="h-screen bg-white flex flex-col overflow-hidden">
 
 
-            <div className="flex-1 max-w-6xl mx-auto w-full pt-4 md:pt-8 pb-4 px-4 flex gap-6 h-[calc(100vh-2rem)]">
+            <div className="flex-1 max-w-6xl mx-auto w-full pt-4 pb-4 px-4 flex gap-6 overflow-hidden">
                 {/* Sidebar - Conversation List */}
                 <div className={`w-full md:w-80 flex flex-col border-r border-gray-100 ${isMobileView && activeConversation ? 'hidden' : 'block'}`}>
                     <div className="py-4 px-2 border-b border-gray-100 flex items-center gap-3">
@@ -210,7 +200,7 @@ const Chat: React.FC = () => {
                                 <button
                                     key={conv.user.id}
                                     onClick={() => setActiveConversation(conv)}
-                                    className={`w-full text-left p-4 rounded-xl flex items-center gap-3 transition-all mb-2 conversation-item ${activeConversation?.user.id === conv.user.id
+                                    className={`w-full text-left p-4 rounded-xl flex items-center gap-3 transition-all mb-2 conversation-item ${activeConversation?.user?.id === conv.user.id
                                         ? 'bg-gray-50'
                                         : 'hover:bg-gray-50'
                                         }`}
@@ -242,15 +232,15 @@ const Chat: React.FC = () => {
                                         </button>
                                     )}
                                     <div className="w-10 h-10 bg-black text-white rounded-full flex items-center justify-center font-bold">
-                                        {activeConversation.user.name.charAt(0).toUpperCase()}
+                                        {activeConversation.user?.name?.charAt(0).toUpperCase() || '?'}
                                     </div>
                                     <div>
-                                        <h3 className="font-bold">{activeConversation.user.name}</h3>
+                                        <h3 className="font-bold">{activeConversation.user?.name || 'Unknown User'}</h3>
                                     </div>
                                 </div>
                                 <button
                                     onClick={async () => {
-                                        if (window.confirm('คุณแน่ใจว่าต้องการลบประวัติการสนทนานี้?')) {
+                                        if (activeConversation?.user?.id && window.confirm('คุณแน่ใจว่าต้องการลบประวัติการสนทนานี้?')) {
                                             try {
                                                 await messagesAPI.deleteConversation(activeConversation.user.id);
                                                 setActiveConversation(null); // Close chat

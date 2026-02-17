@@ -4,10 +4,12 @@ struct CustomAsyncImage: View {
     @StateObject private var loader = ImageLoader()
     let url: String?
     let placeholder: Image
+    let contentMode: ContentMode
     
-    init(url: String?, placeholder: Image = Image(systemName: "photo")) {
+    init(url: String?, placeholder: Image = Image(systemName: "photo"), contentMode: ContentMode = .fill) {
         self.url = url
         self.placeholder = placeholder
+        self.contentMode = contentMode
     }
     
     var body: some View {
@@ -15,9 +17,11 @@ struct CustomAsyncImage: View {
             if let image = loader.image {
                 Image(uiImage: image)
                     .resizable()
+                    .aspectRatio(contentMode: contentMode)
             } else {
                 placeholder
                     .resizable()
+                    .aspectRatio(contentMode: contentMode)
             }
         }
         .onAppear {

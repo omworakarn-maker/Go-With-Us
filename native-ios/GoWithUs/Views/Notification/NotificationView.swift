@@ -164,7 +164,26 @@ class NotificationViewModel: ObservableObject {
     func loadNotifications() async {
         isLoading = true
         do {
-            notifications = try await NotificationService.shared.getNotifications()
+            var serverNotifications: [AppNotification] = []
+            do {
+                serverNotifications = try await NotificationService.shared.getNotifications()
+            } catch {
+                print("Warning: failed to load server notifications: \(error)")
+            }
+
+            // Merge local persisted notifications (newer or offline) with server list
+            let local = LocalNotificationStore.shared.notifications
+
+            var map: [String: AppNotification] = [:]
+            for n in serverNotifications { map[n.id] = n }
+            for n in local { if map[n.id] == nil { map[n.id] = n } }
+
+            notifications = Array(map.values)
+            // Sort by createdAt desc
+            notifications.sort { lhs, rhs in
+                let f = ISO8601DateFormatter(); f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+                return (f.date(from: lhs.createdAt) ?? Date()) > (f.date(from: rhs.createdAt) ?? Date())
+            }
         } catch {
             print("Error loading notifications: \(error)")
         }
@@ -184,6 +203,8 @@ class NotificationViewModel: ObservableObject {
                     createdAt: notifications[index].createdAt,
                     isRead: true
                 )
+                // also update local store if present
+                LocalNotificationStore.shared.markAsRead(id: id)
             }
         } catch {
             print("Error marking as read: \(error)")

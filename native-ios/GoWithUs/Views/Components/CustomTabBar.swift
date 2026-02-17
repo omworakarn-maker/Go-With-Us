@@ -12,72 +12,93 @@ struct CustomTabBar: View {
     @Binding var selectedTab: Tab
     var onCreateTap: () -> Void
     var bottomPadding: CGFloat = 0
+    var badgeCounts: [Tab: Int] = [:]
     
     private var fillImage: String {
         selectedTab.rawValue
     }
     
     var body: some View {
-        ZStack(alignment: .bottom) {
-            // Tab Bar Background & Items
-            HStack {
-                ForEach(Tab.allCases, id: \.rawValue) { tab in
-                    Spacer()
-                    if tab == .create {
-                        // Invisible spacer for layout
-                        Color.clear
-                            .frame(width: 56, height: 56)
-                    } else {
-                        Button(action: {
-                            withAnimation(.spring()) {
-                                selectedTab = tab
-                            }
-                        }) {
-                            VStack(spacing: 4) {
-                                Image(systemName: getImageName(for: tab))
-                                    .font(.system(size: 24))
-                                    .scaleEffect(selectedTab == tab ? 1.1 : 1.0)
-                                    .foregroundColor(selectedTab == tab ? .black : .gray.opacity(0.8))
-                                
-                                Text(tab.rawValue)
-                                    .font(.system(size: 10, weight: .bold))
-                                    .foregroundColor(selectedTab == tab ? .black : .gray.opacity(0.8))
+        VStack(spacing: 0) {
+            ZStack(alignment: .bottom) {
+                // Tab Bar Background & Items
+                HStack {
+                    ForEach(Tab.allCases, id: \.rawValue) { tab in
+                        Spacer()
+                        if tab == .create {
+                            // Invisible spacer for layout
+                            Color.clear
+                                .frame(width: 56, height: 44)
+                        } else {
+                            Button(action: {
+                                withAnimation(.spring()) {
+                                    selectedTab = tab
+                                }
+                            }) {
+                                VStack(spacing: 4) {
+                                    if let badgeCount = badgeCounts[tab], badgeCount > 0 {
+                                        Image(systemName: getImageName(for: tab))
+                                            .font(.system(size: 22))
+                                            .scaleEffect(selectedTab == tab ? 1.1 : 1.0)
+                                            .foregroundColor(selectedTab == tab ? .appAccent : .gray.opacity(0.6))
+                                            .overlay(
+                                                Text("\(min(badgeCount, 99))")
+                                                    .font(.system(size: 10, weight: .bold))
+                                                    .foregroundColor(.white)
+                                                    .padding(4)
+                                                    .background(Color.appAccent)
+                                                    .clipShape(Circle())
+                                                    .offset(x: 10, y: -10),
+                                                alignment: .topTrailing
+                                            )
+                                    } else {
+                                        Image(systemName: getImageName(for: tab))
+                                            .font(.system(size: 22))
+                                            .scaleEffect(selectedTab == tab ? 1.1 : 1.0)
+                                            .foregroundColor(selectedTab == tab ? .appAccent : .gray.opacity(0.6))
+                                    }
+                                    
+                                    Text(tab.rawValue)
+                                        .font(.system(size: 10, weight: .bold))
+                                        .foregroundColor(selectedTab == tab ? .appAccent : .gray.opacity(0.6))
+                                }
                             }
                         }
+                        Spacer()
                     }
-                    Spacer()
                 }
+                .padding(.top, 12)
+                .padding(.bottom, 12)
+                .background(Color.adaptiveBackground)
+                .shadow(color: Color.adaptiveText.opacity(0.06), radius: 10, x: 0, y: -2)
+                
+                // Floating Create Button
+                Button(action: {
+                    onCreateTap()
+                }) {
+                    ZStack {
+                        Circle()
+                            .foregroundColor(.appAccent)
+                            .frame(width: 56, height: 56)
+                            .overlay(
+                                Circle()
+                                    .stroke(Color.adaptiveBackground, lineWidth: 4)
+                            )
+                            .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
+                        
+                        Image(systemName: "plus")
+                            .font(.system(size: 24, weight: .bold))
+                            .foregroundColor(.white)
+                    }
+                }
+                .offset(y: -28) // Center of the bar
             }
-            .padding(.bottom, bottomPadding)
-            .padding(.top, 10) // Internal padding
-            .frame(width: UIScreen.main.bounds.width)
-            .background(
-                Color.white
-                    .cornerRadius(20, corners: [.topLeft, .topRight])
-                    .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: -5)
-            )
             
-            // Floating Create Button (Z-Index is higher here)
-            Button(action: {
-                onCreateTap()
-            }) {
-                ZStack {
-                    Circle()
-                        .foregroundColor(.black)
-                        .frame(width: 56, height: 56)
-                        .overlay(
-                            Circle()
-                                .stroke(Color.white, lineWidth: 4)
-                        )
-                        .shadow(color: .black.opacity(0.3), radius: 10, x: 0, y: 5)
-                    
-                    Image(systemName: "plus")
-                        .font(.system(size: 24, weight: .bold))
-                        .foregroundColor(.white)
-                }
-            }
-            .offset(y: -bottomPadding - 30) // Move up above the bar
+            // Extra background for bottom safe area
+            Color.adaptiveBackground
+                .frame(height: bottomPadding)
         }
+
     }
     
     func getImageName(for tab: Tab) -> String {

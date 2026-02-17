@@ -3,6 +3,7 @@ import SwiftUI
 struct FilterBar: View {
     @Binding var selectedProvince: String?
     @Binding var selectedDate: Date?
+    @Binding var selectedEndDate: Date? // Add binding for End Date
     @Binding var selectedCategory: TripCategory?
     
     // UI State for Sheets
@@ -29,7 +30,7 @@ struct FilterBar: View {
                 
                 // Date Filter
                 FilterButton(
-                    title: selectedDate != nil ? formatDate(selectedDate!) : "วันที่เดินทาง",
+                    title: formatDateButtonTitle(),
                     isSelected: selectedDate != nil,
                     icon: "calendar",
                     action: { showDateSheet = true }
@@ -49,6 +50,7 @@ struct FilterBar: View {
                         withAnimation {
                             selectedProvince = nil
                             selectedDate = nil
+                            selectedEndDate = nil
                             selectedCategory = nil
                         }
                     }) {
@@ -67,11 +69,19 @@ struct FilterBar: View {
             ProvincePicker(selectedProvince: $selectedProvince)
         }
         .sheet(isPresented: $showDateSheet) {
-            DatePickerSheet(selectedDate: $selectedDate)
+            DatePickerSheet(selectedDate: $selectedDate, selectedEndDate: $selectedEndDate)
         }
         .sheet(isPresented: $showCategorySheet) {
             CategoryPicker(selectedCategory: $selectedCategory)
         }
+    }
+    
+    func formatDateButtonTitle() -> String {
+        guard let start = selectedDate else { return "วันที่เดินทาง" }
+        if let end = selectedEndDate {
+            return "\(formatDate(start)) - \(formatDate(end))"
+        }
+        return formatDate(start)
     }
     
     func formatDate(_ date: Date) -> String {

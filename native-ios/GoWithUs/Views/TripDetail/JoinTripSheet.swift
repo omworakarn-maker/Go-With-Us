@@ -11,11 +11,11 @@ struct JoinTripSheet: View {
             VStack(spacing: 8) {
                 Text("ยืนยันการเข้าร่วม")
                     .font(.system(size: 24, weight: .black))
-                    .foregroundColor(.black)
+                    .foregroundColor(.adaptiveText)
                 
                 Text("คุณต้องการเข้าร่วมทริปนี้ใช่หรือไม่?")
                     .font(.system(size: 16))
-                    .foregroundColor(.gray)
+                    .foregroundColor(.adaptiveSecondaryText)
             }
             .padding(.top, 32)
             
@@ -25,13 +25,13 @@ struct JoinTripSheet: View {
                 }) {
                     Text("ยกเลิก")
                         .font(.system(size: 15, weight: .bold))
-                        .foregroundColor(.black)
+                        .foregroundColor(.adaptiveText)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
-                        .background(Color.white)
+                        .background(Color.adaptiveBackground)
                         .overlay(
                             RoundedRectangle(cornerRadius: 12)
-                                .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                                .stroke(Color.adaptiveBorder, lineWidth: 1)
                         )
                         .cornerRadius(12)
                 }
@@ -49,10 +49,10 @@ struct JoinTripSheet: View {
                 }) {
                     Text(viewModel.isJoining ? "กำลังเข้าร่วม..." : "ยืนยัน")
                         .font(.system(size: 15, weight: .bold))
-                        .foregroundColor(.white)
+                        .foregroundColor(.adaptiveBackground)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
-                        .background(Color.black)
+                        .background(Color.adaptiveText)
                         .cornerRadius(12)
                 }
                 .disabled(viewModel.isJoining)

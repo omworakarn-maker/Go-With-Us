@@ -26,4 +26,40 @@ extension Color {
             opacity: Double(a) / 255
         )
     }
+    
+    // MARK: - Theme Colors
+    static let appPrimary = Color(hex: "#00B4DB")   // Vibrant Travel Blue
+    static let appSecondary = Color(hex: "#0083B0") // Deeper Blue for gradients
+    static let appAccent = Color(hex: "#FF5F6D")    // Vibrant Sunset Coral
+    static let appBackground = Color(hex: "#F9FAFB")
+    static let appText = Color(hex: "#2C3E50")
+    
+    // MARK: - Adaptive Colors (Dark/Light Mode)
+    
+    /// Main background — white in light, near-black in dark
+    static let adaptiveBackground = Color(.systemBackground)
+    
+    /// Secondary/card background — slightly off-white in light, dark gray in dark
+    static let adaptiveCardBackground = Color(.secondarySystemBackground)
+    
+    /// Grouped background for forms/lists
+    static let adaptiveGroupedBackground = Color(.systemGroupedBackground)
+    
+    /// Primary text — black in light, white in dark
+    static let adaptiveText = Color(.label)
+    
+    /// Secondary text — gray in both modes
+    static let adaptiveSecondaryText = Color(.secondaryLabel)
+    
+    /// Tertiary text — lighter gray
+    static let adaptiveTertiaryText = Color(.tertiaryLabel)
+    
+    /// Subtle border color
+    static let adaptiveBorder = Color(.separator)
+    
+    /// Fill color for buttons/tags
+    static let adaptiveFill = Color(.systemFill)
+    
+    /// Subtle background tint for cards
+    static let adaptiveCardTint = Color(.tertiarySystemFill)
 }

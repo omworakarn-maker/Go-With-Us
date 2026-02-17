@@ -146,7 +146,11 @@ const Navbar: React.FC<NavbarProps> = ({ onCreateActivity }) => {
                       onClick={() => setShowProfileMenu(!showProfileMenu)}
                       className="w-9 h-9 bg-black rounded-full overflow-hidden border-2 border-white shadow-lg cursor-pointer hover:scale-105 transition-transform flex items-center justify-center text-white font-bold text-sm"
                     >
-                      {user?.name?.charAt(0).toUpperCase()}
+                      {user?.profileImage ? (
+                        <img src={user.profileImage} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        user?.name?.charAt(0).toUpperCase()
+                      )}
                     </button>
 
                     <AnimatePresence>

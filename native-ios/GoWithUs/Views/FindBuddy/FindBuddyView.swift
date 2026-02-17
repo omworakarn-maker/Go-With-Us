@@ -4,9 +4,9 @@ struct FindBuddyView: View {
     @StateObject private var viewModel = FindBuddyViewModel()
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ZStack {
-                Color.white.ignoresSafeArea()
+                Color.adaptiveBackground.ignoresSafeArea()
                 
                 if viewModel.isLoading {
                     ProgressView("กำลังค้นหาเพื่อนที่แมตช์กัน...")
@@ -47,7 +47,7 @@ struct FindBuddyView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(user.name)
                                     .font(.headline)
-                                    .foregroundColor(.black)
+                                    .foregroundColor(.adaptiveText)
                                 
                                 if let interests = user.interests, !interests.isEmpty {
                                     Text(interests.prefix(3).joined(separator: ", "))
@@ -82,6 +82,7 @@ struct FindBuddyView: View {
                     }
                 }
             }
+            .padding(.bottom, 80) // Space for TabBar
             .navigationTitle("หาเพื่อน")
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
@@ -90,6 +91,7 @@ struct FindBuddyView: View {
                 }
             }
         }
+
     }
     
     func scoreColor(_ score: Int) -> Color {

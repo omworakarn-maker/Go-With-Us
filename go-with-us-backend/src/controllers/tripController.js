@@ -70,6 +70,7 @@ export const getAllTrips = async (req, res, next) => {
                         name: true,
                         email: true,
                         role: true,
+                        profileImage: true,
                     },
                 },
                 participants: {
@@ -105,6 +106,7 @@ export const getTripById = async (req, res, next) => {
                         name: true,
                         email: true,
                         role: true,
+                        profileImage: true,
                     },
                 },
                 participants: {
@@ -142,6 +144,7 @@ export const createTrip = async (req, res, next) => {
             maxParticipants,
             category,
             imageUrl,
+            isPublic
         } = req.body;
 
         // Validation
@@ -150,6 +153,12 @@ export const createTrip = async (req, res, next) => {
                 error: 'Title, destination, and start date are required.',
             });
         }
+
+        // Fetch user to get name for participant record
+        const creator = await prisma.user.findUnique({
+            where: { id: req.user.userId },
+            select: { name: true }
+        });
 
         const trip = await prisma.trip.create({
             data: {
@@ -162,10 +171,16 @@ export const createTrip = async (req, res, next) => {
                 maxParticipants: maxParticipants || 10,
                 category: category || null,
                 imageUrl: imageUrl || null,
-                category: category || null,
-                imageUrl: imageUrl || null,
+                isPublic: isPublic !== undefined ? isPublic : true,
                 creatorId: req.user.userId,
                 embedding: await generateEmbedding(`${title} ${description || ''} ${category || ''} ${destination}`),
+                participants: {
+                    create: {
+                        userId: req.user.userId,
+                        name: creator?.name || "Creator",
+                        interests: []
+                    }
+                }
             },
             include: {
                 creator: {
@@ -176,6 +191,7 @@ export const createTrip = async (req, res, next) => {
                         role: true,
                     },
                 },
+                participants: true,
             },
         });
 
@@ -206,6 +222,7 @@ export const updateTrip = async (req, res, next) => {
             itinerary,
             summary,
             groupAnalysis,
+            isPublic
         } = req.body;
 
         // Check if trip exists
@@ -239,6 +256,7 @@ export const updateTrip = async (req, res, next) => {
                 ...(maxParticipants && { maxParticipants }),
                 ...(category !== undefined && { category }),
                 ...(imageUrl !== undefined && { imageUrl }),
+                ...(isPublic !== undefined && { isPublic }),
                 ...(gallery !== undefined && { gallery }),
                 ...(itinerary !== undefined && { itinerary }),
                 ...(summary !== undefined && { summary }),

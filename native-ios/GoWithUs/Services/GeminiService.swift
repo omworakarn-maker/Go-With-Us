@@ -27,6 +27,38 @@ class GeminiService {
         // Gemini API expects: { contents: [{ role: "user"|"model", parts: [{ text: "..." }] }] }
         var contents: [[String: Any]] = []
         
+        // Add System Instruction (Travel Advisor Scope)
+        let systemPrompt = """
+        คุณคือ 'ที่ปรึกษา' ผู้เชี่ยวชาญด้านการท่องเที่ยว หน้าที่ของคุณคือช่วยหาทริปเที่ยว ให้คำแนะนำสถานที่ท่องเที่ยว และสร้าง/ร่างทริปตามหมวดหมู่
+        
+        กฎสำคัญ:
+        1. ห้ามตอบคำถามที่ไม่เกี่ยวข้องกับการท่องเที่ยว
+        2. ถ้าผู้ใช้ขอให้ "ร่างทริป", "สร้างทริป", หรือ "จัดทริป" ให้ตอบกลับมาเป็น JSON Block เท่านั้น โดยใช้โครงสร้างนี้:
+        ```json
+        {
+          "title": "ชื่อทริปที่น่าสนใจ",
+          "destination": "จังหวัดหรือสถานที่หลัก",
+          "description": "รายละเอียดทริปแบบย่อ",
+          "startDate": "YYYY-MM-DD (ถ้าไม่ระบุให้ใส่วันพรุ่งนี้)",
+          "endDate": "YYYY-MM-DD (คำนวณจากจำนวนวัน)",
+          "budget": 5000 (ใส่ตัวเลขประมาณการ ถ้าฟรีใส่ 0),
+          "maxParticipants": 10 (ใส่ตัวเลขที่เหมาะสม),
+          "category": "ชื่อหมวดหมู่ภาษาไทย (เช่น ทะเล, ภูเขา, คาเฟ่)",
+          "tags": ["keyword1", "keyword2"] (แท็กหรือคีย์เวิร์ดที่เกี่ยวข้อง เช่น ชื่อสถานที่ กิจกรรม)
+        }
+        ```
+        3. ถ้าเป็นการพูดคุยปกติ ให้ตอบเป็นข้อความธรรมดา
+        """
+        
+        contents.append([
+            "role": "user",
+            "parts": [["text": systemPrompt]]
+        ])
+        contents.append([
+            "role": "model",
+            "parts": [["text": "รับทราบครับ ผมพร้อมให้คำปรึกษาเรื่องการท่องเที่ยวครับ"]]
+        ])
+        
         // Add History
         for msg in history {
             let role = msg.isUser ? "user" : "model"
@@ -84,8 +116,15 @@ struct Part: Decodable {
 
 // MARK: - Chat Message Model for UI
 struct ChatMessage: Identifiable, Equatable {
-    let id = UUID()
+    let id: UUID
     let content: String
     let isUser: Bool
-    let timestamp = Date()
+    let timestamp: Date
+    
+    init(id: UUID = UUID(), content: String, isUser: Bool, timestamp: Date = Date()) {
+        self.id = id
+        self.content = content
+        self.isUser = isUser
+        self.timestamp = timestamp
+    }
 }

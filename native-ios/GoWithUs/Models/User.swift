@@ -6,6 +6,11 @@ struct User: Codable, Identifiable {
     let name: String
     let email: String
     let role: UserRole
+    let gender: String?
+    let age: Int?
+    let bio: String?
+    let birthDate: Date?
+    let profileImage: String?
     let travelStyle: TravelStyle?
     let interests: [String]?
     let createdAt: Date?
@@ -16,6 +21,11 @@ struct User: Codable, Identifiable {
         name: String,
         email: String,
         role: UserRole = .user,
+        gender: String? = nil,
+        age: Int? = nil,
+        bio: String? = nil,
+        birthDate: Date? = nil,
+        profileImage: String? = nil,
         travelStyle: TravelStyle? = nil,
         interests: [String]? = nil,
         createdAt: Date? = nil,
@@ -25,6 +35,11 @@ struct User: Codable, Identifiable {
         self.name = name
         self.email = email
         self.role = role
+        self.gender = gender
+        self.age = age
+        self.bio = bio
+        self.birthDate = birthDate
+        self.profileImage = profileImage
         self.travelStyle = travelStyle
         self.interests = interests
         self.createdAt = createdAt
@@ -40,33 +55,13 @@ enum UserRole: String, Codable {
 
 // MARK: - Travel Style
 struct TravelStyle: Codable {
-    let budget: BudgetType
-    let pace: PaceType
-    let social: SocialType
-    let accommodation: AccommodationType
+    let budget: String?
+    let pace: String?
+    let social: String?
+    let accommodation: String?
+    let food: String?
+    let nightlife: String?
+    let transport: String?
+    let photography: String?
 }
 
-enum BudgetType: String, Codable {
-    case budget = "Budget"
-    case moderate = "Moderate"
-    case luxury = "Luxury"
-}
-
-enum PaceType: String, Codable {
-    case relaxed = "Relaxed"
-    case moderate = "Moderate"
-    case fast = "Fast-Paced"
-}
-
-enum SocialType: String, Codable {
-    case solo = "Solo"
-    case smallGroup = "Small Group"
-    case largeGroup = "Large Group"
-}
-
-enum AccommodationType: String, Codable {
-    case hostel = "Hostel"
-    case hotel = "Hotel"
-    case resort = "Resort"
-    case airbnb = "Airbnb"
-}

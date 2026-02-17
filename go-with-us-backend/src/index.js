@@ -25,9 +25,9 @@ app.use(cors({
   },
   credentials: true,
 }));
-// Increase payload limit to handle base64 images (5MB image = ~6.7MB base64)
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// Increase payload limit to handle base64 images (50MB)
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Routes
 app.get('/', (req, res) => {

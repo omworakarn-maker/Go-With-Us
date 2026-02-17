@@ -11,6 +11,7 @@ import CreateActivity from '../pages/CreateActivity';
 import Login from '../pages/Login';
 import Register from '../pages/Register';
 import Profile from '../pages/Profile';
+import PublicProfile from '../pages/PublicProfile';
 import Chat from '../pages/Chat';
 import SearchPage from '../pages/Search';
 import TripHistory from '../pages/TripHistory';
@@ -226,6 +227,7 @@ const AnimatedRoutes: React.FC = () => {
                         }
                     />
                     <Route path="/search" element={<SearchPage />} />
+                    <Route path="/user/:userId" element={<PublicProfile />} />
                     <Route
                         path="/admin/alerts"
                         element={

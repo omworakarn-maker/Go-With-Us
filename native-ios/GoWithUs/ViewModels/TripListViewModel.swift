@@ -19,6 +19,9 @@ class TripListViewModel: ObservableObject {
     @Published var selectedDate: Date? {
         didSet { Task { await loadTrips() } }
     }
+    @Published var selectedEndDate: Date? {
+        didSet { Task { await loadTrips() } }
+    }
     @Published var selectedCategory: TripCategory? {
         didSet { Task { await loadTrips() } }
     }
@@ -58,9 +61,26 @@ class TripListViewModel: ObservableObject {
             trips = try await TripService.shared.getAllTrips(
                 type: type,
                 destination: selectedProvince == "ทุกจังหวัด" ? nil : selectedProvince,
-                startDate: selectedDate,
+                startDate: selectedDate, // Filter API by start date (>=)
                 category: selectedCategory
             )
+            
+            // Local Filtering for End Date (Range)
+            if let endDate = selectedDate, let rangeEnd = selectedDate, let userSelectionEnd = selectedEndDate {
+                 // Logic: selectedDate is Start. selectedEndDate is End.
+                 // API returns trips starting >= selectedDate.
+                 // We want trips starting <= selectedEndDate also?
+                 // Or trips occurring within the range?
+                 // Usually "Trip Date" filter means the trip *Starts* in this range.
+                 trips = trips.filter { trip in
+                     trip.startDate <= userSelectionEnd
+                 }
+            } else if let end = selectedEndDate {
+                // If only end date is set? (Shouldn't happen with our UI logic)
+                 trips = trips.filter { trip in
+                     trip.startDate <= end
+                 }
+            }
             
             // Local search filtering only
             if !searchText.isEmpty {

@@ -12,6 +12,11 @@ interface ExtendedUser {
     email: string;
     name: string;
     role: string;
+    gender?: string;
+    age?: number;
+    bio?: string;
+    birthDate?: string;
+    profileImage?: string;
     interests: string[];
     createdAt: string;
     createdTrips: Trip[];
@@ -30,8 +35,21 @@ const Profile: React.FC = () => {
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [newInterests, setNewInterests] = useState<string[]>([]);
+    const [newGender, setNewGender] = useState('');
+    const [newAge, setNewAge] = useState('');
+    const [newBio, setNewBio] = useState('');
+    const [newBirthDate, setNewBirthDate] = useState('');
+    const [newProfileImage, setNewProfileImage] = useState<string | null>(null);
 
     const [saving, setSaving] = useState(false);
+    const [privacySettings, setPrivacySettings] = useState({
+        isProfilePublic: true,
+        showGender: true,
+        showAge: true,
+        showBio: true,
+        showInterests: true,
+        showEmail: false,
+    });
 
     const [activeTab, setActiveTab] = useState<'my-trips' | 'joined-trips'>('my-trips');
     const [error, setError] = useState('');
@@ -47,6 +65,10 @@ const Profile: React.FC = () => {
             setProfile(data);
             setNewName(data.name);
             setNewInterests(data.interests || []);
+            setNewGender(data.gender || '');
+            setNewAge(data.age ? String(data.age) : '');
+            setNewBio(data.bio || '');
+            setNewBirthDate(data.birthDate ? data.birthDate.split('T')[0] : '');
         } catch (error) {
             console.error('Failed to fetch profile:', error);
         } finally {
@@ -69,11 +91,21 @@ const Profile: React.FC = () => {
             const updateData: any = {
                 name: newName,
                 interests: newInterests,
-                travelStyle: profile.travelStyle // Include travel style in update
+                gender: newGender || undefined,
+                age: newAge ? parseInt(newAge) : undefined,
+                bio: newBio || undefined,
+                birthDate: newBirthDate || undefined,
+                travelStyle: profile.travelStyle,
+                profileImage: newProfileImage !== null ? newProfileImage : undefined
             };
             if (newPassword) updateData.password = newPassword;
 
-            await userAPI.updateProfile(updateData);
+            // Update both profile and privacy settings
+            await Promise.all([
+                userAPI.updateProfile(updateData),
+                userAPI.updatePrivacySettings(privacySettings)
+            ]);
+
             await fetchProfile(); // Refresh local profile data
             await refreshUser(); // Refresh global auth context
 
@@ -101,6 +133,7 @@ const Profile: React.FC = () => {
         });
     };
 
+
     if (loading) {
         return (
             <>
@@ -125,7 +158,11 @@ const Profile: React.FC = () => {
 
                         {/* Avatar */}
                         <div className="w-32 h-32 bg-black rounded-full border-4 border-white shadow-lg overflow-hidden relative z-10 mb-4 flex items-center justify-center text-5xl font-bold text-white">
-                            {profile.name.charAt(0).toUpperCase()}
+                            {profile.profileImage ? (
+                                <img src={profile.profileImage} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                                profile.name.charAt(0).toUpperCase()
+                            )}
                         </div>
 
                         {!isEditing ? (
@@ -160,7 +197,36 @@ const Profile: React.FC = () => {
                                     </div>
                                 </div>
 
-                                <div className="flex gap-3 justify-center">
+                                {/* Profile Info Cards */}
+                                <div className="w-full space-y-3 mb-6 border-t border-gray-100 pt-6">
+                                    {(profile.gender || profile.age) && (
+                                        <div className="grid grid-cols-2 gap-3">
+                                            {profile.gender && (
+                                                <div className="bg-gray-50 rounded-lg p-3">
+                                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">เพศ</p>
+                                                    <p className="text-sm font-bold text-black">
+                                                        {profile.gender === 'male' ? 'ชาย' : profile.gender === 'female' ? 'หญิง' : 'อื่นๆ'}
+                                                    </p>
+                                                </div>
+                                            )}
+                                            {profile.age && (
+                                                <div className="bg-gray-50 rounded-lg p-3">
+                                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">อายุ</p>
+                                                    <p className="text-sm font-bold text-black">{profile.age} ปี</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {profile.bio && (
+                                        <div className="bg-gray-50 rounded-lg p-4">
+                                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-2">ประวัติส่วนตัว</p>
+                                            <p className="text-sm text-gray-700 leading-relaxed">{profile.bio}</p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="flex flex-wrap justify-center gap-3">
                                     <button
                                         onClick={() => setIsEditing(true)}
                                         className="px-6 py-2 bg-black text-white rounded-full font-bold text-sm hover:bg-gray-800 transition-all active:scale-95 shadow-lg shadow-black/10"
@@ -179,6 +245,46 @@ const Profile: React.FC = () => {
                             <form onSubmit={handleUpdateProfile} className="w-full max-w-sm z-10 text-left space-y-4">
                                 <h2 className="text-xl font-bold text-center mb-6">แก้ไขข้อมูลส่วนตัว</h2>
 
+                                {/* Profile Image Upload */}
+                                <div className="flex flex-col items-center mb-4">
+                                    <div className="w-24 h-24 bg-black rounded-full border-4 border-white shadow-lg overflow-hidden flex items-center justify-center text-3xl font-bold text-white mb-3">
+                                        {newProfileImage ? (
+                                            <img src={newProfileImage} alt="" className="w-full h-full object-cover" />
+                                        ) : profile.profileImage ? (
+                                            <img src={profile.profileImage} alt="" className="w-full h-full object-cover" />
+                                        ) : (
+                                            profile.name.charAt(0).toUpperCase()
+                                        )}
+                                    </div>
+                                    <label className="px-4 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-full cursor-pointer transition-colors">
+                                        เปลี่ยนรูปโปรไฟล์
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            className="hidden"
+                                            onChange={(e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) {
+                                                    const reader = new FileReader();
+                                                    reader.onload = (ev) => {
+                                                        setNewProfileImage(ev.target?.result as string);
+                                                    };
+                                                    reader.readAsDataURL(file);
+                                                }
+                                            }}
+                                        />
+                                    </label>
+                                    {(newProfileImage || profile.profileImage) && newProfileImage !== '' && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setNewProfileImage('')}
+                                            className="px-4 py-1.5 bg-red-50 hover:bg-red-100 text-red-500 text-xs font-bold rounded-full cursor-pointer transition-colors mt-2"
+                                        >
+                                            ลบรูปโปรไฟล์
+                                        </button>
+                                    )}
+                                </div>
+
                                 {error && <div className="text-red-500 text-xs text-center font-bold bg-red-50 p-2 rounded-lg">{error}</div>}
 
                                 <div>
@@ -190,6 +296,58 @@ const Profile: React.FC = () => {
                                         className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-black focus:bg-white transition-all font-medium"
                                         required
                                     />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-3 mb-1 block">เพศ</label>
+                                        <select
+                                            value={newGender}
+                                            onChange={(e) => setNewGender(e.target.value)}
+                                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-black focus:bg-white transition-all font-medium"
+                                        >
+                                            <option value="">เลือกเพศ</option>
+                                            <option value="male">ชาย</option>
+                                            <option value="female">หญิง</option>
+                                            <option value="other">อื่นๆ</option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-3 mb-1 block">อายุ</label>
+                                        <input
+                                            type="number"
+                                            min="13"
+                                            max="120"
+                                            value={newAge}
+                                            onChange={(e) => setNewAge(e.target.value)}
+                                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-black focus:bg-white transition-all font-medium"
+                                            placeholder="เช่น 25"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-3 mb-1 block">วันเกิด</label>
+                                    <input
+                                        type="date"
+                                        value={newBirthDate}
+                                        onChange={(e) => setNewBirthDate(e.target.value)}
+                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-black focus:bg-white transition-all font-medium"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-3 mb-1 block">ประวัติส่วนตัว (Bio)</label>
+                                    <textarea
+                                        value={newBio}
+                                        onChange={(e) => setNewBio(e.target.value)}
+                                        placeholder="บอกเล่าเกี่ยวกับตัวคุณ..."
+                                        rows={4}
+                                        maxLength={500}
+                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-black focus:bg-white transition-all font-medium resize-none"
+                                    />
+                                    <p className="text-[9px] text-gray-400 mt-1 pl-1">{newBio.length} / 500</p>
                                 </div>
 
                                 <div>
@@ -279,6 +437,51 @@ const Profile: React.FC = () => {
                                     </div>
                                 </div>
 
+                                <div className="pt-6 border-t border-gray-100 mt-4">
+                                    <h3 className="text-sm font-bold text-black text-center mb-4">ตั้งค่าความเป็นส่วนตัว</h3>
+                                    <div className="space-y-3">
+                                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                                            <label className="text-xs font-bold text-gray-700">เปิดโปรไฟล์สาธารณะ</label>
+                                            <input
+                                                type="checkbox"
+                                                checked={privacySettings.isProfilePublic}
+                                                onChange={(e) =>
+                                                    setPrivacySettings({
+                                                        ...privacySettings,
+                                                        isProfilePublic: e.target.checked
+                                                    })
+                                                }
+                                                className="w-5 h-5 cursor-pointer accent-black"
+                                            />
+                                        </div>
+
+                                        <div className="grid grid-cols-1 gap-2">
+                                            {[
+                                                { key: 'showGender', label: 'แสดงเพศ' },
+                                                { key: 'showAge', label: 'แสดงอายุ' },
+                                                { key: 'showBio', label: 'แสดงประวัติส่วนตัว' },
+                                                { key: 'showInterests', label: 'แสดงความสนใจ' },
+                                                { key: 'showEmail', label: 'แสดงอีเมล' },
+                                            ].map(({ key, label }) => (
+                                                <div key={key} className="flex items-center justify-between px-4 py-2 hover:bg-gray-50 rounded-lg transition-colors border border-transparent hover:border-gray-100">
+                                                    <label className="text-[13px] text-gray-600 font-medium">{label}</label>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={privacySettings[key as keyof typeof privacySettings] as boolean}
+                                                        onChange={(e) =>
+                                                            setPrivacySettings({
+                                                                ...privacySettings,
+                                                                [key]: e.target.checked
+                                                            })
+                                                        }
+                                                        className="w-4 h-4 cursor-pointer accent-black"
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <div className="flex gap-3 justify-center pt-4">
                                     <button
                                         type="button"
@@ -289,6 +492,10 @@ const Profile: React.FC = () => {
                                             setConfirmPassword('');
                                             setNewName(profile.name);
                                             setNewInterests(profile.interests || []);
+                                            setNewGender(profile.gender || '');
+                                            setNewAge(profile.age ? String(profile.age) : '');
+                                            setNewBio(profile.bio || '');
+                                            setNewBirthDate(profile.birthDate ? profile.birthDate.split('T')[0] : '');
                                         }}
                                         className="flex-1 py-3 border border-gray-200 text-gray-500 rounded-xl font-bold text-sm hover:bg-gray-50 transition-all"
                                     >

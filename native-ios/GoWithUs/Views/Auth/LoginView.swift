@@ -7,7 +7,7 @@ struct LoginView: View {
         NavigationView {
             ZStack {
                 // White Background
-                Color.white
+                Color.adaptiveBackground
                     .ignoresSafeArea()
                 
                 VStack(spacing: 0) {
@@ -16,18 +16,18 @@ struct LoginView: View {
                     // Logo - Minimal Black Circle
                     VStack(spacing: 24) {
                         Circle()
-                            .fill(Color.black)
+                            .fill(Color.adaptiveText)
                             .frame(width: 80, height: 80)
                             .overlay(
                                 Circle()
-                                    .fill(Color.white)
+                                    .fill(Color.adaptiveBackground)
                                     .frame(width: 12, height: 12)
                             )
                         
                         VStack(spacing: 8) {
                             Text("GoWithUs")
                                 .font(.system(size: 42, weight: .black))
-                                .foregroundColor(.black)
+                                .foregroundColor(.adaptiveText)
                                 .tracking(-1)
                             
                             Text("ไปกับเรา สนุกกว่า")
@@ -53,7 +53,8 @@ struct LoginView: View {
                                     Text("your@email.com")
                                         .foregroundColor(.gray.opacity(0.5))
                                 }
-                                .foregroundColor(.black)
+                                .foregroundColor(.adaptiveText)
+                                .tint(.adaptiveText)
                                 .textInputAutocapitalization(.never)
                                 .keyboardType(.emailAddress)
                                 .padding()
@@ -78,7 +79,8 @@ struct LoginView: View {
                                     Text("••••••••")
                                         .foregroundColor(.gray.opacity(0.5))
                                 }
-                                .foregroundColor(.black)
+                                .foregroundColor(.adaptiveText)
+                                .tint(.adaptiveText)
                                 .padding()
                                 .background(Color.gray.opacity(0.05))
                                 .overlay(
@@ -92,7 +94,7 @@ struct LoginView: View {
                         if let error = viewModel.errorMessage {
                             Text(error)
                                 .font(.system(size: 13, weight: .medium))
-                                .foregroundColor(.black)
+                                .foregroundColor(.adaptiveText)
                                 .padding(.horizontal)
                         }
                         
@@ -113,8 +115,8 @@ struct LoginView: View {
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 16)
-                            .background(Color.black)
-                            .foregroundColor(.white)
+                            .background(Color.adaptiveText)
+                            .foregroundColor(Color.adaptiveBackground)
                             .cornerRadius(12)
                         }
                         .disabled(viewModel.isLoading)
@@ -126,7 +128,7 @@ struct LoginView: View {
                                 Text("ยังไม่มีบัญชี?")
                                     .foregroundColor(.gray)
                                 Text("สมัครสมาชิก")
-                                    .foregroundColor(.black)
+                                    .foregroundColor(.adaptiveText)
                                     .fontWeight(.bold)
                             }
                             .font(.system(size: 13))
@@ -139,20 +141,9 @@ struct LoginView: View {
                 }
             }
             .navigationBarHidden(true)
-        }
-    }
-}
-
-// MARK: - Placeholder Modifier
-extension View {
-    func placeholder<Content: View>(
-        when shouldShow: Bool,
-        alignment: Alignment = .leading,
-        @ViewBuilder placeholder: () -> Content
-    ) -> some View {
-        ZStack(alignment: alignment) {
-            placeholder().opacity(shouldShow ? 1 : 0)
-            self
+            .onTapGesture {
+                hideKeyboard()
+            }
         }
     }
 }

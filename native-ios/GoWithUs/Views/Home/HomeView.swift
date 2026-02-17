@@ -2,11 +2,11 @@ import SwiftUI
 
 struct HomeView: View {
     @StateObject private var viewModel = TripListViewModel()
+    @ObservedObject private var notificationPoller = NotificationPoller.shared
     @State private var showNotifications = false
-    @State private var unreadCount = 0
 
     
-    @State private var showSideMenu = false
+    @Binding var showSideMenu: Bool
     
     var body: some View {
         NavigationStack {
@@ -24,15 +24,14 @@ struct HomeView: View {
                             }) {
                                 Image(systemName: "line.3.horizontal")
                                     .font(.system(size: 24, weight: .bold))
-                                    .foregroundColor(.black)
+                                    .foregroundColor(.adaptiveText)
                             }
                             
                             Spacer()
                             
                             Text("GoWithUs")
-                                .font(.system(size: 28, weight: .black))
-                                .foregroundColor(.black)
-                                .tracking(-1)
+                                .font(.system(size: 22, weight: .bold))
+                                .foregroundColor(.adaptiveText)
                             
                             Spacer()
                             
@@ -43,10 +42,10 @@ struct HomeView: View {
                                 ZStack(alignment: .topTrailing) {
                                     Image(systemName: "bell.fill")
                                         .font(.system(size: 22, weight: .bold))
-                                        .foregroundColor(.black)
+                                        .foregroundColor(.adaptiveText)
                                     
-                                    if unreadCount > 0 {
-                                        Text("\(unreadCount)")
+                                    if notificationPoller.unreadCount > 0 {
+                                        Text("\(notificationPoller.unreadCount)")
                                             .font(.system(size: 10, weight: .bold))
                                             .foregroundColor(.white)
                                             .padding(4)
@@ -64,6 +63,7 @@ struct HomeView: View {
                         FilterBar(
                             selectedProvince: $viewModel.selectedProvince,
                             selectedDate: $viewModel.selectedDate,
+                            selectedEndDate: $viewModel.selectedEndDate,
                             selectedCategory: $viewModel.selectedCategory
                         )
                         
@@ -73,7 +73,7 @@ struct HomeView: View {
                                 .foregroundColor(.gray)
                             
                             TextField("ค้นหาทริป...", text: $viewModel.searchText)
-                                .foregroundColor(.black)
+                                .foregroundColor(.adaptiveText)
                         }
                         .padding()
                         .background(Color.gray.opacity(0.05))
@@ -97,7 +97,7 @@ struct HomeView: View {
                     if viewModel.isLoading {
                         Spacer()
                         ProgressView()
-                            .tint(.black)
+                            .tint(.adaptiveText)
                         Spacer()
                     } else if let error = viewModel.errorMessage {
                         Spacer()
@@ -108,7 +108,7 @@ struct HomeView: View {
                             
                             Text("เกิดข้อผิดพลาด")
                                 .font(.system(size: 18, weight: .bold))
-                                .foregroundColor(.black)
+                                .foregroundColor(.adaptiveText)
                             
                             Text(error)
                                 .font(.system(size: 14))
@@ -143,7 +143,7 @@ struct HomeView: View {
                             
                             Text("ไม่พบทริป")
                                 .font(.system(size: 18, weight: .bold))
-                                .foregroundColor(.black)
+                                .foregroundColor(.adaptiveText)
                             
                             Text("ลองค้นหาด้วยคำอื่นหรือสร้างทริปใหม่")
                                 .font(.system(size: 14))
@@ -169,31 +169,22 @@ struct HomeView: View {
                         }
                     }
                 }
-                // Side Menu Overlay
-                SideMenuView(isShowing: $showSideMenu)
             }
             .navigationBarHidden(true)
             .sheet(isPresented: $showNotifications) {
                 NotificationView()
             }
-        }
-        .task {
-            await viewModel.loadTrips()
-            await loadUnreadCount()
+            .task {
+                await viewModel.loadTrips()
+            }
         }
     }
+
     
-    private func loadUnreadCount() async {
-        do {
-            unreadCount = try await NotificationService.shared.getUnreadCount()
-        } catch {
-            print("Error loading unread count: \(error)")
-        }
-    }
 }
 
 
 
 #Preview {
-    HomeView()
+    HomeView(showSideMenu: .constant(false))
 }

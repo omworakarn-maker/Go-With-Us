@@ -10,29 +10,92 @@ struct CreateTripView: View {
     @State private var endDate = Date().addingTimeInterval(86400)
     @State private var budget = ""
     @State private var maxParticipants = "10"
-    @State private var selectedCategory: TripCategory = .adventure
+    @State private var selectedCategoryRaw: String = TripCategory.adventure.rawValue
+    @State private var extraCategories: [String] = []
+    @State private var showAddCategory = false
+    @State private var newCategoryText: String = ""
     @State private var imageUrl = ""
-    @State private var selectedItem: PhotosPickerItem? = nil
-    @State private var selectedImage: UIImage? = nil
+    @State private var selectedImages: [UIImage] = []
+    @State private var isPublic = true // Default to Public
     @State private var isLoading = false
     @State private var errorMessage: String?
+    @State private var tags: [String] = []
+    @State private var tagInput: String = ""
+    
+
+    
+    // Draft Injection
+    var draft: TripDraft?
+    // Edit Injection
+    var editingTrip: Trip?
+    
+    init(draft: TripDraft? = nil) {
+        self.draft = draft
+        self.editingTrip = nil
+        
+        if let draft = draft {
+            _title = State(initialValue: draft.title)
+            _destination = State(initialValue: draft.destination)
+            _description = State(initialValue: draft.description)
+            _budget = State(initialValue: String(draft.budget))
+            _maxParticipants = State(initialValue: String(draft.maxParticipants))
+            
+            // Date Parsing
+            let formatter = DateFormatter()
+            formatter.dateFormat = "yyyy-MM-dd"
+            if let start = formatter.date(from: draft.startDate) {
+                _startDate = State(initialValue: start)
+            }
+            if let end = formatter.date(from: draft.endDate) {
+                _endDate = State(initialValue: end)
+            }
+            
+            // Category Matching
+            _selectedCategoryRaw = State(initialValue: draft.category)
+            
+            // Tags from AI draft
+            if let draftTags = draft.tags {
+                _tags = State(initialValue: draftTags)
+            }
+        }
+    }
+    
+    // Initializer for Editing
+    init(trip: Trip) {
+        self.draft = nil
+        self.editingTrip = trip
+        
+        _title = State(initialValue: trip.title)
+        _destination = State(initialValue: trip.destination)
+        _description = State(initialValue: trip.description ?? "")
+        _startDate = State(initialValue: trip.startDate)
+        _endDate = State(initialValue: trip.endDate ?? trip.startDate)
+        _budget = State(initialValue: String(trip.budget))
+        _maxParticipants = State(initialValue: String(trip.maxParticipants))
+        _selectedCategoryRaw = State(initialValue: trip.category.rawValue)
+        _imageUrl = State(initialValue: trip.imageUrl ?? "")
+        _isPublic = State(initialValue: trip.isPublic)
+        
+        // Note: For now, we don't load current gallery URLs back into the picker (selectedImages),
+        // but we handle them in saveTrip to ensure they aren't deleted.
+    }
     
     var body: some View {
         NavigationView {
             ZStack {
-                Color.white
+                Color.adaptiveBackground
                     .ignoresSafeArea()
                 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 24) {
                         // Header
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("สร้างทริปใหม่")
+                            Text(editingTrip != nil ? "แก้ไขทริป" : "สร้างทริปใหม่")
                                 .font(.system(size: 32, weight: .black))
-                                .foregroundColor(.black)
+                                .foregroundColor(.adaptiveText)
                                 .tracking(-1)
                             
-                            Text("เริ่มต้นการผจญภัยของคุณ")
+                            Text(editingTrip != nil ? "อัปเดตข้อมูลการเดินทางของคุณ" : "เริ่มต้นการผจญภัยของคุณ")
                                 .font(.system(size: 14, weight: .medium))
                                 .foregroundColor(.gray)
                         }
@@ -43,13 +106,18 @@ struct CreateTripView: View {
                             // Title
                             FormField(label: "ชื่อทริป", placeholder: "เช่น เที่ยวเชียงใหม่ 3 วัน 2 คืน", text: $title)
                             
-                            // Image Section
-                            TripImagePickerView(
-                                selectedItem: $selectedItem,
-                                selectedImage: $selectedImage,
-                                imageUrl: $imageUrl
+                            // Photos and Image URL section
+                            TripMultiImagePickerView(
+                                selectedImages: $selectedImages,
+                                imageUrl: $imageUrl,
+                                existingUrls: {
+                                    if let trip = editingTrip {
+                                        return ([trip.imageUrl].compactMap { $0 } + (trip.gallery ?? []))
+                                    }
+                                    return []
+                                }()
                             )
-                            
+                            .padding(.bottom, 8)
                             // Destination
                             FormField(label: "สถานที่", placeholder: "เช่น เชียงใหม่", text: $destination)
                             
@@ -62,7 +130,8 @@ struct CreateTripView: View {
                                     .tracking(1)
                                 
                                 TextEditor(text: $description)
-                                    .foregroundColor(.black)
+                                    .foregroundColor(.adaptiveText)
+                                    .tint(.adaptiveText)
                                     .frame(height: 100)
                                     .padding(8)
                                     .background(Color.gray.opacity(0.05))
@@ -84,13 +153,22 @@ struct CreateTripView: View {
                                 Menu {
                                     ForEach(TripCategory.allCases, id: \.self) { category in
                                         Button(category.rawValue) {
-                                            selectedCategory = category
+                                            selectedCategoryRaw = category.rawValue
                                         }
+                                    }
+                                    // Extra user categories
+                                    ForEach(extraCategories, id: \.self) { cat in
+                                        Button(cat) { selectedCategoryRaw = cat }
+                                    }
+
+                                    Divider()
+                                    Button("เพิ่มหมวดหมู่...") {
+                                        showAddCategory = true
                                     }
                                 } label: {
                                     HStack {
-                                        Text(selectedCategory.rawValue)
-                                            .foregroundColor(.black)
+                                        Text(selectedCategoryRaw)
+                                            .foregroundColor(.adaptiveText)
                                         Spacer()
                                         Image(systemName: "chevron.down")
                                             .foregroundColor(.gray)
@@ -105,12 +183,89 @@ struct CreateTripView: View {
                                 }
                             }
                             
+                            // Tags / Keywords
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("แท็ก / คีย์เวิร์ด")
+                                    .font(.system(size: 11, weight: .bold))
+                                    .foregroundColor(.gray)
+                                    .textCase(.uppercase)
+                                    .tracking(1)
+                                
+                                // Tag chips
+                                if !tags.isEmpty {
+                                    ScrollView(.horizontal, showsIndicators: false) {
+                                        HStack(spacing: 8) {
+                                            ForEach(tags, id: \.self) { tag in
+                                                HStack(spacing: 4) {
+                                                    Text("#\(tag)")
+                                                        .font(.system(size: 13, weight: .medium))
+                                                    Button(action: {
+                                                        withAnimation { tags.removeAll { $0 == tag } }
+                                                    }) {
+                                                        Image(systemName: "xmark")
+                                                            .font(.system(size: 10, weight: .bold))
+                                                    }
+                                                }
+                                                .foregroundColor(.appPrimary)
+                                                .padding(.horizontal, 10)
+                                                .padding(.vertical, 6)
+                                                .background(Color.appPrimary.opacity(0.1))
+                                                .cornerRadius(16)
+                                            }
+                                        }
+                                    }
+                                }
+                                
+                                // Tag input
+                                HStack {
+                                    TextField("เช่น ทะเล, คาเฟ่, ธรรมชาติ", text: $tagInput)
+                                        .foregroundColor(.adaptiveText)
+                                        .tint(.adaptiveText)
+                                        .onSubmit {
+                                            addTag()
+                                        }
+                                    
+                                    Button(action: { addTag() }) {
+                                        Image(systemName: "plus.circle.fill")
+                                            .font(.system(size: 22))
+                                            .foregroundColor(tagInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? .gray.opacity(0.3) : .appPrimary)
+                                    }
+                                    .disabled(tagInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                                }
+                                .padding()
+                                .background(Color.gray.opacity(0.05))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                                )
+                                .cornerRadius(12)
+                            }
+                            
+                            // Visibility Toggle
+                            Toggle(isOn: $isPublic) {
+                                VStack(alignment: .leading) {
+                                    Text("สาธารณะ")
+                                        .font(.system(size: 15, weight: .bold))
+                                        .foregroundColor(.adaptiveText)
+                                    Text("ทุกคนสามารถเห็นทริปนี้ได้")
+                                        .font(.caption)
+                                        .foregroundColor(.gray)
+                                }
+                            }
+                            .padding()
+                            .background(Color.gray.opacity(0.05))
+                            .cornerRadius(12)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                            )
+                            
                             // Dates
                             TripDateInputView(startDate: $startDate, endDate: $endDate)
                             
                             // Budget & Max Participants
                             HStack(spacing: 12) {
-                                FormField(label: "งบประมาณ (บาท)", placeholder: "5000", text: $budget)
+                                FormField(label: "งบประมาณ (บาท)", placeholder: "0 = ฟรี", text: $budget)
                                     .keyboardType(.numberPad)
                                 
                                 FormField(label: "จำนวนคน", placeholder: "10", text: $maxParticipants)
@@ -121,25 +276,25 @@ struct CreateTripView: View {
                             if let error = errorMessage {
                                 Text(error)
                                     .font(.system(size: 13, weight: .medium))
-                                    .foregroundColor(.black)
+                                    .foregroundColor(.red)
                             }
                             
-                            // Create Button
-                            Button(action: createTrip) {
+                            // Create/Update Button
+                            Button(action: saveTrip) {
                                 HStack(spacing: 8) {
                                     if isLoading {
                                         ProgressView()
                                             .tint(.white)
                                     } else {
-                                        Image(systemName: "plus.circle.fill")
-                                        Text("สร้างทริป")
+                                        Image(systemName: editingTrip != nil ? "checkmark.circle.fill" : "plus.circle.fill")
+                                        Text(editingTrip != nil ? "บันทึกการแก้ไข" : "สร้างทริป")
                                             .font(.system(size: 15, weight: .bold))
                                     }
                                 }
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 16)
-                                .background(Color.black)
+                                .background(Color.adaptiveText)
                                 .cornerRadius(12)
                             }
                             .disabled(isLoading)
@@ -150,18 +305,77 @@ struct CreateTripView: View {
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
+            .onTapGesture {
+                hideKeyboard()
+            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("ยกเลิก") {
                         dismiss()
                     }
-                    .foregroundColor(.black)
+                    .foregroundColor(.adaptiveText)
+                }
+            }
+        }
+        .onAppear { loadExtraCategories() }
+        .sheet(isPresented: $showAddCategory) {
+            NavigationView {
+                VStack(spacing: 16) {
+                    TextField("ชื่อหมวดหมู่ใหม่", text: $newCategoryText)
+                        .padding()
+                        .background(Color.gray.opacity(0.05))
+                        .tint(.adaptiveText)
+                        .cornerRadius(8)
+
+                    Spacer()
+                }
+                .padding()
+                .navigationTitle("เพิ่มหมวดหมู่")
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("ยกเลิก") { showAddCategory = false; newCategoryText = "" }
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("บันทึก") {
+                            let trimmed = newCategoryText.trimmingCharacters(in: .whitespacesAndNewlines)
+                            if !trimmed.isEmpty {
+                                saveExtraCategory(trimmed)
+                                selectedCategoryRaw = trimmed
+                            }
+                            showAddCategory = false
+                            newCategoryText = ""
+                        }
+                    }
                 }
             }
         }
     }
+
+    // Load saved extra categories and provide add-category sheet
+    private func loadExtraCategories() {
+        if let data = UserDefaults.standard.array(forKey: "extra_trip_categories_v1") as? [String] {
+            extraCategories = data
+        }
+    }
+
+    private func saveExtraCategory(_ category: String) {
+        var list = extraCategories
+        if !list.contains(category) {
+            list.insert(category, at: 0)
+            extraCategories = list
+            UserDefaults.standard.set(list, forKey: "extra_trip_categories_v1")
+        }
+    }
     
-    private func createTrip() {
+    private func addTag() {
+        let trimmed = tagInput.trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "#", with: "")
+        guard !trimmed.isEmpty, !tags.contains(trimmed) else { return }
+        withAnimation { tags.append(trimmed) }
+        tagInput = ""
+    }
+    
+    private func saveTrip() {
         // Validation
         guard !title.isEmpty else {
             errorMessage = "กรุณากรอกชื่อทริป"
@@ -173,8 +387,8 @@ struct CreateTripView: View {
             return
         }
         
-        guard let budgetValue = Int(budget), budgetValue > 0 else {
-            errorMessage = "กรุณากรอกงบประมาณที่ถูกต้อง"
+        guard let budgetValue = Int(budget), budgetValue >= 0 else {
+            errorMessage = "กรุณากรอกงบประมาณที่ถูกต้อง (0 = ฟรี)"
             return
         }
         
@@ -191,19 +405,63 @@ struct CreateTripView: View {
         isLoading = true
         errorMessage = nil
         
+        // Append tags as hashtags to description
+        let tagsString = tags.isEmpty ? "" : "\n" + tags.map { "#\($0)" }.joined(separator: " ")
+        let fullDescription = (description.isEmpty ? "ไม่มีรายละเอียด" : description) + tagsString
+        
+        // Prepare images
+        let base64Images = selectedImages.compactMap { img -> String? in
+            guard let data = img.jpegData(compressionQuality: 0.5) else { return nil }
+            return "data:image/jpeg;base64,\(data.base64EncodedString())"
+        }
+        
+        let mainImageUrl: String?
+        let galleryImages: [String]?
+        
+        if !base64Images.isEmpty {
+            // New images selected, they take precedence
+            mainImageUrl = base64Images.first
+            galleryImages = base64Images.count > 1 ? Array(base64Images.dropFirst()) : nil
+        } else {
+            // No new images selected, keep existing ones (if any)
+            mainImageUrl = imageUrl.isEmpty ? nil : imageUrl
+            galleryImages = editingTrip?.gallery
+        }
+
         Task {
             do {
-                _ = try await TripService.shared.createTrip(
-                    title: title,
-                    destination: destination,
-                    description: description.isEmpty ? "ไม่มีรายละเอียด" : description,
-                    startDate: startDate,
-                    endDate: endDate,
-                    budget: budgetValue,
-                    maxParticipants: maxPart,
-                    category: selectedCategory,
-                    imageUrl: imageUrl.isEmpty ? nil : imageUrl
-                )
+                if let trip = editingTrip {
+                    // Update
+                    _ = try await TripService.shared.updateTrip(
+                        id: trip.id,
+                        title: title,
+                        destination: destination,
+                        description: fullDescription,
+                        startDate: startDate,
+                        endDate: endDate,
+                        budget: budgetValue,
+                        maxParticipants: maxPart,
+                        category: selectedCategoryRaw,
+                        isPublic: isPublic,
+                        imageUrl: mainImageUrl,
+                        gallery: galleryImages
+                    )
+                } else {
+                    // Create
+                    _ = try await TripService.shared.createTrip(
+                        title: title,
+                        destination: destination,
+                        description: fullDescription,
+                        startDate: startDate,
+                        endDate: endDate,
+                        budget: budgetValue,
+                        maxParticipants: maxPart,
+                        category: selectedCategoryRaw,
+                        isPublic: isPublic,
+                        imageUrl: mainImageUrl,
+                        gallery: galleryImages
+                    )
+                }
                 
                 isLoading = false
                 dismiss()
@@ -215,11 +473,26 @@ struct CreateTripView: View {
     }
 }
 
-// MARK: - Subviews
-struct TripImagePickerView: View {
-    @Binding var selectedItem: PhotosPickerItem?
-    @Binding var selectedImage: UIImage?
+// MARK: - Identifiable image wrapper
+struct CreateTripImageItem: Identifiable {
+    let id = UUID()
+    let image: UIImage
+}
+
+// MARK: - Multi-Image Picker Subview
+struct TripMultiImagePickerView: View {
+    @Binding var selectedImages: [UIImage]
     @Binding var imageUrl: String
+    var existingUrls: [String] = []
+    
+    @State private var selectedItems: [PhotosPickerItem] = []
+    @State private var displayImages: [CreateTripImageItem] = []
+    @State private var isFirstLoad = true
+    
+    // Image Cropping State
+    @State private var showImageCropper = false
+    @State private var imageToCrop: UIImage?
+    @State private var croppingIndex: Int?
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -229,39 +502,100 @@ struct TripImagePickerView: View {
                 .textCase(.uppercase)
                 .tracking(1)
             
-            if let selectedImage = selectedImage {
-                Image(uiImage: selectedImage)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(height: 200)
-                    .frame(maxWidth: .infinity)
-                    .cornerRadius(12)
-                    .clipped()
-                    .overlay(
-                        Button(action: {
-                            self.selectedImage = nil
-                            self.selectedItem = nil
-                            self.imageUrl = ""
-                        }) {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundColor(.white)
-                                .padding(8)
-                                .background(Color.black.opacity(0.5))
-                                .clipShape(Circle())
+            // Selected images gallery
+            if !displayImages.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        ForEach(Array(displayImages.enumerated()), id: \.element.id) { (idx, item) in
+                            ZStack(alignment: .topTrailing) {
+                                Image(uiImage: item.image)
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 140, height: 140)
+                                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                                
+                                // Crop Button (Top Left)
+                                Button {
+                                    imageToCrop = item.image
+                                    croppingIndex = idx
+                                    showImageCropper = true
+                                } label: {
+                                    Image(systemName: "crop")
+                                        .font(.system(size: 14, weight: .bold))
+                                        .foregroundColor(.white)
+                                        .padding(8)
+                                        .background(Color.black.opacity(0.6))
+                                        .clipShape(Circle())
+                                        .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
+                                }
+                                .padding(6)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                                
+                                // Remove button (Top Right)
+                                Button {
+                                    removeImage(at: idx)
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .font(.system(size: 24))
+                                        .foregroundColor(.white)
+                                        .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
+                                }
+                                .padding(6)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                               
+                                // Badge for main image (Bottom Left)
+                                if idx == 0 {
+                                    VStack {
+                                        Spacer()
+                                        Text("หน้าปก")
+                                            .font(.system(size: 10, weight: .bold))
+                                            .foregroundColor(.white)
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 3)
+                                            .background(Color.appPrimary)
+                                            .cornerRadius(6)
+                                            .padding(6)
+                                    }
+                                    .frame(width: 140, height: 140, alignment: .bottomLeading)
+                                }
+                            }
                         }
-                        .padding(8),
-                        alignment: .topTrailing
-                    )
+                        
+                        // Add more button
+                        PhotosPicker(selection: $selectedItems, maxSelectionCount: 10, matching: .images, photoLibrary: .shared()) {
+                            VStack(spacing: 6) {
+                                Image(systemName: "plus")
+                                    .font(.system(size: 24, weight: .medium))
+                                Text("เพิ่มรูป")
+                                    .font(.system(size: 11, weight: .medium))
+                            }
+                            .foregroundColor(.gray)
+                            .frame(width: 100, height: 140)
+                            .background(Color.gray.opacity(0.05))
+                            .cornerRadius(12)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color.gray.opacity(0.2), style: StrokeStyle(lineWidth: 1, dash: [5]))
+                            )
+                        }
+                    }
+                }
+                .frame(height: 145)
             } else {
-                PhotosPicker(selection: $selectedItem, matching: .images, photoLibrary: .shared()) {
+                // Empty state — photo picker
+                PhotosPicker(selection: $selectedItems, maxSelectionCount: 10, matching: .images, photoLibrary: .shared()) {
                     VStack(spacing: 8) {
                         Image(systemName: "photo.badge.plus")
                             .font(.system(size: 32))
-                        Text("เลือกรูปภาพจากเครื่อง")
+                            .foregroundColor(.gray)
+                            .frame(height: 60)
+                        Text("เลือกรูปภาพ (ได้หลายรูป)")
                             .font(.system(size: 14, weight: .bold))
+                        Text("รูปแรกจะเป็นรูปหน้าปก")
+                            .font(.system(size: 11))
                     }
                     .foregroundColor(.gray)
-                    .frame(height: 120)
+                    .frame(height: 140)
                     .frame(maxWidth: .infinity)
                     .background(Color.gray.opacity(0.05))
                     .cornerRadius(12)
@@ -270,35 +604,108 @@ struct TripImagePickerView: View {
                             .stroke(Color.gray.opacity(0.2), style: StrokeStyle(lineWidth: 1, dash: [5]))
                     )
                 }
-                .onChange(of: selectedItem) { _, newItem in
-                    Task {
-                        if let data = try? await newItem?.loadTransferable(type: Data.self),
-                           let image = UIImage(data: data) {
-                            selectedImage = image
-                            // Compress and convert to Base64
-                            if let compressedData = image.jpegData(compressionQuality: 0.6) {
-                                let base64String = compressedData.base64EncodedString()
-                                imageUrl = "data:image/jpeg;base64,\(base64String)"
-                            }
-                        }
-                    }
+                
+                // Paste URL fallback
+                HStack {
+                    Image(systemName: "doc.on.clipboard")
+                        .font(.system(size: 12))
+                        .foregroundColor(.gray)
+                    TextField("หรือวาง URL รูปภาพ", text: $imageUrl)
+                        .foregroundColor(.adaptiveText)
+                        .tint(.adaptiveText)
+                        .font(.system(size: 14))
                 }
-                
-                // Fallback URL input
-                Text("หรือใส่ URL / ชื่อรูปใน Assets")
-                    .font(.system(size: 10))
-                    .foregroundColor(.gray)
-                    .padding(.top, 4)
-                
-                TextField("https://... หรือ trip_chiangmai", text: $imageUrl)
-                    .foregroundColor(.black)
-                    .padding()
-                    .background(Color.gray.opacity(0.05))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                    )
-                    .cornerRadius(12)
+                .padding(12)
+                .background(Color.gray.opacity(0.05))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                )
+                .cornerRadius(12)
+            }
+        }
+        .onAppear {
+            if isFirstLoad && !existingUrls.isEmpty {
+                loadExistingImages()
+                isFirstLoad = false
+            }
+        }
+        .onChange(of: selectedItems) { newItems in
+            if !newItems.isEmpty {
+                loadImages(from: newItems)
+            }
+        }
+        .sheet(isPresented: $showImageCropper) {
+            if let image = imageToCrop {
+                ImageCropperView(image: $imageToCrop, onCrop: { croppedImage in
+                    if let index = croppingIndex {
+                        updateImage(at: index, with: croppedImage)
+                    }
+                    showImageCropper = false
+                }, onCancel: {
+                    showImageCropper = false
+                })
+            }
+        }
+    }
+    
+    private func updateImage(at index: Int, with image: UIImage) {
+        guard index >= 0 && index < displayImages.count else { return }
+        
+        // Update display image
+        let newIdentifiableImage = CreateTripImageItem(image: image)
+        displayImages[index] = newIdentifiableImage
+        
+        // Update selectedImages (source of truth for upload)
+        selectedImages = displayImages.map { $0.image }
+    }
+    
+    private func removeImage(at index: Int) {
+        guard index >= 0 && index < displayImages.count else { return }
+        withAnimation {
+            displayImages.remove(at: index)
+            selectedImages = displayImages.map { $0.image }
+            selectedItems = []
+        }
+    }
+    
+    private func loadImages(from items: [PhotosPickerItem]) {
+        guard !items.isEmpty else { return }
+        Task {
+            var images: [UIImage] = []
+            for item in items {
+                if let data = try? await item.loadTransferable(type: Data.self),
+                   let image = UIImage(data: data) {
+                    images.append(image)
+                }
+            }
+            await MainActor.run {
+                let newIdentifiableImages = images.map { CreateTripImageItem(image: $0) }
+                displayImages.append(contentsOf: newIdentifiableImages)
+                selectedImages = displayImages.map { $0.image }
+                selectedItems = []
+            }
+        }
+    }
+    
+    private func loadExistingImages() {
+        Task {
+            var loadedImages: [UIImage] = []
+            for urlString in existingUrls {
+                if let url = URL(string: urlString),
+                   let (data, _) = try? await URLSession.shared.data(from: url),
+                   let image = UIImage(data: data) {
+                    loadedImages.append(image)
+                }
+            }
+            
+            await MainActor.run {
+                let items = loadedImages.map { CreateTripImageItem(image: $0) }
+                // Avoid duplicates if already loaded
+                if displayImages.isEmpty {
+                    displayImages = items
+                    selectedImages = items.map { $0.image }
+                }
             }
         }
     }
@@ -319,6 +726,7 @@ struct TripDateInputView: View {
                 
                 DatePicker("", selection: $startDate, displayedComponents: .date)
                     .labelsHidden()
+                    .tint(.black)
                     .frame(maxWidth: .infinity)
                     .padding()
                     .background(Color.gray.opacity(0.05))
@@ -338,6 +746,7 @@ struct TripDateInputView: View {
                 
                 DatePicker("", selection: $endDate, displayedComponents: .date)
                     .labelsHidden()
+                    .tint(.black)
                     .frame(maxWidth: .infinity)
                     .padding()
                     .background(Color.gray.opacity(0.05))
@@ -367,7 +776,8 @@ struct FormField: View {
                 .tracking(1)
             
             TextField(placeholder, text: $text)
-                .foregroundColor(.black)
+                .foregroundColor(.adaptiveText)
+                .tint(.adaptiveText)
                 .keyboardType(keyboardType)
                 .padding()
                 .background(Color.gray.opacity(0.05))

@@ -84,6 +84,7 @@ export const login = async (req, res, next) => {
                 password: true,
                 role: true,
                 interests: true,
+                profileImage: true,
             }
         });
 
@@ -113,7 +114,8 @@ export const login = async (req, res, next) => {
                 name: user.name,
                 email: user.email,
                 role: user.role,
-                interests: user.interests, // Include interests in login response too if possible, but getCurrentUser is main one
+                interests: user.interests,
+                profileImage: user.profileImage,
             },
         });
     } catch (error) {
@@ -131,7 +133,8 @@ export const getCurrentUser = async (req, res, next) => {
                 name: true,
                 email: true,
                 role: true,
-                interests: true, // ADDED: include interests
+                interests: true,
+                profileImage: true,
                 createdAt: true,
             },
         });

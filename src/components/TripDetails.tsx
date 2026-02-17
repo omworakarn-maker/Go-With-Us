@@ -605,7 +605,29 @@ export const TripDetails: React.FC = () => {
 
             {/* Trip Info - Restored */}
             <h1 className="text-4xl font-bold text-gray-900 mb-2 animate-in slide-in-from-bottom-4 duration-700">{trip.title}</h1>
-            <p className="text-lg text-gray-500 mb-8 animate-in slide-in-from-bottom-4 duration-700 delay-100">{trip.destination}</p>
+            <p className="text-lg text-gray-500 mb-6 animate-in slide-in-from-bottom-4 duration-700 delay-100">{trip.destination}</p>
+
+            {/* Creator Info */}
+            <div className="flex items-center gap-3 mb-8 animate-in slide-in-from-bottom-4 duration-700 delay-150">
+              <div className="w-10 h-10 rounded-full border-2 border-white shadow-sm overflow-hidden bg-gray-100">
+                {trip.creator?.profileImage ? (
+                  <img
+                    src={trip.creator.profileImage}
+                    alt={trip.creator.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-indigo-500 flex items-center justify-center text-white text-xs font-bold">
+                    {trip.creator?.name?.charAt(0).toUpperCase() || '?'}
+                  </div>
+                )}
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">HOSTED BY</span>
+                <span className="text-sm font-bold text-gray-900">{trip.creator?.name}</span>
+              </div>
+            </div>
+
             <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm mb-8 animate-in slide-in-from-bottom-4 duration-700 delay-200">
               <h2 className="text-sm uppercase tracking-widest text-gray-400 font-bold mb-4">รายละเอียดทริปนี้</h2>
               <p className="text-gray-700 leading-relaxed">{trip.description}</p>

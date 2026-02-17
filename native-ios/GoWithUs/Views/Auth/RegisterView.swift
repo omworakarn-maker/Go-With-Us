@@ -7,7 +7,7 @@ struct RegisterView: View {
     var body: some View {
         ZStack {
             // White Background
-            Color.white
+            Color.adaptiveBackground
                 .ignoresSafeArea()
             
             VStack(spacing: 0) {
@@ -16,7 +16,7 @@ struct RegisterView: View {
                     Button(action: { dismiss() }) {
                         Image(systemName: "arrow.left")
                             .font(.system(size: 20, weight: .semibold))
-                            .foregroundColor(.black)
+                            .foregroundColor(.adaptiveText)
                     }
                     Spacer()
                 }
@@ -28,7 +28,7 @@ struct RegisterView: View {
                         VStack(spacing: 12) {
                             Text("สมัครสมาชิก")
                                 .font(.system(size: 36, weight: .black))
-                                .foregroundColor(.black)
+                                .foregroundColor(.adaptiveText)
                                 .tracking(-1)
                             
                             Text("เริ่มต้นการผจญภัยของคุณ")
@@ -52,7 +52,8 @@ struct RegisterView: View {
                                         Text("ชื่อของคุณ")
                                             .foregroundColor(.gray.opacity(0.5))
                                     }
-                                    .foregroundColor(.black)
+                                    .foregroundColor(.adaptiveText)
+                                    .tint(.adaptiveText)
                                     .padding()
                                     .background(Color.gray.opacity(0.05))
                                     .overlay(
@@ -75,7 +76,8 @@ struct RegisterView: View {
                                         Text("your@email.com")
                                             .foregroundColor(.gray.opacity(0.5))
                                     }
-                                    .foregroundColor(.black)
+                                    .foregroundColor(.adaptiveText)
+                                    .tint(.adaptiveText)
                                     .textInputAutocapitalization(.never)
                                     .keyboardType(.emailAddress)
                                     .padding()
@@ -100,7 +102,8 @@ struct RegisterView: View {
                                         Text("อย่างน้อย 6 ตัวอักษร")
                                             .foregroundColor(.gray.opacity(0.5))
                                     }
-                                    .foregroundColor(.black)
+                                    .foregroundColor(.adaptiveText)
+                                    .tint(.adaptiveText)
                                     .padding()
                                     .background(Color.gray.opacity(0.05))
                                     .overlay(
@@ -114,7 +117,7 @@ struct RegisterView: View {
                             if let error = viewModel.errorMessage {
                                 Text(error)
                                     .font(.system(size: 13, weight: .medium))
-                                    .foregroundColor(.black)
+                                    .foregroundColor(.adaptiveText)
                                     .padding(.horizontal)
                             }
                             
@@ -138,8 +141,8 @@ struct RegisterView: View {
                                 }
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 16)
-                                .background(Color.black)
-                                .foregroundColor(.white)
+                                .background(Color.adaptiveText)
+                                .foregroundColor(Color.adaptiveBackground)
                                 .cornerRadius(12)
                             }
                             .disabled(viewModel.isLoading)
@@ -151,6 +154,9 @@ struct RegisterView: View {
             }
         }
         .navigationBarHidden(true)
+        .onTapGesture {
+            hideKeyboard()
+        }
     }
 }
 

@@ -18,6 +18,7 @@ export interface Trip {
     name: string;
     email: string;
     role: string;
+    profileImage?: string;
   };
   imageUrl?: string;
   gallery?: string[]; // Additional images
@@ -52,6 +53,7 @@ export interface User {
   role: 'user' | 'admin';
   travelStyle?: TravelStyle;
   tripHistory?: TripHistoryItem[];
+  profileImage?: string;
 }
 
 export interface Participant {

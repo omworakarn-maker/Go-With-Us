@@ -16,6 +16,11 @@ export const getProfile = async (req, res) => {
                 email: true,
                 name: true,
                 role: true,
+                gender: true,
+                age: true,
+                bio: true,
+                birthDate: true,
+                profileImage: true,
                 interests: true, // Included interests
                 createdAt: true,
                 trips: {
@@ -61,10 +66,16 @@ export const getProfile = async (req, res) => {
 export const updateProfile = async (req, res) => {
     try {
         const userId = req.user.userId;
-        const { name, password, interests } = req.body;
+        const { name, password, interests, gender, age, bio, birthDate, profileImage } = req.body;
 
         const updateData = {};
         if (name) updateData.name = name;
+        if (gender) updateData.gender = gender;
+        if (age !== undefined && age !== null) updateData.age = parseInt(age);
+        if (bio) updateData.bio = bio;
+        if (birthDate) updateData.birthDate = new Date(birthDate);
+        if (profileImage !== undefined) updateData.profileImage = profileImage || null;
+
         if (interests) {
             updateData.interests = interests; // Array of strings
 
@@ -88,6 +99,11 @@ export const updateProfile = async (req, res) => {
                 email: true,
                 name: true,
                 role: true,
+                gender: true,
+                age: true,
+                bio: true,
+                birthDate: true,
+                profileImage: true,
                 interests: true
             }
         });
@@ -96,6 +112,121 @@ export const updateProfile = async (req, res) => {
     } catch (error) {
         console.error('Update profile error:', error);
         res.status(500).json({ message: 'Error updating profile' });
+    }
+};
+
+// Get public profile (anyone can view)
+export const getPublicProfile = async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+                id: true,
+                name: true,
+                role: true,
+                gender: true,
+                age: true,
+                bio: true,
+                birthDate: true,
+                profileImage: true,
+                interests: true,
+                createdAt: true,
+                isProfilePublic: true,
+                showGender: true,
+                showAge: true,
+                showBio: true,
+                showInterests: true,
+                showEmail: true,
+                email: true,
+                trips: {
+                    where: { isPublic: true },
+                    orderBy: { startDate: 'desc' },
+                    select: {
+                        id: true,
+                        title: true,
+                        destination: true,
+                        startDate: true,
+                        endDate: true,
+                        maxParticipants: true,
+                        category: true,
+                        imageUrl: true,
+                        _count: {
+                            select: { participants: true }
+                        }
+                    },
+                    take: 5 // Show latest 5 trips
+                }
+            }
+        });
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Check if profile is private
+        if (!user.isProfilePublic) {
+            return res.status(403).json({ message: 'This profile is private' });
+        }
+
+        // Filter sensitive fields based on privacy settings
+        const publicProfile = {
+            id: user.id,
+            name: user.name,
+            role: user.role,
+            profileImage: user.profileImage,
+            createdAt: user.createdAt,
+            trips: user.trips,
+            isProfilePublic: user.isProfilePublic,
+        };
+
+        // Conditionally add fields based on privacy settings
+        if (user.showGender && user.gender) publicProfile.gender = user.gender;
+        if (user.showAge && user.age) publicProfile.age = user.age;
+        if (user.showBio && user.bio) publicProfile.bio = user.bio;
+        if (user.showInterests && user.interests) publicProfile.interests = user.interests;
+        if (user.showEmail) publicProfile.email = user.email;
+
+        res.json(publicProfile);
+    } catch (error) {
+        console.error('Get public profile error:', error);
+        res.status(500).json({ message: 'Error fetching public profile' });
+    }
+};
+
+// Update privacy settings
+export const updatePrivacySettings = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const { isProfilePublic, showGender, showAge, showBio, showInterests, showEmail } = req.body;
+
+        const updateData = {};
+        if (isProfilePublic !== undefined) updateData.isProfilePublic = isProfilePublic;
+        if (showGender !== undefined) updateData.showGender = showGender;
+        if (showAge !== undefined) updateData.showAge = showAge;
+        if (showBio !== undefined) updateData.showBio = showBio;
+        if (showInterests !== undefined) updateData.showInterests = showInterests;
+        if (showEmail !== undefined) updateData.showEmail = showEmail;
+
+        const updatedUser = await prisma.user.update({
+            where: { id: userId },
+            data: updateData,
+            select: {
+                id: true,
+                isProfilePublic: true,
+                showGender: true,
+                showAge: true,
+                showBio: true,
+                showInterests: true,
+                showEmail: true
+            }
+        });
+
+        res.json({ message: 'Privacy settings updated successfully', user: updatedUser });
+    } catch (error) {
+        console.error('Update privacy settings error:', error);
+        res.status(500).json({ message: 'Error updating privacy settings' });
     }
 };
 

@@ -65,8 +65,10 @@ class TripService {
         endDate: Date,
         budget: Int,
         maxParticipants: Int,
-        category: TripCategory,
-        imageUrl: String? = nil
+        category: String,
+        isPublic: Bool = true,
+        imageUrl: String? = nil,
+        gallery: [String]? = nil
     ) async throws -> Trip {
         struct CreateTripRequest: Encodable {
             let title: String
@@ -77,7 +79,9 @@ class TripService {
             let budget: Int
             let maxParticipants: Int
             let category: String
+            let isPublic: Bool
             let imageUrl: String?
+            let gallery: [String]?
         }
         
         struct CreateTripResponse: Decodable {
@@ -93,8 +97,10 @@ class TripService {
             endDate: endDate,
             budget: budget,
             maxParticipants: maxParticipants,
-            category: category.rawValue,
-            imageUrl: imageUrl
+            category: category,
+            isPublic: isPublic,
+            imageUrl: imageUrl,
+            gallery: gallery
         )
         
         let response: CreateTripResponse = try await APIService.shared.request(
@@ -116,8 +122,10 @@ class TripService {
         endDate: Date,
         budget: Int,
         maxParticipants: Int,
-        category: TripCategory,
-        imageUrl: String? = nil
+        category: String,
+        isPublic: Bool = true,
+        imageUrl: String? = nil,
+        gallery: [String]? = nil
     ) async throws -> Trip {
         struct UpdateTripRequest: Encodable {
             let title: String
@@ -128,7 +136,9 @@ class TripService {
             let budget: Int
             let maxParticipants: Int
             let category: String
+            let isPublic: Bool
             let imageUrl: String?
+            let gallery: [String]?
         }
         
         let request = UpdateTripRequest(
@@ -139,19 +149,28 @@ class TripService {
             endDate: endDate,
             budget: budget,
             maxParticipants: maxParticipants,
-            category: category.rawValue,
-            imageUrl: imageUrl
+            category: category,
+            isPublic: isPublic,
+            imageUrl: imageUrl,
+            gallery: gallery
         )
         
-        return try await APIService.shared.request(
+        struct UpdateTripResponse: Decodable {
+             let message: String
+             let trip: Trip
+        }
+
+        let response: UpdateTripResponse = try await APIService.shared.request(
             endpoint: "/trips/\(id)",
             method: .put,
             body: request
         )
+        return response.trip
     }
     
     // MARK: - Delete Trip
     func deleteTrip(id: String) async throws {
+        struct MessageResponse: Decodable { let message: String }
         let _: MessageResponse = try await APIService.shared.request(
             endpoint: "/trips/\(id)",
             method: .delete
@@ -184,8 +203,18 @@ class TripService {
     
     // MARK: - Leave Trip
     func leaveTrip(id: String) async throws {
+        struct MessageResponse: Decodable { let message: String }
         let _: MessageResponse = try await APIService.shared.request(
             endpoint: "/trips/\(id)/leave",
+            method: .delete
+        )
+    }
+    
+    // MARK: - Remove Participant (Kick)
+    func removeParticipant(tripId: String, userId: String) async throws {
+        struct MessageResponse: Decodable { let message: String }
+        let _: MessageResponse = try await APIService.shared.request(
+            endpoint: "/trips/\(tripId)/participants/\(userId)",
             method: .delete
         )
     }

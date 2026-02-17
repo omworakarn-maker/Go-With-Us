@@ -16,6 +16,22 @@ model User {
   email     String   @unique
   password  String   // Will be hashed
   role      String   @default("user") // "user" or "admin"
+  
+  // Profile Fields
+  gender    String?  // "male", "female", "other"
+  age       Int?     // Age in years
+  bio       String?  @db.Text // User biography
+  birthDate DateTime? // Birth date for age calculation
+  profileImage String? @db.Text // Base64 or URL
+  
+  // Privacy Settings
+  isProfilePublic Boolean @default(true) // Allow public viewing
+  showGender      Boolean @default(true) // Show gender field
+  showAge         Boolean @default(true) // Show age field
+  showBio         Boolean @default(true) // Show bio field
+  showInterests   Boolean @default(true) // Show interests field
+  showEmail       Boolean @default(false) // Show email (default private)
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   interests String[] @default([])
@@ -41,6 +57,7 @@ model Trip {
   budget          Int      @default(1000) // Budget in THB (minimum 100)
   maxParticipants Int      @default(10) @map("max_participants")
   category        String?  // "กินเที่ยว", "กีฬา", "ปาร์ตี้", etc.
+  isPublic        Boolean  @default(true) @map("is_public")
   imageUrl        String?  @db.Text // Base64 image data (main image)
   gallery         String[] @default([]) // Additional images (array of URLs or base64)
   itinerary       Json?    // Custom itinerary created by trip creator

@@ -10,22 +10,25 @@ struct GoWithUsApp: App {
         WindowGroup {
             ZStack {
                 if showSplash {
-                    SplashView()
-                        .transition(.opacity)
+                    ModernSplashView()
                         .zIndex(1)
+                        .transition(.move(edge: .top))
                 } else {
                     ContentView()
                         .environmentObject(authViewModel)
                         .zIndex(0)
-                        .transition(.opacity)
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .bottom),
+                            removal: .identity
+                        ))
                 }
             }
+            .ignoresSafeArea(edges: .top)
+            .animation(.easeInOut(duration: 0.8), value: showSplash)
             .onAppear {
                 NotificationPoller.shared.startPolling()
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                    withAnimation(.easeOut(duration: 0.5)) {
-                        self.showSplash = false
-                    }
+                    showSplash = false
                 }
             }
         }
