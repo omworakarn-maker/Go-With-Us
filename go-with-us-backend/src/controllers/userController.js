@@ -20,7 +20,6 @@ export const getProfile = async (req, res) => {
                 birthDate: true,
                 profileImage: true,
                 interests: true,
-                travelStyle: true,
                 createdAt: true,
                 updatedAt: true,
                 isProfilePublic: true,
@@ -72,7 +71,7 @@ export const getProfile = async (req, res) => {
 export const updateProfile = async (req, res) => {
     try {
         const userId = req.user.userId;
-        const { name, password, interests, gender, age, bio, birthDate, profileImage, travelStyle } = req.body;
+        const { name, password, interests, gender, age, bio, birthDate, profileImage } = req.body;
 
         const updateData = {};
         // iOS sends null for missing optionals — only update if a real value is present
@@ -82,7 +81,6 @@ export const updateProfile = async (req, res) => {
         if (bio !== undefined && bio !== null) updateData.bio = bio === '' ? null : bio;
         if (birthDate !== undefined && birthDate !== null) updateData.birthDate = new Date(birthDate);
         if (profileImage !== undefined && profileImage !== null) updateData.profileImage = profileImage === '' ? null : profileImage;
-        if (travelStyle !== undefined && travelStyle !== null) updateData.travelStyle = travelStyle;
 
         if (interests !== undefined) {
             updateData.interests = interests; // Array of strings
@@ -113,7 +111,6 @@ export const updateProfile = async (req, res) => {
                 birthDate: true,
                 profileImage: true,
                 interests: true,
-                travelStyle: true,
                 createdAt: true,
                 updatedAt: true,
                 isProfilePublic: true,
