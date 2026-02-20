@@ -63,22 +63,34 @@ const Home: React.FC = () => {
     if (activeTab === 'ยอดนิยม') {
       const countA = a.participants?.length || 0;
       const countB = b.participants?.length || 0;
-      return countB - countA;
+      if (countA !== countB) return countB - countA;
+      // Secondary sort for popular is newness
+      const dateA = new Date(a.createdAt || 0).getTime();
+      const dateB = new Date(b.createdAt || 0).getTime();
+      return dateB - dateA;
+    }
+
+    if (activeTab === 'มาใหม่') {
+      const dateA = new Date(a.createdAt || 0).getTime();
+      const dateB = new Date(b.createdAt || 0).getTime();
+      return dateB - dateA;
     }
 
     if (activeTab === 'แนะนำ') {
       const userInterests = user?.interests || [];
       // Check if trip category is in user interests
-      const aMatch = userInterests.includes(a.category) ? 1 : 0;
-      const bMatch = userInterests.includes(b.category) ? 1 : 0;
+      const aMatch = userInterests.includes(a.category || '') ? 1 : 0;
+      const bMatch = userInterests.includes(b.category || '') ? 1 : 0;
 
       // Prioritize matched interests
       if (aMatch !== bMatch) {
         return bMatch - aMatch;
       }
 
-      // Secondary sort: Popularity or Recency
-      return (b.participants?.length || 0) - (a.participants?.length || 0);
+      // Secondary sort for recommended: Recency
+      const dateA = new Date(a.createdAt || 0).getTime();
+      const dateB = new Date(b.createdAt || 0).getTime();
+      return dateB - dateA;
     }
 
     return 0;

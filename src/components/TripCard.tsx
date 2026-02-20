@@ -123,8 +123,9 @@ export const TripCard: React.FC<TripCardProps> = ({ trip, onClick }) => {
                   {displayParticipants.map((participant, index) => (
                     <div key={participant.id} className="w-8 h-8 rounded-full border-2 border-white bg-gray-100 overflow-hidden">
                       <img
-                        src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${participant.id}`}
+                        src={participant.user?.profileImage || `https://api.dicebear.com/7.x/avataaars/svg?seed=${participant.id}`}
                         alt={participant.name}
+                        className="w-full h-full object-cover"
                       />
                     </div>
                   ))}

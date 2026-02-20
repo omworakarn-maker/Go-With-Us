@@ -8,6 +8,7 @@ interface User {
     id: string;
     name: string;
     email: string;
+    profileImage?: string;
 }
 
 interface Conversation {
@@ -26,7 +27,7 @@ interface Message {
     senderId: string;
     recipientId?: string;
     createdAt: string;
-    sender: { name: string };
+    sender: { name: string; profileImage?: string };
 }
 
 const Chat: React.FC = () => {
@@ -206,8 +207,12 @@ const Chat: React.FC = () => {
                                         }`}
                                     data-name={conv.user.name}
                                 >
-                                    <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 font-bold text-lg flex-shrink-0">
-                                        {conv.user.name.charAt(0).toUpperCase()}
+                                    <div className="w-12 h-12 rounded-full overflow-hidden bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-lg flex-shrink-0 border border-gray-200">
+                                        {conv.user.profileImage ? (
+                                            <img src={conv.user.profileImage} alt={conv.user.name} className="w-full h-full object-cover" />
+                                        ) : (
+                                            conv.user.name.charAt(0).toUpperCase()
+                                        )}
                                     </div>
                                     <div className="min-w-0">
                                         <h3 className="font-bold text-sm truncate">{conv.user.name}</h3>
@@ -238,8 +243,12 @@ const Chat: React.FC = () => {
                                             ←
                                         </button>
                                     )}
-                                    <div className="w-10 h-10 bg-black text-white rounded-full flex items-center justify-center font-bold">
-                                        {activeConversation.user?.name?.charAt(0).toUpperCase() || '?'}
+                                    <div className="w-10 h-10 bg-gray-100 border border-gray-200 text-gray-400 rounded-full overflow-hidden flex items-center justify-center font-bold text-lg">
+                                        {activeConversation.user?.profileImage ? (
+                                            <img src={activeConversation.user.profileImage} alt={activeConversation.user.name} className="w-full h-full object-cover" />
+                                        ) : (
+                                            activeConversation.user?.name?.charAt(0).toUpperCase() || '?'
+                                        )}
                                     </div>
                                     <div>
                                         <h3 className="font-bold hover:underline">{activeConversation.user?.name || 'Unknown User'}</h3>

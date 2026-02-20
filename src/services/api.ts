@@ -302,6 +302,14 @@ export const userAPI = {
         method: 'POST',
         body: JSON.stringify({ token }),
     }),
+    reportUser: (userId: string, reason: string) => authFetch(`${API_BASE_URL}/users/${userId}/report`, {
+        method: 'POST',
+        body: JSON.stringify({ reason })
+    }),
+    banUser: (userId: string, isBanned: boolean) => authFetch(`${API_BASE_URL}/users/${userId}/ban`, {
+        method: 'POST',
+        body: JSON.stringify({ isBanned })
+    }),
 };
 
 export default {

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { userAPI } from '../services/api';
 import Loader from '../components/Loader';
+import { useAuth } from '../contexts/AuthContext';
 
 interface PublicUser {
     id: string;
@@ -22,9 +23,16 @@ interface PublicUser {
 const PublicProfile: React.FC = () => {
     const { userId } = useParams<{ userId: string }>();
     const navigate = useNavigate();
+    const { user: currentUser } = useAuth();
     const [profile, setProfile] = useState<PublicUser | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+
+    // Moderation States
+    const [showMenu, setShowMenu] = useState(false);
+    const [showReportModal, setShowReportModal] = useState(false);
+    const [reportReason, setReportReason] = useState("");
+    const [actionMsg, setActionMsg] = useState("");
 
     useEffect(() => {
         fetchPublicProfile();
@@ -32,6 +40,14 @@ const PublicProfile: React.FC = () => {
 
     const fetchPublicProfile = async () => {
         if (!userId) return;
+
+        // Bypass public API restrictions if viewing own profile
+        if (currentUser && currentUser.id === userId) {
+            setProfile(currentUser as any);
+            setLoading(false);
+            return;
+        }
+
         try {
             setLoading(true);
             const response = await fetch(`/api/users/${userId}/public`);
@@ -50,6 +66,29 @@ const PublicProfile: React.FC = () => {
             setError('Failed to load profile');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleReport = async () => {
+        if (!reportReason.trim() || !userId) return;
+        try {
+            await userAPI.reportUser(userId, reportReason);
+            setActionMsg("ส่งรายงานปัญหาสำเร็จ! แอดมินจะตรวจสอบเร็วๆนี้");
+            setShowReportModal(false);
+            setReportReason("");
+        } catch (err) {
+            setActionMsg("เกิดข้อผิดพลาดในการรายงาน");
+        }
+    };
+
+    const handleBan = async () => {
+        if (!userId) return;
+        if (!window.confirm("คุณต้องการแบนผู้ใช้นี้ใช่หรือไม่?")) return;
+        try {
+            await userAPI.banUser(userId, true);
+            setActionMsg("ทำการแบนผู้ใช้ท่านนี้เรียบร้อยแล้ว");
+        } catch (err) {
+            setActionMsg("เกิดข้อผิดพลาดในการแบนผู้ใช้");
         }
     };
 
@@ -95,10 +134,42 @@ const PublicProfile: React.FC = () => {
                 </button>
 
                 {/* Profile Card */}
-                <div className="max-w-xl mx-auto mb-16">
+                <div className="max-w-xl mx-auto mb-16 relative">
                     <div className="bg-white rounded-[2rem] shadow-xl shadow-gray-200/50 p-8 border border-gray-100 flex flex-col items-center text-center relative overflow-hidden">
                         {/* Decorative bg */}
                         <div className="absolute top-0 left-0 right-0 h-32 bg-gray-50 rounded-t-[2rem]"></div>
+
+                        {/* Action Menu button top right */}
+                        {currentUser && currentUser.id !== profile.id && (
+                            <div className="absolute top-4 right-4 z-20">
+                                <button
+                                    onClick={() => setShowMenu(!showMenu)}
+                                    className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-white/40 transition-colors"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                        <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" />
+                                    </svg>
+                                </button>
+                                {showMenu && (
+                                    <div className="absolute top-12 right-0 bg-white rounded-xl shadow-xl border border-gray-100 w-48 text-left overflow-hidden">
+                                        <button
+                                            onClick={() => { setShowMenu(false); setShowReportModal(true); }}
+                                            className="w-full px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors text-left"
+                                        >
+                                            รายงานผู้ใช้ (Report)
+                                        </button>
+                                        {currentUser.role === 'admin' && (
+                                            <button
+                                                onClick={() => { setShowMenu(false); handleBan(); }}
+                                                className="w-full px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 border-t border-gray-50 transition-colors text-left"
+                                            >
+                                                แบนผู้ใช้ (Ban)
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
                         {/* Avatar */}
                         <div className="w-32 h-32 bg-black rounded-full border-4 border-white shadow-lg overflow-hidden relative z-10 mb-4 flex items-center justify-center text-5xl font-bold text-white">
@@ -202,6 +273,48 @@ const PublicProfile: React.FC = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Action Message Toast */}
+            {actionMsg && (
+                <div className="fixed bottom-10 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full text-sm font-medium shadow-2xl z-50 animate-in fade-in slide-in-from-bottom-4">
+                    {actionMsg}
+                    <button onClick={() => setActionMsg("")} className="ml-4 text-gray-400 hover:text-white">&times;</button>
+                </div>
+            )}
+
+            {/* Report Modal */}
+            {showReportModal && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in">
+                    <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl">
+                        <h3 className="text-xl font-bold mb-2">รายงานผู้ใช้นี้</h3>
+                        <p className="text-sm text-gray-500 mb-6">โปรดระบุเหตุผลที่คุณต้องการรายงานผู้ใช้คนนี้ ข้อมูลจะถูกส่งไปยังแอดมินเพื่อตรวจสอบ</p>
+
+                        <textarea
+                            value={reportReason}
+                            onChange={(e) => setReportReason(e.target.value)}
+                            placeholder="ระบุเหตุผล (เช่น สแปม, ก้าวร้าว)"
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 text-sm focus:outline-none focus:ring-2 focus:ring-black mb-6 min-h-[100px]"
+                        ></textarea>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => { setShowReportModal(false); setReportReason(""); }}
+                                className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-colors"
+                            >
+                                ยกเลิก
+                            </button>
+                            <button
+                                onClick={handleReport}
+                                disabled={!reportReason.trim()}
+                                className="flex-1 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-colors disabled:opacity-50"
+                            >
+                                ส่งรายงาน
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
         </div>
     );
 };

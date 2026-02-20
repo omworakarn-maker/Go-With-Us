@@ -148,13 +148,21 @@ export const GroupChat: React.FC<GroupChatProps> = ({ tripId, tripTitle, onClose
                         >
                             <div className={`max-w-[70%] ${isOwnMessage ? 'items-end' : 'items-start'} flex flex-col`}>
                                 {!isOwnMessage && (
-                                    <span
-                                        className="text-[10px] text-gray-500 mb-1 px-2 cursor-pointer hover:underline hover:text-black"
-                                        onClick={() => navigate(`/user/${message.senderId}`)}
-                                        title="ดูโปรไฟล์"
-                                    >
-                                        {message.sender.name}
-                                    </span>
+                                    <div className="flex items-center gap-2 mb-1 px-2 cursor-pointer hover:opacity-80" onClick={() => navigate(`/user/${message.senderId}`)}>
+                                        <div className="w-6 h-6 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center border border-gray-100 flex-shrink-0">
+                                            {message.sender.profileImage ? (
+                                                <img src={message.sender.profileImage} alt={message.sender.name} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <span className="text-[10px] font-bold text-gray-500 uppercase">{message.sender.name.charAt(0)}</span>
+                                            )}
+                                        </div>
+                                        <span
+                                            className="text-[10px] text-gray-500 font-medium hover:underline hover:text-black"
+                                            title="ดูโปรไฟล์"
+                                        >
+                                            {message.sender.name}
+                                        </span>
+                                    </div>
                                 )}
                                 <div
                                     className={`rounded-2xl px-4 py-2 ${isOwnMessage

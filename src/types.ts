@@ -24,6 +24,7 @@ export interface Trip {
   gallery?: string[]; // Additional images
   summary?: string;
   groupAnalysis?: string;
+  createdAt?: string;
 }
 
 

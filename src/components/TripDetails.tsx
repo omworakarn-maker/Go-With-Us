@@ -919,8 +919,12 @@ export const TripDetails: React.FC = () => {
                 {trip.participants.map((p) => (
                   <div key={p.id} className="flex items-center justify-between group">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-[10px] font-bold text-gray-500">
-                        {p.name.charAt(0).toUpperCase()}
+                      <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-[10px] font-bold text-gray-500 overflow-hidden border border-gray-200">
+                        {p.user?.profileImage ? (
+                          <img src={p.user.profileImage} alt={p.name} className="w-full h-full object-cover" />
+                        ) : (
+                          p.name.charAt(0).toUpperCase()
+                        )}
                       </div>
                       <div>
                         <p className="text-sm font-medium text-gray-900">{p.name}</p>
