@@ -17,6 +17,8 @@ model User {
   email     String   @unique
   password  String   // Will be hashed
   role      String   @default("user") // "user" or "admin"
+  isBanned  Boolean  @default(false) // Whether the user is banned
+  
   
   // Profile Fields
   gender    String?  // "male", "female", "other"
@@ -44,6 +46,9 @@ model User {
   sentMessages     Message[] @relation("SentMessages")
   receivedMessages Message[] @relation("ReceivedMessages")
   joinedTrips      Participant[] // Trips joined by this user
+  
+  reportsSent      Report[] @relation("ReporterUser")
+  reportsReceived  Report[] @relation("ReportedUser")
   
   @@map("users")
 }
@@ -135,4 +140,20 @@ model Notification {
   @@index([userId])
   @@index([targetId])
   @@index([createdAt])
+}
+
+// User Profile Reports
+model Report {
+  id          String   @id @default(uuid())
+  reason      String   @db.Text
+  status      String   @default("pending") // "pending", "reviewed", "resolved"
+  createdAt   DateTime @default(now())
+  
+  reporterId  String
+  reporter    User     @relation("ReporterUser", fields: [reporterId], references: [id])
+  
+  reportedId  String
+  reported    User     @relation("ReportedUser", fields: [reportedId], references: [id])
+
+  @@map("user_reports")
 }

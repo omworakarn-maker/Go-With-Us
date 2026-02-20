@@ -78,7 +78,6 @@ export const login = async (req, res, next) => {
             select: {
                 id: true,
                 name: true,
-                username: true,
                 email: true,
                 password: true,
                 role: true,
@@ -124,7 +123,6 @@ export const login = async (req, res, next) => {
             user: {
                 id: user.id,
                 name: user.name,
-                username: user.username,
                 email: user.email,
                 role: user.role,
                 interests: user.interests,
@@ -157,7 +155,6 @@ export const getCurrentUser = async (req, res, next) => {
             select: {
                 id: true,
                 name: true,
-                username: true,
                 email: true,
                 role: true,
                 interests: true,

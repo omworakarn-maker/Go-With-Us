@@ -13,7 +13,6 @@ export const getProfile = async (req, res) => {
                 id: true,
                 email: true,
                 name: true,
-                username: true,
                 role: true,
                 gender: true,
                 age: true,
@@ -73,12 +72,11 @@ export const getProfile = async (req, res) => {
 export const updateProfile = async (req, res) => {
     try {
         const userId = req.user.userId;
-        const { name, username, password, interests, gender, age, bio, birthDate, profileImage, travelStyle } = req.body;
+        const { name, password, interests, gender, age, bio, birthDate, profileImage, travelStyle } = req.body;
 
         const updateData = {};
         // iOS sends null for missing optionals — only update if a real value is present
         if (name !== undefined && name !== null) updateData.name = name;
-        if (username !== undefined) updateData.username = username || null; // username: null is OK to clear
         if (gender !== undefined && gender !== null) updateData.gender = gender === '' ? null : gender;
         if (age !== undefined && age !== null) updateData.age = age !== '' ? parseInt(age) : null;
         if (bio !== undefined && bio !== null) updateData.bio = bio === '' ? null : bio;
@@ -108,7 +106,6 @@ export const updateProfile = async (req, res) => {
                 id: true,
                 email: true,
                 name: true,
-                username: true,
                 role: true,
                 gender: true,
                 age: true,
@@ -145,8 +142,6 @@ export const getPublicProfile = async (req, res) => {
             select: {
                 id: true,
                 name: true,
-                name: true,
-                // username: true,
                 role: true,
                 gender: true,
                 age: true,
@@ -196,9 +191,6 @@ export const getPublicProfile = async (req, res) => {
         const publicProfile = {
             id: user.id,
             name: user.name,
-            id: user.id,
-            name: user.name,
-            // username: user.username,
             role: user.role,
             profileImage: user.profileImage,
             createdAt: user.createdAt,
