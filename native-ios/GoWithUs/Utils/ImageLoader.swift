@@ -11,10 +11,18 @@ class ImageLoader: ObservableObject {
             return
         }
         
-        // Check for Base64 string
-        if urlString.hasPrefix("data:image") {
-            if let base64String = urlString.components(separatedBy: ",").last,
-               let data = Data(base64Encoded: base64String),
+        // Check for Base64 string (either with data:image prefix or pure base64)
+        var possibleBase64 = urlString
+        if urlString.hasPrefix("data:image"), let base = urlString.components(separatedBy: ",").last {
+            possibleBase64 = base
+        }
+        
+        // If it's a very long string without http/https, it's likely pure base64
+        if !possibleBase64.hasPrefix("http") && possibleBase64.count > 100 {
+            let cleaned = possibleBase64.replacingOccurrences(of: " ", with: "")
+                                        .replacingOccurrences(of: "\n", with: "")
+                                        .replacingOccurrences(of: "\r", with: "")
+            if let data = Data(base64Encoded: cleaned, options: .ignoreUnknownCharacters),
                let uiImage = UIImage(data: data) {
                 self.image = uiImage
                 return

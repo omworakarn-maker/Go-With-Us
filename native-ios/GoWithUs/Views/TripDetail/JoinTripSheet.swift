@@ -8,16 +8,20 @@ struct JoinTripSheet: View {
     
     var body: some View {
         VStack(spacing: 24) {
+            Image(systemName: "airplane.circle.fill")
+                .font(.system(size: 60))
+                .foregroundColor(.appPrimary)
+                .padding(.top, 32)
+            
             VStack(spacing: 8) {
                 Text("ยืนยันการเข้าร่วม")
-                    .font(.system(size: 24, weight: .black))
+                    .font(.system(size: 22, weight: .black))
                     .foregroundColor(.adaptiveText)
                 
                 Text("คุณต้องการเข้าร่วมทริปนี้ใช่หรือไม่?")
-                    .font(.system(size: 16))
+                    .font(.system(size: 15))
                     .foregroundColor(.adaptiveSecondaryText)
             }
-            .padding(.top, 32)
             
             HStack(spacing: 16) {
                 Button(action: {
@@ -27,18 +31,17 @@ struct JoinTripSheet: View {
                         .font(.system(size: 15, weight: .bold))
                         .foregroundColor(.adaptiveText)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
+                        .padding(.vertical, 14)
                         .background(Color.adaptiveBackground)
                         .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(Color.adaptiveBorder, lineWidth: 1)
+                            RoundedRectangle(cornerRadius: 14)
+                                .stroke(Color.gray.opacity(0.2), lineWidth: 1)
                         )
-                        .cornerRadius(12)
+                        .cornerRadius(14)
                 }
                 
                 Button(action: {
                     Task {
-                        // Send empty interests as per new design
                         let success = await viewModel.joinTrip(interests: [])
                         if success {
                             dismiss()
@@ -47,22 +50,30 @@ struct JoinTripSheet: View {
                         }
                     }
                 }) {
-                    Text(viewModel.isJoining ? "กำลังเข้าร่วม..." : "ยืนยัน")
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundColor(.adaptiveBackground)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(Color.adaptiveText)
-                        .cornerRadius(12)
+                    HStack {
+                        if viewModel.isJoining {
+                            ProgressView().tint(.white).scaleEffect(0.8)
+                        }
+                        Text(viewModel.isJoining ? "กำลังเข้าร่วม..." : "ยืนยันเข้าร่วม")
+                            .font(.system(size: 15, weight: .bold))
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(
+                        LinearGradient(colors: [.appPrimary, .appSecondary], startPoint: .leading, endPoint: .trailing)
+                    )
+                    .cornerRadius(14)
+                    .shadow(color: Color.appPrimary.opacity(0.3), radius: 8, x: 0, y: 4)
                 }
                 .disabled(viewModel.isJoining)
             }
-            .padding(.horizontal)
+            .padding(.horizontal, 24)
+            .padding(.top, 10)
             
             Spacer()
         }
-        .padding()
-        .presentationDetents([.height(250)])
+        .presentationDetents([.height(320)])
         .alert("ไม่สามารถเข้าร่วมได้", isPresented: $showErrorAlert) {
             Button("ตรวจสอบ", role: .cancel) {}
         } message: {

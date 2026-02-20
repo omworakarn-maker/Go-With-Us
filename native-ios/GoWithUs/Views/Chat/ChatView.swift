@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ChatView: View {
     @StateObject private var viewModel = ChatViewModel()
+    @State private var selectedConversation: Conversation? = nil
     @State private var selectedPartnerId: String? = nil
     
     var body: some View {
@@ -25,7 +26,7 @@ struct ChatView: View {
                     List {
                         ForEach(viewModel.conversations) { conversation in
                             Button(action: {
-                                selectedPartnerId = conversation.user.id
+                                selectedConversation = conversation
                             }) {
                                 ConversationRow(conversation: conversation)
                             }
@@ -35,15 +36,21 @@ struct ChatView: View {
                     .listStyle(.plain)
                 }
             }
-            // Hidden navigation link activated when a partnerId is set
+            // Hidden navigation link activated when a conversation is set
             NavigationLink(destination: Group {
-                if let pid = selectedPartnerId {
+                if let conv = selectedConversation {
+                    let partnerUser = User(id: conv.user.id, name: conv.user.name, email: conv.user.email, profileImage: conv.user.profileImage ?? conv.user.avatarUrl)
+                    ChatDetailView(chatTitle: conv.user.name, tripId: nil, partnerId: conv.user.id, initialPartnerUser: partnerUser)
+                } else if let pid = selectedPartnerId {
                     ChatDetailView(chatTitle: "", tripId: nil, partnerId: pid)
                 } else {
                     EmptyView()
                 }
-            }, isActive: Binding(get: { selectedPartnerId != nil }, set: { active in
-                if !active { selectedPartnerId = nil }
+            }, isActive: Binding(get: { selectedConversation != nil || selectedPartnerId != nil }, set: { active in
+                if !active {
+                    selectedConversation = nil
+                    selectedPartnerId = nil
+                }
             })) {
                 EmptyView()
             }
@@ -91,14 +98,8 @@ struct ConversationRow: View {
     var body: some View {
         HStack(spacing: 16) {
             // Avatar
-            Circle()
-                .fill(Color.gray.opacity(0.2))
-                .frame(width: 48, height: 48)
-                .overlay(
-                    Text(String(conversation.user.name.prefix(1)))
-                        .font(.system(size: 20, weight: .bold))
-                        .foregroundColor(.adaptiveText)
-                )
+            let user = User(id: conversation.user.id, name: conversation.user.name, email: conversation.user.email, profileImage: conversation.user.profileImage ?? conversation.user.avatarUrl)
+            UserAvatarView(user: user, size: 48)
             
             VStack(alignment: .leading, spacing: 4) {
                 Text(conversation.user.name)

@@ -18,6 +18,7 @@ struct CreateTripView: View {
     @State private var selectedImages: [UIImage] = []
     @State private var isPublic = true // Default to Public
     @State private var isLoading = false
+    @State private var isGeneratingAI = false
     @State private var errorMessage: String?
     @State private var tags: [String] = []
     @State private var tagInput: String = ""
@@ -118,72 +119,7 @@ struct CreateTripView: View {
                                 }()
                             )
                             .padding(.bottom, 8)
-                            // Destination
-                            FormField(label: "สถานที่", placeholder: "เช่น เชียงใหม่", text: $destination)
-                            
-                            // Description
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("รายละเอียด")
-                                    .font(.system(size: 11, weight: .bold))
-                                    .foregroundColor(.gray)
-                                    .textCase(.uppercase)
-                                    .tracking(1)
-                                
-                                TextEditor(text: $description)
-                                    .foregroundColor(.adaptiveText)
-                                    .tint(.adaptiveText)
-                                    .frame(height: 100)
-                                    .padding(8)
-                                    .background(Color.gray.opacity(0.05))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                                    )
-                                    .cornerRadius(12)
-                            }
-                            
-                            // Category
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("หมวดหมู่")
-                                    .font(.system(size: 11, weight: .bold))
-                                    .foregroundColor(.gray)
-                                    .textCase(.uppercase)
-                                    .tracking(1)
-                                
-                                Menu {
-                                    ForEach(TripCategory.allCases, id: \.self) { category in
-                                        Button(category.rawValue) {
-                                            selectedCategoryRaw = category.rawValue
-                                        }
-                                    }
-                                    // Extra user categories
-                                    ForEach(extraCategories, id: \.self) { cat in
-                                        Button(cat) { selectedCategoryRaw = cat }
-                                    }
-
-                                    Divider()
-                                    Button("เพิ่มหมวดหมู่...") {
-                                        showAddCategory = true
-                                    }
-                                } label: {
-                                    HStack {
-                                        Text(selectedCategoryRaw)
-                                            .foregroundColor(.adaptiveText)
-                                        Spacer()
-                                        Image(systemName: "chevron.down")
-                                            .foregroundColor(.gray)
-                                    }
-                                    .padding()
-                                    .background(Color.gray.opacity(0.05))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                                    )
-                                    .cornerRadius(12)
-                                }
-                            }
-                            
-                            // Tags / Keywords
+                            // Tags / Keywords (Moved Up)
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("แท็ก / คีย์เวิร์ด")
                                     .font(.system(size: 11, weight: .bold))
@@ -239,6 +175,92 @@ struct CreateTripView: View {
                                         .stroke(Color.gray.opacity(0.2), lineWidth: 1)
                                 )
                                 .cornerRadius(12)
+                            }
+                            
+                            // Destination (Restored)
+                            FormField(label: "สถานที่", placeholder: "เช่น เชียงใหม่", text: $destination)
+
+                            // Description
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack {
+                                    Text("รายละเอียด")
+                                        .font(.system(size: 11, weight: .bold))
+                                        .foregroundColor(.gray)
+                                        .textCase(.uppercase)
+                                        .tracking(1)
+                                    Spacer()
+                                    Button(action: generateAITrip) {
+                                        HStack(spacing: 4) {
+                                            if isGeneratingAI {
+                                                ProgressView().scaleEffect(0.6).tint(.white)
+                                            } else {
+                                                Image(systemName: "sparkles")
+                                            }
+                                            Text(isGeneratingAI ? "กำลังจัดทริป..." : "AI ช่วยจัดทริป")
+                                        }
+                                        .font(.system(size: 11, weight: .bold))
+                                        .foregroundColor(.white)
+                                        .padding(.horizontal, 10).padding(.vertical, 6)
+                                        .background(
+                                            LinearGradient(colors: [Color.appPrimary, Color.appSecondary], startPoint: .leading, endPoint: .trailing)
+                                        )
+                                        .cornerRadius(12)
+                                    }
+                                    .disabled(isGeneratingAI)
+                                }
+                                
+                                TextEditor(text: $description)
+                                    .foregroundColor(.adaptiveText)
+                                    .tint(.adaptiveText)
+                                    .frame(height: 100)
+                                    .padding(8)
+                                    .background(Color.gray.opacity(0.05))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                                    )
+                                    .cornerRadius(12)
+                            }
+                            
+                            // Category (Restored)
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("หมวดหมู่")
+                                    .font(.system(size: 11, weight: .bold))
+                                    .foregroundColor(.gray)
+                                    .textCase(.uppercase)
+                                    .tracking(1)
+                                
+                                Menu {
+                                    ForEach(TripCategory.allCases, id: \.self) { category in
+                                        Button(category.rawValue) {
+                                            selectedCategoryRaw = category.rawValue
+                                        }
+                                    }
+                                    // Extra user categories
+                                    ForEach(extraCategories, id: \.self) { cat in
+                                        Button(cat) { selectedCategoryRaw = cat }
+                                    }
+
+                                    Divider()
+                                    Button("เพิ่มหมวดหมู่...") {
+                                        showAddCategory = true
+                                    }
+                                } label: {
+                                    HStack {
+                                        Text(selectedCategoryRaw)
+                                            .foregroundColor(.adaptiveText)
+                                        Spacer()
+                                        Image(systemName: "chevron.down")
+                                            .foregroundColor(.gray)
+                                    }
+                                    .padding()
+                                    .background(Color.gray.opacity(0.05))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                                    )
+                                    .cornerRadius(12)
+                                }
                             }
                             
                             // Visibility Toggle
@@ -411,7 +433,8 @@ struct CreateTripView: View {
         
         // Prepare images
         let base64Images = selectedImages.compactMap { img -> String? in
-            guard let data = img.jpegData(compressionQuality: 0.5) else { return nil }
+            guard let scaledImg = img.resized(toWidth: 800),
+                  let data = scaledImg.jpegData(compressionQuality: 0.6) else { return nil }
             return "data:image/jpeg;base64,\(data.base64EncodedString())"
         }
         
@@ -468,6 +491,65 @@ struct CreateTripView: View {
             } catch {
                 isLoading = false
                 errorMessage = error.localizedDescription
+            }
+        }
+    }
+    // MARK: - AI Generate Trip
+    private func generateAITrip() {
+        guard !destination.isEmpty || !title.isEmpty else {
+            errorMessage = "กรุณากรอกชื่อทริปหรือสถานที่ก่อนให้ AI ช่วยจัด"
+            return
+        }
+        
+        isGeneratingAI = true
+        errorMessage = nil
+        
+        // Ensure budget is valid integer for JSON
+        let budgetValue = Int(budget) ?? 0
+        
+        let prompt = """
+        ช่วยร่างทริปสำหรับ \(destination.isEmpty ? title : destination)
+        หัวข้อ: \(title)
+        จำนวนคน: \(maxParticipants)
+        งบประมาณ: \(budgetValue == 0 ? "ไม่ได้ระบุ" : "\(budgetValue) บาท")
+        ตอบกลับเป็น JSON format ตามโครงสร้างนี้ ห้ามใส่ Markdown block เนื้อหาแบบ text/plain เท่านั้น:
+        { "title": "...", "destination": "...", "description": "...", "tags": ["..."], "category": "..." }
+        """
+        
+        Task {
+            do {
+                let jsonString = try await GeminiService.shared.chat(message: prompt, history: [])
+                // Clean markdown if AI sends it
+                let cleanJson = jsonString
+                    .replacingOccurrences(of: "```json", with: "")
+                    .replacingOccurrences(of: "```", with: "")
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                
+                if let data = cleanJson.data(using: .utf8),
+                   let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                    await MainActor.run {
+                        if let t = dict["title"] as? String, title.isEmpty { self.title = t }
+                        if let d = dict["destination"] as? String, destination.isEmpty { self.destination = d }
+                        if let desc = dict["description"] as? String { self.description = desc }
+                        if let c = dict["category"] as? String { self.selectedCategoryRaw = c }
+                        if let tTags = dict["tags"] as? [String] {
+                            for tag in tTags {
+                                if !self.tags.contains(tag) { self.tags.append(tag) }
+                            }
+                        }
+                        self.isGeneratingAI = false
+                    }
+                } else {
+                    await MainActor.run {
+                        self.description = cleanJson // Fallback to raw text
+                        self.isGeneratingAI = false
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    self.errorMessage = "ไม่สามารถเชื่อมต่อ AI ได้ กรุณาลองใหม่"
+                    self.isGeneratingAI = false
+                }
             }
         }
     }
@@ -630,9 +712,9 @@ struct TripMultiImagePickerView: View {
                 isFirstLoad = false
             }
         }
-        .onChange(of: selectedItems) { newItems in
-            if !newItems.isEmpty {
-                loadImages(from: newItems)
+        .onChange(of: selectedItems) {
+            if !selectedItems.isEmpty {
+                loadImages(from: selectedItems)
             }
         }
         .sheet(isPresented: $showImageCropper) {
@@ -714,9 +796,11 @@ struct TripMultiImagePickerView: View {
 struct TripDateInputView: View {
     @Binding var startDate: Date
     @Binding var endDate: Date
+    @State private var isShowingPicker = false
     
     var body: some View {
         HStack(spacing: 12) {
+            // Start Date Button
             VStack(alignment: .leading, spacing: 8) {
                 Text("วันเริ่ม")
                     .font(.system(size: 11, weight: .bold))
@@ -724,19 +808,21 @@ struct TripDateInputView: View {
                     .textCase(.uppercase)
                     .tracking(1)
                 
-                DatePicker("", selection: $startDate, displayedComponents: .date)
-                    .labelsHidden()
-                    .tint(.black)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.gray.opacity(0.05))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                    )
-                    .cornerRadius(12)
+                Button(action: { isShowingPicker = true }) {
+                    Text(startDate, formatter: itemFormatter)
+                        .foregroundColor(.black)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding()
+                        .background(Color.gray.opacity(0.05))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                        )
+                        .cornerRadius(12)
+                }
             }
             
+            // End Date Button
             VStack(alignment: .leading, spacing: 8) {
                 Text("วันสิ้นสุด")
                     .font(.system(size: 11, weight: .bold))
@@ -744,19 +830,68 @@ struct TripDateInputView: View {
                     .textCase(.uppercase)
                     .tracking(1)
                 
-                DatePicker("", selection: $endDate, displayedComponents: .date)
-                    .labelsHidden()
-                    .tint(.black)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.gray.opacity(0.05))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                    )
-                    .cornerRadius(12)
+                Button(action: { isShowingPicker = true }) {
+                    Text(endDate, formatter: itemFormatter)
+                        .foregroundColor(.black)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding()
+                        .background(Color.gray.opacity(0.05))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                        )
+                        .cornerRadius(12)
+                }
             }
         }
+        .sheet(isPresented: $isShowingPicker) {
+            NavigationView {
+                VStack(spacing: 20) {
+                    CustomDateRangePicker(
+                        startDate: Binding(
+                            get: { startDate },
+                            set: { startDate = $0 ?? Date() }
+                        ),
+                        endDate: Binding(
+                            get: { endDate },
+                            set: { endDate = $0 ?? startDate.addingTimeInterval(86400) }
+                        )
+                    )
+                    .padding(.top, 24)
+                    
+                    Spacer()
+                    
+                    Button(action: { isShowingPicker = false }) {
+                        Text("ตกลง")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.black)
+                            .cornerRadius(14)
+                    }
+                    .padding(.horizontal)
+                    .padding(.bottom, 24)
+                }
+                .navigationTitle("เลือกวันเดินทางไป-กลับ")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("ปิด") { isShowingPicker = false }
+                            .foregroundColor(.black)
+                    }
+                }
+            }
+            .presentationDetents([.large, .fraction(0.7)])
+        }
+    }
+    
+    // Formatter
+    private var itemFormatter: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.locale = Locale(identifier: "th_TH")
+        return formatter
     }
 }
 

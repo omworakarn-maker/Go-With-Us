@@ -1,7 +1,5 @@
-import { PrismaClient } from '@prisma/client';
+import prisma from '../utils/prismaClient.js';
 import { sendPushNotification } from '../utils/firebase.js';
-
-const prisma = new PrismaClient();
 
 // Get all notifications for current user
 export const getNotifications = async (req, res, next) => {

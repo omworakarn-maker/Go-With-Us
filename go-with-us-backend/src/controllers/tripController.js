@@ -1,7 +1,5 @@
-import { PrismaClient } from '@prisma/client';
+import prisma from '../utils/prismaClient.js';
 import { generateEmbedding } from '../utils/gemini.js';
-
-const prisma = new PrismaClient();
 
 // Get all trips with filters
 export const getAllTrips = async (req, res, next) => {
@@ -20,7 +18,7 @@ export const getAllTrips = async (req, res, next) => {
         });
         // --------------------------
 
-        const { destination, category, startDate, endDate, type } = req.query;
+        const { destination, category, startDate, endDate, type, limit } = req.query;
         const userId = req.user?.userId; // Optional, might be available if using verifyToken optionally or passed
 
         const where = {};
@@ -80,10 +78,20 @@ export const getAllTrips = async (req, res, next) => {
                         name: true,
                         interests: true,
                         joinedAt: true,
+                        user: {
+                            select: {
+                                id: true,
+                                name: true,
+                                email: true,
+                                role: true,
+                                profileImage: true
+                            }
+                        }
                     },
                 },
             },
             orderBy,
+            take: limit ? parseInt(limit) : undefined
         });
 
         res.json({ trips, count: trips.length });
@@ -116,6 +124,15 @@ export const getTripById = async (req, res, next) => {
                         name: true,
                         interests: true,
                         joinedAt: true,
+                        user: {
+                            select: {
+                                id: true,
+                                name: true,
+                                email: true,
+                                role: true,
+                                profileImage: true
+                            }
+                        }
                     },
                 },
             },

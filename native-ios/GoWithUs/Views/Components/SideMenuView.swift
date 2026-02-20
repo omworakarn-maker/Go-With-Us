@@ -26,24 +26,7 @@ struct SideMenuView: View {
                     VStack(alignment: .leading, spacing: 12) {
                         if let user = authViewModel.currentUser {
                             // Profile image or initial
-                            if let data = UserDefaults.standard.data(forKey: "local_profile_image"),
-                               let uiImage = UIImage(data: data) {
-                                Image(uiImage: uiImage)
-                                    .resizable()
-                                    .scaledToFill()
-                                    .frame(width: 60, height: 60)
-                                    .clipShape(Circle())
-                            } else {
-                                Circle()
-                                    .fill(Color.appAccent)
-                                    .frame(width: 60, height: 60)
-                                    .overlay(
-                                        Text(String(user.name.prefix(1)))
-                                            .foregroundColor(.white)
-                                            .font(.title2)
-                                            .fontWeight(.bold)
-                                    )
-                            }
+                            UserAvatarView(user: user, size: 60)
                             
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(user.name)
@@ -55,8 +38,8 @@ struct SideMenuView: View {
                                     Text("@\(handle)")
                                         .font(.caption)
                                         .foregroundColor(.appAccent)
-                                } else {
-                                    Text(user.email)
+                                } else if let email = user.email {
+                                    Text(email)
                                         .font(.caption)
                                         .foregroundColor(.adaptiveSecondaryText)
                                 }

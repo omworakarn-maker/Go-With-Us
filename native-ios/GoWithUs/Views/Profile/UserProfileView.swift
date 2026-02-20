@@ -1,133 +1,194 @@
 import SwiftUI
 
 /// A read-only profile view for viewing other users' profiles
+/// Fetches full profile from API using userId
 struct UserProfileView: View {
-    let user: User
+    let user: User  // initial user object (may have incomplete data)
     @Environment(\.dismiss) var dismiss
+    @State private var fullUser: User? = nil
+    @State private var isLoading = true
+    @State private var errorMessage: String? = nil
+    
+    var displayUser: User {
+        fullUser ?? user
+    }
     
     var body: some View {
-        NavigationStack {
-            ZStack {
-                Color.adaptiveBackground
-                    .ignoresSafeArea()
-                
-                ScrollView {
-                    VStack(spacing: 32) {
-                        // Profile Header
+        ZStack {
+            Color.adaptiveBackground
+                .ignoresSafeArea()
+            
+            // ── Back Button (top-leading, safe area) ──
+            VStack {
+                HStack {
+                    Button(action: { dismiss() }) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(.adaptiveText)
+                            .frame(width: 40, height: 40)
+                            .background(Color.adaptiveCardBackground)
+                            .clipShape(Circle())
+                            .shadow(color: .black.opacity(0.1), radius: 5, x: 0, y: 2)
+                    }
+                    Spacer()
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 10)
+                Spacer()
+            }
+            .zIndex(10)
+            
+            if isLoading {
+                VStack(spacing: 12) {
+                    ProgressView()
+                        .tint(.appPrimary)
+                    Text("กำลังโหลดโปรไฟล์…")
+                        .font(.system(size: 13))
+                        .foregroundColor(.adaptiveSecondaryText)
+                }
+            } else if let error = errorMessage {
+                VStack(spacing: 16) {
+                    Image(systemName: "lock.shield")
+                        .font(.system(size: 40))
+                        .foregroundColor(.adaptiveSecondaryText)
+                    Text(error)
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundColor(.adaptiveSecondaryText)
+                        .multilineTextAlignment(.center)
+                }
+                .padding()
+            } else {
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 28) {
+                        // ── Profile Header ──
                         VStack(spacing: 16) {
-                            // Avatar
-                            if let profileImage = user.profileImage,
-                               let url = URL(string: profileImage) {
-                                AsyncImage(url: url) { image in
-                                    image
-                                        .resizable()
-                                        .scaledToFill()
-                                } placeholder: {
-                                    avatarPlaceholder
+                            // Cover art
+                            ZStack(alignment: .bottom) {
+                                LinearGradient(
+                                    colors: [Color.appPrimary.opacity(0.4), Color.appSecondary.opacity(0.4)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                                .frame(height: 140)
+                                .cornerRadius(24)
+                                
+                                // Avatar with gradient ring
+                                ZStack {
+                                    Circle()
+                                        .strokeBorder(
+                                            LinearGradient(
+                                                colors: [Color.appPrimary, Color.appSecondary], // Same colorful gradient
+                                                startPoint: .topLeading, endPoint: .bottomTrailing
+                                            ),
+                                            lineWidth: 4
+                                        )
+                                        .frame(width: 110, height: 110)
+                                        .background(Circle().fill(Color.adaptiveBackground))
+                                
+                                    UserAvatarView(user: displayUser, size: 100)
+                                        .background(Circle().fill(Color.adaptiveBackground))
                                 }
-                                .frame(width: 100, height: 100)
-                                .clipShape(Circle())
-                            } else {
-                                avatarPlaceholder
                             }
+                            .offset(y: 50)
+                            .padding(.bottom, 50)
                             
-                            VStack(spacing: 4) {
-                                Text(user.name)
-                                    .font(.system(size: 22, weight: .bold))
+                            VStack(spacing: 5) {
+                                Text(displayUser.name)
+                                    .font(.system(size: 26, weight: .black))
                                     .foregroundColor(.adaptiveText)
                                 
-                                Text(user.email)
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(.adaptiveSecondaryText)
+                                if let username = displayUser.username {
+                                    Text("@\(username)")
+                                        .font(.system(size: 14, weight: .bold))
+                                        .foregroundColor(.appPrimary)
+                                } else if let email = displayUser.email, !email.isEmpty {
+                                    Text(email)
+                                        .font(.system(size: 14, weight: .medium))
+                                        .foregroundColor(.adaptiveSecondaryText)
+                                }
                             }
                             
-                            if user.role == .admin {
-                                Text("ADMIN")
-                                    .font(.system(size: 11, weight: .bold))
-                                    .foregroundColor(Color.adaptiveBackground)
-                                    .padding(.horizontal, 16)
-                                    .padding(.vertical, 6)
-                                    .background(Color.adaptiveText)
-                                    .cornerRadius(20)
+                            if displayUser.role == .admin {
+                                HStack(spacing: 5) {
+                                    Image(systemName: "shield.checkered")
+                                        .font(.system(size: 10, weight: .bold))
+                                    Text("ADMIN")
+                                        .font(.system(size: 11, weight: .black))
+                                }
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 6)
+                                .background(
+                                    LinearGradient(colors: [Color.adaptiveText, Color.adaptiveText.opacity(0.8)],
+                                                   startPoint: .leading, endPoint: .trailing)
+                                )
+                                .cornerRadius(20)
                             }
                         }
-                        .padding(.top, 32)
                         
-                        // User Info
-                        VStack(spacing: 16) {
-                            // Basic Info Cards
-                            if user.gender != nil || user.age != nil {
+                        // ── User Info Cards ──
+                        VStack(spacing: 14) {
+                            // Gender & Age
+                            if displayUser.gender != nil || displayUser.age != nil {
                                 HStack(spacing: 12) {
-                                    if let gender = user.gender {
-                                        VStack(alignment: .leading, spacing: 6) {
-                                            Text("เพศ")
-                                                .font(.system(size: 11, weight: .bold))
-                                                .foregroundColor(.adaptiveSecondaryText)
-                                                .textCase(.uppercase)
-                                                .tracking(1)
-                                            
-                                            Text(gender == "male" ? "ชาย" : gender == "female" ? "หญิง" : "อื่นๆ")
-                                                .font(.system(size: 14, weight: .semibold))
-                                                .foregroundColor(.adaptiveText)
-                                        }
-                                        .padding()
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                        .background(Color.adaptiveCardTint)
-                                        .cornerRadius(12)
+                                    if let gender = displayUser.gender {
+                                        infoCard(
+                                            icon: "person.fill",
+                                            iconColor: Color(hex: "#8B5CF6"),
+                                            label: "เพศ",
+                                            value: gender == "male" ? "ชาย" : gender == "female" ? "หญิง" : "อื่นๆ"
+                                        )
                                     }
                                     
-                                    if let age = user.age {
-                                        VStack(alignment: .leading, spacing: 6) {
-                                            Text("อายุ")
-                                                .font(.system(size: 11, weight: .bold))
-                                                .foregroundColor(.adaptiveSecondaryText)
-                                                .textCase(.uppercase)
-                                                .tracking(1)
-                                            
-                                            Text("\(age) ปี")
-                                                .font(.system(size: 14, weight: .semibold))
-                                                .foregroundColor(.adaptiveText)
-                                        }
-                                        .padding()
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                        .background(Color.adaptiveCardTint)
-                                        .cornerRadius(12)
+                                    if let age = displayUser.age {
+                                        infoCard(
+                                            icon: "calendar",
+                                            iconColor: Color(hex: "#3B82F6"),
+                                            label: "อายุ",
+                                            value: "\(age) ปี"
+                                        )
                                     }
                                 }
                             }
                             
                             // Bio Section
-                            if let bio = user.bio, !bio.trimmingCharacters(in: .whitespaces).isEmpty {
-                                VStack(alignment: .leading, spacing: 12) {
-                                    Text("ประวัติส่วนตัว")
-                                        .font(.system(size: 11, weight: .bold))
-                                        .foregroundColor(.adaptiveSecondaryText)
-                                        .textCase(.uppercase)
-                                        .tracking(1)
+                            if let bio = displayUser.bio, !bio.trimmingCharacters(in: .whitespaces).isEmpty {
+                                VStack(alignment: .leading, spacing: 10) {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "doc.text.fill")
+                                            .font(.system(size: 12))
+                                            .foregroundColor(Color(hex: "#EC4899"))
+                                        Text("ประวัติส่วนตัว")
+                                            .font(.system(size: 12, weight: .bold))
+                                            .foregroundColor(.adaptiveSecondaryText)
+                                            .textCase(.uppercase)
+                                    }
                                     
                                     Text(bio)
-                                        .font(.system(size: 14, weight: .regular))
+                                        .font(.system(size: 14))
                                         .foregroundColor(.adaptiveText)
-                                        .lineLimit(nil)
+                                        .lineSpacing(4)
+                                        .fixedSize(horizontal: false, vertical: true)
                                 }
-                                .padding()
+                                .padding(16)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .background(Color.adaptiveCardBackground)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 16)
-                                        .stroke(Color.adaptiveBorder, lineWidth: 1)
-                                )
                                 .cornerRadius(16)
+                                .shadow(color: .black.opacity(0.03), radius: 6, x: 0, y: 2)
                             }
                             
                             // Travel Style
-                            if let style = user.travelStyle {
-                                VStack(alignment: .leading, spacing: 12) {
-                                    Text("สไตล์การเดินทาง")
-                                        .font(.system(size: 11, weight: .bold))
-                                        .foregroundColor(.adaptiveSecondaryText)
-                                        .textCase(.uppercase)
-                                        .tracking(1)
+                            if let style = displayUser.travelStyle {
+                                VStack(alignment: .leading, spacing: 10) {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "airplane")
+                                            .font(.system(size: 12))
+                                            .foregroundColor(Color(hex: "#0EA5E9"))
+                                        Text("สไตล์การเดินทาง")
+                                            .font(.system(size: 12, weight: .bold))
+                                            .foregroundColor(.adaptiveSecondaryText)
+                                            .textCase(.uppercase)
+                                    }
                                     
                                     let tags = [
                                         style.budget, style.pace, style.social, style.accommodation,
@@ -139,10 +200,15 @@ struct UserProfileView: View {
                                             ForEach(tags, id: \.self) { tag in
                                                 Text(tag)
                                                     .font(.system(size: 12, weight: .bold))
-                                                    .foregroundColor(Color.adaptiveBackground)
+                                                    .foregroundColor(.white)
                                                     .padding(.horizontal, 12)
                                                     .padding(.vertical, 6)
-                                                    .background(Color.adaptiveText)
+                                                    .background(
+                                                        LinearGradient(
+                                                            colors: [Color.appPrimary, Color.appSecondary],
+                                                            startPoint: .leading, endPoint: .trailing
+                                                        )
+                                                    )
                                                     .cornerRadius(20)
                                             }
                                         }
@@ -152,74 +218,104 @@ struct UserProfileView: View {
                                             .foregroundColor(.adaptiveSecondaryText)
                                     }
                                 }
-                                .padding()
+                                .padding(16)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .background(Color.adaptiveCardBackground)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 16)
-                                        .stroke(Color.adaptiveBorder, lineWidth: 1)
-                                )
                                 .cornerRadius(16)
+                                .shadow(color: .black.opacity(0.03), radius: 6, x: 0, y: 2)
                             }
                             
                             // Interests
-                            if let interests = user.interests, !interests.isEmpty {
-                                VStack(alignment: .leading, spacing: 12) {
-                                    Text("ความสนใจ")
-                                        .font(.system(size: 11, weight: .bold))
-                                        .foregroundColor(.adaptiveSecondaryText)
-                                        .textCase(.uppercase)
-                                        .tracking(1)
+                            if let interests = displayUser.interests, !interests.isEmpty {
+                                VStack(alignment: .leading, spacing: 10) {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "heart.fill")
+                                            .font(.system(size: 12))
+                                            .foregroundColor(Color(hex: "#F43F5E"))
+                                        Text("ความสนใจ")
+                                            .font(.system(size: 12, weight: .bold))
+                                            .foregroundColor(.adaptiveSecondaryText)
+                                            .textCase(.uppercase)
+                                    }
                                     
                                     FlowLayout(spacing: 8) {
                                         ForEach(interests, id: \.self) { interest in
                                             Text(interest)
-                                                .font(.system(size: 13, weight: .medium))
-                                                .foregroundColor(.adaptiveText)
-                                                .padding(.horizontal, 16)
-                                                .padding(.vertical, 8)
-                                                .background(Color.adaptiveCardTint)
+                                                .font(.system(size: 13, weight: .semibold))
+                                                .foregroundColor(.appPrimary)
+                                                .padding(.horizontal, 14)
+                                                .padding(.vertical, 7)
+                                                .background(Color.appPrimary.opacity(0.08))
                                                 .cornerRadius(20)
                                         }
                                     }
                                 }
-                                .padding()
+                                .padding(16)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .background(Color.adaptiveCardBackground)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 16)
-                                        .stroke(Color.adaptiveBorder, lineWidth: 1)
-                                )
                                 .cornerRadius(16)
+                                .shadow(color: .black.opacity(0.03), radius: 6, x: 0, y: 2)
                             }
                         }
                         
                         Spacer()
                     }
-                    .padding(24)
-                }
-            }
-            .navigationTitle(user.name)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button(action: { dismiss() }) {
-                        Image(systemName: "xmark")
-                            .foregroundColor(.adaptiveText)
-                    }
+                    .padding(.horizontal, 22)
+                    .padding(.bottom, 40)
                 }
             }
         }
+        .task {
+            await loadProfile()
+        }
     }
     
-    private var avatarPlaceholder: some View {
-        Circle()
-            .fill(Color.adaptiveText)
-            .frame(width: 100, height: 100)
-            .overlay(
-                Text(String(user.name.prefix(1)))
-                    .font(.system(size: 40, weight: .bold))
-                    .foregroundColor(Color.adaptiveBackground)
-            )
+    // ── Info Card Helper ──
+    @ViewBuilder
+    private func infoCard(icon: String, iconColor: Color, label: String, value: String) -> some View {
+        VStack(spacing: 8) {
+            ZStack {
+                Circle()
+                    .fill(iconColor.opacity(0.1))
+                    .frame(width: 36, height: 36)
+                Image(systemName: icon)
+                    .font(.system(size: 14))
+                    .foregroundColor(iconColor)
+            }
+            Text(label)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundColor(.adaptiveSecondaryText)
+                .textCase(.uppercase)
+            Text(value)
+                .font(.system(size: 14, weight: .bold))
+                .foregroundColor(.adaptiveText)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 16)
+        .background(Color.adaptiveCardBackground)
+        .cornerRadius(14)
+        .shadow(color: .black.opacity(0.03), radius: 6, x: 0, y: 2)
     }
+    
+    private func loadProfile() async {
+        isLoading = true
+        errorMessage = nil
+        do {
+            let fetched = try await AuthService.shared.fetchPublicProfile(userId: user.id)
+            fullUser = fetched
+        } catch let error as APIError {
+            switch error {
+            case .httpError(403):
+                errorMessage = "โปรไฟล์นี้ถูกตั้งเป็นส่วนตัว"
+            case .httpError(404):
+                errorMessage = "ไม่พบผู้ใช้คนนี้"
+            default:
+                errorMessage = "ไม่สามารถโหลดโปรไฟล์ได้"
+            }
+        } catch {
+            errorMessage = "เกิดข้อผิดพลาดในการโหลดโปรไฟล์"
+        }
+        isLoading = false
+    }
+    
 }

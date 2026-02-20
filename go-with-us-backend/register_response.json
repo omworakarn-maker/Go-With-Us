@@ -1,0 +1,4 @@
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100    86    0     0  100    86      0     70  0:00:01  0:00:01 --:--:--    70100   215  100   129  100    86     64     43  0:00:02  0:00:01  0:00:01   107100   215  100   129  100    86     64     42  0:00:02  0:00:02 --:--:--   107
+{"error":"\nInvalid `prisma.user.create()` invocation:\n\n\nThe column `users.username` does not exist in the current database."}

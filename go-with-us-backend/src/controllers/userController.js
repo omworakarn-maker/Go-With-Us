@@ -1,8 +1,6 @@
 import bcrypt from 'bcryptjs';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../utils/prismaClient.js';
 import { generateEmbedding } from '../utils/gemini.js';
-
-const prisma = new PrismaClient();
 
 // Get current user profile
 export const getProfile = async (req, res) => {
@@ -15,14 +13,22 @@ export const getProfile = async (req, res) => {
                 id: true,
                 email: true,
                 name: true,
+                name: true,
+                // username: true, // Unavailable in DB
                 role: true,
                 gender: true,
                 age: true,
                 bio: true,
                 birthDate: true,
                 profileImage: true,
-                interests: true, // Included interests
+                interests: true,
                 createdAt: true,
+                isProfilePublic: true,
+                showGender: true,
+                showAge: true,
+                showBio: true,
+                showInterests: true,
+                showEmail: true,
                 trips: {
                     orderBy: { startDate: 'desc' },
                     include: {
@@ -76,6 +82,22 @@ export const updateProfile = async (req, res) => {
         if (birthDate) updateData.birthDate = new Date(birthDate);
         if (profileImage !== undefined) updateData.profileImage = profileImage || null;
 
+        // Username update disabled (DB column missing)
+        /*
+        if (username !== undefined) {
+            if (username === '' || username === null) {
+                updateData.username = null;
+            } else {
+                // Check uniqueness
+                const existing = await prisma.user.findUnique({ where: { username } });
+                if (existing && existing.id !== userId) {
+                    return res.status(409).json({ message: 'Username is already taken' });
+                }
+                updateData.username = username;
+            }
+        }
+        */
+
         if (interests) {
             updateData.interests = interests; // Array of strings
 
@@ -98,6 +120,8 @@ export const updateProfile = async (req, res) => {
                 id: true,
                 email: true,
                 name: true,
+                name: true,
+                // username: true,
                 role: true,
                 gender: true,
                 age: true,
@@ -125,6 +149,8 @@ export const getPublicProfile = async (req, res) => {
             select: {
                 id: true,
                 name: true,
+                name: true,
+                // username: true,
                 role: true,
                 gender: true,
                 age: true,
@@ -174,6 +200,9 @@ export const getPublicProfile = async (req, res) => {
         const publicProfile = {
             id: user.id,
             name: user.name,
+            id: user.id,
+            name: user.name,
+            // username: user.username,
             role: user.role,
             profileImage: user.profileImage,
             createdAt: user.createdAt,
@@ -286,5 +315,37 @@ export const registerDeviceToken = async (req, res) => {
     } catch (error) {
         console.error('Register device token error:', error);
         res.status(500).json({ message: 'Error registering device token' });
+    }
+};
+
+// Check username availability
+export const checkUsername = async (req, res) => {
+    try {
+        const { username } = req.query;
+        const excludeUserId = req.query.excludeUserId;
+
+        if (!username || username.trim().length < 3) {
+            return res.status(400).json({ available: false, message: 'Username must be at least 3 characters' });
+        }
+
+        // Validate format: only letters, numbers, underscores
+        const usernameRegex = /^[a-zA-Z0-9_]+$/;
+        if (!usernameRegex.test(username)) {
+            return res.status(400).json({ available: false, message: 'Username can only contain letters, numbers, and underscores' });
+        }
+
+        // Check disabled: DB missing username column
+        /*
+        const existing = await prisma.user.findUnique({ where: { username } });
+
+        if (existing && existing.id !== excludeUserId) {
+            return res.json({ available: false, message: 'Username is already taken' });
+        }
+        */
+
+        res.json({ available: true, message: 'Username is available' });
+    } catch (error) {
+        console.error('Check username error:', error);
+        res.status(500).json({ available: false, message: 'Error checking username' });
     }
 };

@@ -96,66 +96,107 @@ struct DatePickerSheet: View {
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 16) {
-                // Toggle Mode
-                Picker("โหมด", selection: $selectionMode) {
+            VStack(spacing: 0) {
+                // Mode Toggle
+                Picker("ระบุระยะเวลา", selection: $selectionMode) {
                     Text("วันเดียว").tag(0)
-                    Text("ช่วงเวลา").tag(1)
+                    Text("ไป-กลับ").tag(1)
                 }
                 .pickerStyle(.segmented)
                 .padding(.horizontal)
+                .padding(.top, 16)
+                .onChange(of: selectionMode) { oldValue, newValue in
+                    // Adjust end date if switching to range and it's before start
+                    if newValue == 1 && endDate < startDate {
+                        endDate = startDate.addingTimeInterval(86400)
+                    }
+                }
                 
-                if selectionMode == 0 {
-                    // Single Date
-                    DatePicker("เลือกวันที่", selection: $startDate, displayedComponents: .date)
-                        .datePickerStyle(.graphical)
-                        .tint(.black)
-                        .padding(.horizontal)
-                } else {
-                    // Range
-                    VStack {
-                        DatePicker("วันเริ่มต้น", selection: $startDate, displayedComponents: .date)
-                            .tint(.black)
-                        DatePicker("วันสิ้นสุด", selection: $endDate, in: startDate..., displayedComponents: .date)
-                            .tint(.black)
+                ScrollView {
+                    VStack(spacing: 24) {
+                        if selectionMode == 0 {
+                            // Single Date
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("เลือกวันเดินทาง")
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundColor(.gray)
+                                    .padding(.horizontal, 8)
+                                
+                                DatePicker("", selection: $startDate, displayedComponents: .date)
+                                    .datePickerStyle(.graphical)
+                                    .tint(.black)
+                            }
+                            .padding()
+                            .background(Color.white)
+                            .cornerRadius(16)
+                            .shadow(color: .black.opacity(0.04), radius: 8, x: 0, y: 3)
+                        } else {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("เลือกช่วงเวลาเดินทาง (ไป-กลับ)")
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundColor(.gray)
+                                    .padding(.horizontal, 8)
+                                
+                                CustomDateRangePicker(
+                                    startDate: Binding(
+                                        get: { startDate },
+                                        set: { startDate = $0 ?? Date() }
+                                    ),
+                                    endDate: Binding(
+                                        get: { endDate },
+                                        set: { endDate = $0 ?? startDate.addingTimeInterval(86400) }
+                                    )
+                                )
+                            }
+                            .padding()
+                            .background(Color.white)
+                            .cornerRadius(16)
+                            .shadow(color: .black.opacity(0.04), radius: 8, x: 0, y: 3)
+                        }
                     }
                     .padding()
-                    .background(Color.gray.opacity(0.05))
-                    .cornerRadius(12)
-                    .padding(.horizontal)
                 }
                 
                 Spacer()
                 
-                Button(action: {
-                    if selectionMode == 0 {
-                        selectedDate = startDate
-                        selectedEndDate = nil
-                    } else {
-                        selectedDate = startDate
-                        selectedEndDate = endDate
+                // Bottom Fixed Actions
+                VStack(spacing: 12) {
+                    Button(action: {
+                        if selectionMode == 0 {
+                            selectedDate = startDate
+                            selectedEndDate = nil
+                        } else {
+                            selectedDate = startDate
+                            selectedEndDate = endDate
+                        }
+                        dismiss()
+                    }) {
+                        Text("ตกลง")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(
+                                LinearGradient(colors: [Color.appPrimary, Color.appSecondary], startPoint: .leading, endPoint: .trailing)
+                            )
+                            .cornerRadius(14)
+                            .shadow(color: Color.appPrimary.opacity(0.3), radius: 8, x: 0, y: 4)
                     }
-                    dismiss()
-                }) {
-                    Text("ตกลง")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.black)
-                        .cornerRadius(12)
-                        .padding(.horizontal)
+                    
+                    Button("ล้างค่า") {
+                        selectedDate = nil
+                        selectedEndDate = nil
+                        dismiss()
+                    }
+                    .foregroundColor(.appPrimary)
+                    .font(.system(size: 15, weight: .semibold))
                 }
-                
-                Button("ล้างค่า") {
-                    selectedDate = nil
-                    selectedEndDate = nil
-                    dismiss()
-                }
-                .foregroundColor(.red)
-                .padding(.bottom)
+                .padding()
+                .background(Color.white)
+                .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: -5)
             }
-            .navigationTitle("เลือกวันที่เดินทาง")
+            .background(Color.adaptiveBackground.ignoresSafeArea())
+            .navigationTitle("เลือกวันเดินทาง")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -164,7 +205,7 @@ struct DatePickerSheet: View {
                 }
             }
         }
-        .presentationDetents([.medium, .fraction(0.7)])
+        .presentationDetents([.large, .fraction(0.8)])
         .onAppear {
             if let start = selectedDate {
                 startDate = start

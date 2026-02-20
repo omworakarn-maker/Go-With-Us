@@ -101,6 +101,7 @@ class AuthViewModel: ObservableObject {
     // MARK: - Update Profile
     func updateProfile(
         name: String,
+        username: String? = nil,
         interests: [String],
         gender: String? = nil,
         age: Int? = nil,
@@ -121,7 +122,8 @@ class AuthViewModel: ObservableObject {
                 bio: bio,
                 birthDate: birthDate,
                 travelStyle: travelStyle,
-                profileImage: profileImage
+                profileImage: profileImage,
+                username: username
             )
         } catch {
             errorMessage = error.localizedDescription

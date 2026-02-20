@@ -7,31 +7,94 @@ struct ChatDetailView: View {
     let partnerId: String? // If set, it's a private chat
     @State private var messageText = ""
     @State private var pollingTask: Task<Void, Never>?
+    @State private var showPartnerProfile = false
+    @State private var partnerUser: User? = nil
     @Environment(\.dismiss) private var dismiss
+    
+    init(chatTitle: String, tripId: String? = nil, partnerId: String? = nil, initialPartnerUser: User? = nil) {
+        self.chatTitle = chatTitle
+        self.tripId = tripId
+        self.partnerId = partnerId
+        self._partnerUser = State(initialValue: initialPartnerUser)
+    }
     
     var body: some View {
         VStack(spacing: 0) {
             // Header
-            HStack {
+            HStack(spacing: 12) {
                 Button(action: { dismiss() }) {
                     Image(systemName: "chevron.left")
-                        .font(.system(size: 20))
-                        .foregroundColor(.black)
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(.adaptiveText)
                 }
                 
-                Text(chatTitle)
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundColor(.black)
-                    .lineLimit(1)
+                // Profile avatar + name (tappable for private chat)
+                if partnerId != nil {
+                    Button(action: {
+                        if partnerUser != nil {
+                            showPartnerProfile = true
+                        } else if let pid = partnerId {
+                            // Create minimal user from what we have
+                            partnerUser = User(
+                                id: pid,
+                                name: chatTitle.isEmpty ? "ผู้ใช้" : chatTitle,
+                                email: ""
+                            )
+                            showPartnerProfile = true
+                        }
+                    }) {
+                        HStack(spacing: 10) {
+                            UserAvatarView(user: partnerUser, size: 36)
+                            
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(chatTitle)
+                                    .font(.system(size: 16, weight: .bold))
+                                    .foregroundColor(.adaptiveText)
+                                    .lineLimit(1)
+                                
+                                Text("ดูโปรไฟล์")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundColor(.appPrimary)
+                            }
+                        }
+                    }
+                } else {
+                    // Group chat — just show title
+                    Text(chatTitle.isEmpty ? "แชทกลุ่ม" : chatTitle)
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(.adaptiveText)
+                        .lineLimit(1)
+                }
                 
                 Spacer()
+                
+                // Profile icon button (for private chats)
+                if partnerId != nil {
+                    Button(action: {
+                        if partnerUser != nil {
+                            showPartnerProfile = true
+                        } else if let pid = partnerId {
+                            partnerUser = User(
+                                id: pid,
+                                name: chatTitle.isEmpty ? "ผู้ใช้" : chatTitle,
+                                email: ""
+                            )
+                            showPartnerProfile = true
+                        }
+                    }) {
+                        Image(systemName: "person.crop.circle")
+                            .font(.system(size: 20))
+                            .foregroundColor(.appPrimary)
+                    }
+                }
             }
-            .padding()
-            .background(Color.white)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(Color.adaptiveBackground)
             .overlay(
                 Rectangle()
                     .frame(height: 1)
-                    .foregroundColor(Color.gray.opacity(0.1)),
+                    .foregroundColor(Color.gray.opacity(0.08)),
                 alignment: .bottom
             )
             
@@ -40,8 +103,23 @@ struct ChatDetailView: View {
                 ScrollView {
                     LazyVStack(spacing: 12) {
                         ForEach(viewModel.messages) { message in
-                            MessageBubble(message: message, isCurrentUser: viewModel.isFromCurrentUser(message: message))
-                                .id(message.id)
+                            MessageBubble(
+                                message: message,
+                                isCurrentUser: viewModel.isFromCurrentUser(message: message),
+                                onTapAvatar: {
+                                    // Tap on avatar to view sender profile
+                                    if let sender = message.sender,
+                                       !viewModel.isFromCurrentUser(message: message) {
+                                        partnerUser = User(
+                                            id: sender.id,
+                                            name: sender.name,
+                                            email: sender.email
+                                        )
+                                        showPartnerProfile = true
+                                    }
+                                }
+                            )
+                            .id(message.id)
                         }
                     }
                     .padding()
@@ -56,13 +134,13 @@ struct ChatDetailView: View {
             .frame(maxHeight: .infinity)
             .background(Color(UIColor.systemGroupedBackground))
             
-            // Input Bar (directly inline for pixel-perfect keyboard fit)
+            // Input Bar
             VStack(spacing: 0) {
                 Divider()
                 HStack(spacing: 12) {
                     TextField("พิมพ์ข้อความ...", text: $messageText)
                         .padding(12)
-                        .background(Color.gray.opacity(0.1))
+                        .background(Color.gray.opacity(0.08))
                         .cornerRadius(24)
 
                     Button(action: {
@@ -72,21 +150,21 @@ struct ChatDetailView: View {
                         Task { await sendMessageWithContent(content) }
                     }) {
                         Circle()
-                            .fill(messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? Color.gray.opacity(0.3) : Color.black)
+                            .fill(messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? Color.gray.opacity(0.3) : Color.adaptiveText)
                             .frame(width: 44, height: 44)
                             .overlay(
                                 Image(systemName: "paperplane.fill")
                                     .font(.system(size: 18))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? .white.opacity(0.5) : Color.adaptiveBackground)
                                     .offset(x: -2, y: 2)
                             )
                     }
                     .disabled(messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
                 .padding(12)
-                .background(Color.white)
+                .background(Color.adaptiveBackground)
             }
-            .background(Color.white)
+            .background(Color.adaptiveBackground)
         }
         .navigationBarHidden(true)
         .hideTabBar(true)
@@ -98,10 +176,19 @@ struct ChatDetailView: View {
                 Task { await viewModel.loadPrivateMessages(userId: partnerId) }
             }
             
+            // Fetch partner profile if it's a private chat
+            if let pid = partnerId {
+                Task {
+                    if let user = try? await AuthService.shared.fetchPublicProfile(userId: pid) {
+                        partnerUser = user
+                    }
+                }
+            }
+            
             // Start polling for new messages every 2.5 seconds
             pollingTask = Task {
                 while !Task.isCancelled {
-                    try? await Task.sleep(nanoseconds: 2_500_000_000) // 2.5 seconds
+                    try? await Task.sleep(nanoseconds: 2_500_000_000)
                     
                     if let tripId = tripId {
                         await viewModel.refreshTripMessages(tripId: tripId)
@@ -112,9 +199,13 @@ struct ChatDetailView: View {
             }
         }
         .onDisappear {
-            // Cancel polling when leaving chat
             pollingTask?.cancel()
             pollingTask = nil
+        }
+        .sheet(isPresented: $showPartnerProfile) {
+            if let user = partnerUser {
+                UserProfileView(user: user)
+            }
         }
     }
     
@@ -133,7 +224,6 @@ struct ChatDetailView: View {
         }
     }
 
-    // Helper used by accessory send (keeps previous behavior)
     private func sendMessageWithContent(_ content: String) async {
         if let tripId = tripId {
             await viewModel.sendTripMessage(tripId: tripId, content: content)
@@ -146,29 +236,31 @@ struct ChatDetailView: View {
 struct MessageBubble: View {
     let message: Message
     let isCurrentUser: Bool
+    var onTapAvatar: (() -> Void)? = nil
     
     var body: some View {
         HStack(alignment: .bottom, spacing: 8) {
             if !isCurrentUser {
-                // Sender Avatar
-                Circle()
-                    .fill(Color.gray.opacity(0.3))
-                    .frame(width: 32, height: 32)
-                    .overlay(
-                        Text(String(message.sender?.name.prefix(1) ?? "?"))
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(.white)
-                    )
+                // Sender Avatar — tappable to view profile
+                Button(action: { onTapAvatar?() }) {
+                    let senderUser = message.sender.map { chatUser in
+                        User(id: chatUser.id, name: chatUser.name, email: chatUser.email, profileImage: chatUser.profileImage ?? chatUser.avatarUrl)
+                    }
+                    UserAvatarView(user: senderUser, size: 32)
+                }
             } else {
                 Spacer()
             }
             
             VStack(alignment: isCurrentUser ? .trailing : .leading, spacing: 4) {
                 if !isCurrentUser {
-                    Text(message.sender?.name ?? "Unknown")
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                        .padding(.leading, 4)
+                    // Sender name — tappable to view profile
+                    Button(action: { onTapAvatar?() }) {
+                        Text(message.sender?.name ?? "Unknown")
+                            .font(.caption)
+                            .foregroundColor(.appPrimary)
+                            .padding(.leading, 4)
+                    }
                 }
                 
                 Text(message.content)
@@ -176,21 +268,26 @@ struct MessageBubble: View {
                     .padding(.vertical, 12)
                     .background(
                         isCurrentUser ?
-                        AnyShapeStyle(Color.black) :
-                            AnyShapeStyle(Color.white)
+                        AnyShapeStyle(Color.adaptiveText) :
+                            AnyShapeStyle(Color.adaptiveCardBackground)
                     )
-                    .foregroundColor(isCurrentUser ? .white : .black)
+                    .foregroundColor(isCurrentUser ? Color.adaptiveBackground : .adaptiveText)
                     .clipShape(
                         RoundedCorner(
                             radius: 20,
                             corners: isCurrentUser ? [.topLeft, .topRight, .bottomLeft] : [.topLeft, .topRight, .bottomRight]
                         )
                     )
-                    .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
+                    .shadow(color: Color.black.opacity(0.04), radius: 2, x: 0, y: 1)
             }
             
             if !isCurrentUser {
                 Spacer()
+            } else {
+                let senderUser = message.sender.map { chatUser in
+                    User(id: chatUser.id, name: chatUser.name, email: chatUser.email, profileImage: chatUser.profileImage ?? chatUser.avatarUrl)
+                }
+                UserAvatarView(user: senderUser, size: 32)
             }
         }
     }

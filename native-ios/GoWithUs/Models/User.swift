@@ -4,7 +4,8 @@ import Foundation
 struct User: Codable, Identifiable {
     let id: String
     let name: String
-    let email: String
+    let username: String?
+    let email: String?
     let role: UserRole
     let gender: String?
     let age: Int?
@@ -16,10 +17,19 @@ struct User: Codable, Identifiable {
     let createdAt: Date?
     let updatedAt: Date?
     
+    // Privacy
+    let isProfilePublic: Bool?
+    let showGender: Bool?
+    let showAge: Bool?
+    let showBio: Bool?
+    let showInterests: Bool?
+    let showEmail: Bool?
+    
     init(
         id: String,
         name: String,
-        email: String,
+        username: String? = nil,
+        email: String? = nil,
         role: UserRole = .user,
         gender: String? = nil,
         age: Int? = nil,
@@ -29,10 +39,17 @@ struct User: Codable, Identifiable {
         travelStyle: TravelStyle? = nil,
         interests: [String]? = nil,
         createdAt: Date? = nil,
-        updatedAt: Date? = nil
+        updatedAt: Date? = nil,
+        isProfilePublic: Bool? = nil,
+        showGender: Bool? = nil,
+        showAge: Bool? = nil,
+        showBio: Bool? = nil,
+        showInterests: Bool? = nil,
+        showEmail: Bool? = nil
     ) {
         self.id = id
         self.name = name
+        self.username = username
         self.email = email
         self.role = role
         self.gender = gender
@@ -44,6 +61,12 @@ struct User: Codable, Identifiable {
         self.interests = interests
         self.createdAt = createdAt
         self.updatedAt = updatedAt
+        self.isProfilePublic = isProfilePublic
+        self.showGender = showGender
+        self.showAge = showAge
+        self.showBio = showBio
+        self.showInterests = showInterests
+        self.showEmail = showEmail
     }
 }
 

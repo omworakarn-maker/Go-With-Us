@@ -1,8 +1,6 @@
 
-import { PrismaClient } from '@prisma/client';
+import prisma from '../utils/prismaClient.js';
 import { cosineSimilarity } from '../utils/ai.js';
-
-const prisma = new PrismaClient();
 
 // Match Buddies (Find similar users)
 export const findBuddy = async (req, res) => {

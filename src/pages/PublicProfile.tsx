@@ -13,6 +13,7 @@ interface PublicUser {
     bio?: string;
     profileImage?: string;
     interests?: string[];
+    travelStyle?: any;
     createdAt: string;
     trips: any[];
     isProfilePublic: boolean;
@@ -101,7 +102,11 @@ const PublicProfile: React.FC = () => {
 
                         {/* Avatar */}
                         <div className="w-32 h-32 bg-black rounded-full border-4 border-white shadow-lg overflow-hidden relative z-10 mb-4 flex items-center justify-center text-5xl font-bold text-white">
-                            {profile.name.charAt(0).toUpperCase()}
+                            {profile.profileImage ? (
+                                <img src={profile.profileImage} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                                profile.name.charAt(0).toUpperCase()
+                            )}
                         </div>
 
                         <div className="w-full z-10">
@@ -119,22 +124,22 @@ const PublicProfile: React.FC = () => {
                             {/* Basic Info Cards */}
                             {(profile.gender || profile.age) && (
                                 <div className="space-y-3 mb-6 border-t border-gray-100 pt-6">
-                                    {profile.gender && (
-                                        <div className="grid grid-cols-2 gap-3">
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {profile.gender && (
                                             <div className="bg-gray-50 rounded-lg p-3">
                                                 <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">เพศ</p>
                                                 <p className="text-sm font-bold text-black">
                                                     {profile.gender === 'male' ? 'ชาย' : profile.gender === 'female' ? 'หญิง' : 'อื่นๆ'}
                                                 </p>
                                             </div>
-                                        </div>
-                                    )}
-                                    {profile.age && (
-                                        <div className="bg-gray-50 rounded-lg p-3">
-                                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">อายุ</p>
-                                            <p className="text-sm font-bold text-black">{profile.age} ปี</p>
-                                        </div>
-                                    )}
+                                        )}
+                                        {profile.age && (
+                                            <div className="bg-gray-50 rounded-lg p-3">
+                                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">อายุ</p>
+                                                <p className="text-sm font-bold text-black">{profile.age} ปี</p>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             )}
 
@@ -143,6 +148,25 @@ const PublicProfile: React.FC = () => {
                                 <div className="bg-gray-50 rounded-lg p-4 mb-6">
                                     <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-2">ประวัติส่วนตัว</p>
                                     <p className="text-sm text-gray-700 leading-relaxed">{profile.bio}</p>
+                                </div>
+                            )}
+
+                            {/* Travel Style */}
+                            {profile.travelStyle && (
+                                <div className="mb-6 border-t border-gray-100 pt-6">
+                                    <h3 className="text-sm font-bold text-black mb-3">สไตล์การเดินทาง</h3>
+                                    <div className="flex flex-wrap justify-center gap-2">
+                                        {Object.entries(profile.travelStyle).map(([key, value]) => {
+                                            if (key === 'interests') return null;
+                                            const label = typeof value === 'string' ? value : '';
+                                            if (!label) return null;
+                                            return (
+                                                <span key={key} className="px-3 py-1 bg-black text-white text-[10px] font-bold rounded-full uppercase tracking-wider">
+                                                    {label.replace('_', ' ')}
+                                                </span>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                             )}
 

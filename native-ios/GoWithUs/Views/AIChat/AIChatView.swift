@@ -32,9 +32,14 @@ struct AIChatView: View {
                     
                     Spacer()
                     
-                    Image(systemName: "line.3.horizontal")
-                        .font(.system(size: 24, weight: .bold))
-                        .foregroundColor(.clear)
+                    // Clear chat
+                    Button(action: {
+                        viewModel.clearChat()
+                    }) {
+                        Image(systemName: "arrow.counterclockwise")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundColor(.adaptiveSecondaryText)
+                    }
                 }
                 .padding()
                 .background(Color.adaptiveBackground)
@@ -60,7 +65,7 @@ struct AIChatView: View {
                         }
                         .padding()
                     }
-                    .onChange(of: viewModel.messages) { _ in
+                    .onChange(of: viewModel.messages) {
                         if let lastMessage = viewModel.messages.last {
                             withAnimation {
                                 proxy.scrollTo(lastMessage.id, anchor: .bottom)
@@ -75,15 +80,34 @@ struct AIChatView: View {
                 if let draft = viewModel.tripDraft, viewModel.showDraftAlert {
                     VStack(spacing: 12) {
                         HStack {
-                            VStack(alignment: .leading) {
+                            VStack(alignment: .leading, spacing: 4) {
                                 Text("🎉 ร่างทริปพร้อมแล้ว!")
                                     .font(.headline)
                                     .foregroundColor(.adaptiveText)
                                 Text(draft.title)
-                                    .font(.caption)
-                                    .foregroundColor(.gray)
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundColor(.appPrimary)
                             }
                             Spacer()
+                            Button(action: {
+                                withAnimation { viewModel.showDraftAlert = false }
+                            }) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.system(size: 20))
+                                    .foregroundColor(.gray)
+                            }
+                        }
+                        
+                        // Draft Details
+                        VStack(spacing: 8) {
+                            HStack(spacing: 16) {
+                                DraftInfoPill(icon: "mappin", text: draft.destination, color: .appAccent)
+                                DraftInfoPill(icon: "calendar", text: "\(draft.startDate) → \(draft.endDate)", color: .appPrimary)
+                            }
+                            HStack(spacing: 16) {
+                                DraftInfoPill(icon: "banknote", text: "\(draft.budget) ฿", color: Color(hex: "#2ECC71"))
+                                DraftInfoPill(icon: "person.2", text: "สูงสุด \(draft.maxParticipants) คน", color: .purple)
+                            }
                         }
                         
                         HStack(spacing: 8) {
@@ -106,7 +130,13 @@ struct AIChatView: View {
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 10)
-                                .background(Color.appPrimary)
+                                .background(
+                                    LinearGradient(
+                                        colors: [Color.appPrimary, Color.appSecondary],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
                                 .cornerRadius(12)
                             }
                             .disabled(isAutoCreating)
@@ -222,7 +252,29 @@ struct AIChatView: View {
     }
 }
 
-
+// MARK: - Draft Info Pill
+struct DraftInfoPill: View {
+    let icon: String
+    let text: String
+    let color: Color
+    
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: 10))
+                .foregroundColor(color)
+            Text(text)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundColor(.adaptiveText)
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity)
+        .background(color.opacity(0.08))
+        .cornerRadius(8)
+    }
+}
 
 
 struct ChatMessageView: View {
@@ -241,12 +293,21 @@ struct ChatMessageView: View {
             } else {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(alignment: .top, spacing: 8) {
-                        Image(systemName: "sparkles")
-                            .font(.system(size: 14))
-                            .foregroundColor(.purple)
-                            .padding(8)
-                            .background(Color.purple.opacity(0.1))
-                            .clipShape(Circle())
+                        // Minimalist AI icon
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    colors: [Color.appPrimary, Color.appSecondary],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 28, height: 28)
+                            .overlay(
+                                Text("AI")
+                                    .font(.system(size: 10, weight: .black))
+                                    .foregroundColor(.white)
+                            )
                         
                         Text(message.content)
                             .padding()
@@ -269,12 +330,18 @@ class AIChatViewModel: ObservableObject {
     @Published var isLoading = false
     
     init() {
-        self.messages = [ChatMessage(id: UUID(), content: "สวัสดีครับ! ผมคือที่ปรึกษาการท่องเที่ยว มีอะไรให้ผมช่วยแนะนำหรือวางแผนทริปไหมครับ?", isUser: false, timestamp: Date())]
+        self.messages = [ChatMessage(id: UUID(), content: "สวัสดีครับ! ผมคือที่ปรึกษาการท่องเที่ยว มีอะไรให้ผมช่วยแนะนำหรือวางแผนทริปไหมครับ? 🌍\n\n💡 ลองบอกผมว่า:\n• อยากไปเที่ยวที่ไหน\n• งบประมาณเท่าไหร่\n• หรือพิมพ์ \"ร่างทริป\" เพื่อให้ผมสร้างแผนทริปให้", isUser: false, timestamp: Date())]
     }
     
     @Published var tripDraft: TripDraft?
     @Published var showDraftAlert = false
     
+    func clearChat() {
+        messages = [ChatMessage(id: UUID(), content: "สวัสดีครับ! ผมคือที่ปรึกษาการท่องเที่ยว มีอะไรให้ผมช่วยแนะนำหรือวางแผนทริปไหมครับ? 🌍\n\n💡 ลองบอกผมว่า:\n• อยากไปเที่ยวที่ไหน\n• งบประมาณเท่าไหร่\n• หรือพิมพ์ \"ร่างทริป\" เพื่อให้ผมสร้างแผนทริปให้", isUser: false, timestamp: Date())]
+        tripDraft = nil
+        showDraftAlert = false
+        inputText = ""
+    }
 
     func sendMessage() async {
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -289,7 +356,9 @@ class AIChatViewModel: ObservableObject {
         }
         
         do {
-            let responseText = try await GeminiService.shared.chat(message: text, history: [])
+            // Pass conversation history (skip welcome message and current message which is sent separately)
+            let history = Array(messages.dropFirst().dropLast())
+            let responseText = try await GeminiService.shared.chat(message: text, history: history)
             
             // Check for JSON Block (Robust multiple lines & markdown support)
             // Look for optional markdown fences, then curly braces

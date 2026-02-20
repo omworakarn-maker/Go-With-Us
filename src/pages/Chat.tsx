@@ -225,9 +225,16 @@ const Chat: React.FC = () => {
                         <>
                             {/* Chat Header */}
                             <div className="bg-white p-4 border-b border-gray-100 flex items-center justify-between gap-4">
-                                <div className="flex items-center gap-4">
+                                <div
+                                    className="flex items-center gap-4 cursor-pointer hover:opacity-80 transition-opacity"
+                                    onClick={() => navigate(`/user/${activeConversation.user.id}`)}
+                                    title="ดูโปรไฟล์"
+                                >
                                     {isMobileView && (
-                                        <button onClick={() => setActiveConversation(null)} className="text-gray-500 hover:text-black">
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); setActiveConversation(null); }}
+                                            className="text-gray-500 hover:text-black mr-2"
+                                        >
                                             ←
                                         </button>
                                     )}
@@ -235,7 +242,7 @@ const Chat: React.FC = () => {
                                         {activeConversation.user?.name?.charAt(0).toUpperCase() || '?'}
                                     </div>
                                     <div>
-                                        <h3 className="font-bold">{activeConversation.user?.name || 'Unknown User'}</h3>
+                                        <h3 className="font-bold hover:underline">{activeConversation.user?.name || 'Unknown User'}</h3>
                                     </div>
                                 </div>
                                 <button

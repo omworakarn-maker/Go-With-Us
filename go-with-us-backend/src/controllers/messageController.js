@@ -1,7 +1,5 @@
-import { PrismaClient } from '@prisma/client';
+import prisma from '../utils/prismaClient.js';
 import { sendPushNotification } from '../utils/firebase.js';
-
-const prisma = new PrismaClient();
 
 // Get all messages for a trip (Group Chat)
 export const getTripMessages = async (req, res, next) => {
@@ -30,6 +28,7 @@ export const getTripMessages = async (req, res, next) => {
                         id: true,
                         name: true,
                         email: true,
+                        profileImage: true,
                     },
                 },
             },
@@ -90,6 +89,7 @@ export const sendTripMessage = async (req, res, next) => {
                         id: true,
                         name: true,
                         email: true,
+                        profileImage: true,
                     },
                 },
             },
@@ -200,6 +200,7 @@ export const getPrivateMessages = async (req, res, next) => {
                         id: true,
                         name: true,
                         email: true,
+                        profileImage: true,
                     },
                 },
                 receiver: {
@@ -207,6 +208,7 @@ export const getPrivateMessages = async (req, res, next) => {
                         id: true,
                         name: true,
                         email: true,
+                        profileImage: true,
                     },
                 },
             },
@@ -274,6 +276,7 @@ export const sendPrivateMessage = async (req, res, next) => {
                         id: true,
                         name: true,
                         email: true,
+                        profileImage: true,
                     },
                 },
                 receiver: {
@@ -281,6 +284,7 @@ export const sendPrivateMessage = async (req, res, next) => {
                         id: true,
                         name: true,
                         email: true,
+                        profileImage: true,
                     },
                 },
             },
@@ -345,6 +349,7 @@ export const getConversations = async (req, res, next) => {
                         id: true,
                         name: true,
                         email: true,
+                        profileImage: true,
                     },
                 },
                 receiver: {
@@ -352,6 +357,7 @@ export const getConversations = async (req, res, next) => {
                         id: true,
                         name: true,
                         email: true,
+                        profileImage: true,
                     },
                 },
             },

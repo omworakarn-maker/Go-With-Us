@@ -25,8 +25,8 @@ struct MatchTripView: View {
                         Spacer()
                         
                         Text("แมตช์ทริป")
-                            .font(.system(size: 22, weight: .bold))
-                            .foregroundColor(.adaptiveText)
+                            .font(.system(size: 24, weight: .black))
+                            .foregroundColor(.appPrimary)
                         
                         Spacer()
                         
@@ -46,75 +46,77 @@ struct MatchTripView: View {
                         if viewModel.isLoading {
                             Spacer()
                             ProgressView()
-                                .tint(.adaptiveText)
+                                .tint(.appPrimary)
+                                .scaleEffect(1.5)
                             Spacer()
                         } else if let error = viewModel.errorMessage {
                             Spacer()
-                            VStack {
-                                Image(systemName: "exclamationmark.triangle")
-                                    .font(.largeTitle)
+                            VStack(spacing: 16) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .font(.system(size: 60))
                                     .foregroundColor(.orange)
                                 Text(error)
                                     .foregroundColor(.gray)
-                                    .padding()
+                                    .multilineTextAlignment(.center)
                                 Button("ลองใหม่") {
                                     Task { await viewModel.fetchMatches() }
                                 }
-                                .padding()
-                                .background(Color.adaptiveText)
+                                .padding(.horizontal, 24)
+                                .padding(.vertical, 12)
+                                .background(Color.appPrimary)
                                 .foregroundColor(.white)
-                                .cornerRadius(10)
+                                .cornerRadius(20)
                             }
                             Spacer()
                         } else if viewModel.matches.isEmpty {
                             Spacer()
-                            VStack {
-                                Image(systemName: "map")
-                                    .font(.system(size: 60))
-                                    .foregroundColor(.gray.opacity(0.3))
-                                Text("ยังไม่พบทริปที่แมตช์กับคุณ")
-                                    .font(.headline)
-                                    .padding(.top)
-                                Text("ลองเพิ่มความสนใจในโปรไฟล์ดูสิ")
-                                    .font(.caption)
+                            VStack(spacing: 16) {
+                                Image(systemName: "sparkles.rectangle.stack.fill")
+                                    .font(.system(size: 80))
+                                    .foregroundColor(.appPrimary.opacity(0.4))
+                                Text("ไม่มีทริปแมตช์ใหม่ๆ ตอนนี้")
+                                    .font(.system(size: 20, weight: .bold))
+                                    .foregroundColor(.adaptiveText)
+                                Text("กลับมาเช็คดูใหม่ หรือเพิ่มความสนใจในโปรไฟล์")
+                                    .font(.system(size: 14))
                                     .foregroundColor(.gray)
+                                    .multilineTextAlignment(.center)
+                                
+                                Button("รีเฟรช") {
+                                    Task { await viewModel.fetchMatches() }
+                                }
+                                .padding(.top, 10)
+                                .foregroundColor(.appPrimary)
                             }
                             Spacer()
                         } else {
-                            ScrollView {
-                                LazyVStack(spacing: 20) {
-                                    ForEach(viewModel.matches) { trip in
-                                        NavigationLink(destination: TripDetailView(tripId: trip.id)) {
-                                            TripCardView(trip: trip) // Reusing existing card
-                                                .overlay(
-                                                    ZStack {
-                                                        if let score = trip.matchScore {
-                                                             VStack {
-                                                                 HStack {
-                                                                     Spacer()
-                                                                     Text("\(score)% Match")
-                                                                         .font(.system(size: 10, weight: .bold))
-                                                                         .foregroundColor(.white)
-                                                                         .padding(.horizontal, 8)
-                                                                         .padding(.vertical, 4)
-                                                                         .background(Color.black)
-                                                                         .cornerRadius(12)
-                                                                         .padding(8)
-                                                                 }
-                                                                 Spacer()
-                                                             }
-                                                        }
-                                                    }
-                                                )
+                            // Tinder Swipe Area
+                            ZStack {
+                                let matchCount = viewModel.matches.count
+                                ForEach(0..<matchCount, id: \.self) { i in
+                                    let index = matchCount - 1 - i
+                                    let distance = CGFloat(i)
+                                    let scale = 1.0 - (distance * 0.05)
+                                    let yOffset = distance * 10
+                                    
+                                    TinderSwipeCardView(
+                                        trip: viewModel.matches[index],
+                                        onRemove: {
+                                            withAnimation(.spring()) {
+                                                let tripIdToRemove = viewModel.matches[index].id
+                                                viewModel.matches.removeAll { $0.id == tripIdToRemove }
+                                            }
                                         }
-                                        .buttonStyle(PlainButtonStyle())
-                                    }
+                                    )
+                                    .padding(.horizontal, 16)
+                                    .padding(.bottom, 40)
+                                    // Scale down back cards slightly for depth
+                                    .scaleEffect(scale)
+                                    .offset(y: yOffset)
+                                    .allowsHitTesting(index == matchCount - 1)
                                 }
-                                .padding()
                             }
-                            .refreshable {
-                                await viewModel.fetchMatches()
-                            }
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
                         }
                     }
                     .padding(.bottom, 80) // Added for TabBar
@@ -123,6 +125,80 @@ struct MatchTripView: View {
         }
         .task {
             await viewModel.fetchMatches()
+        }
+    }
+}
+
+// MARK: - Tinder Swipe Card
+struct TinderSwipeCardView: View {
+    let trip: Trip
+    let onRemove: () -> Void
+    
+    @State private var offset: CGSize = .zero
+    @State private var color: Color = .clear
+    @State private var contentNavigation = false
+    
+    var body: some View {
+
+        ZStack {
+            TripCardView(trip: trip) // Reusing existing UI properly inside a gesture frame
+                .background(Color.adaptiveCardBackground)
+                .cornerRadius(24)
+                .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
+            
+            // Interaction overlay (Match Score, Tap, Swipe effects)
+            ZStack(alignment: .topTrailing) {
+                Color.clear
+                
+                if let score = trip.matchScore {
+                    Text("\(score)% Match")
+                        .font(.system(size: 12, weight: .black))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(
+                            LinearGradient(colors: [.orange, .pink], startPoint: .topLeading, endPoint: .bottomTrailing)
+                        )
+                        .cornerRadius(20)
+                        .padding(16)
+                }
+            }
+            
+            // Swipe feedback colors
+            if offset.width > 0 {
+                // Liked/Passed Right
+                Color.appPrimary.opacity(Double(offset.width / 400))
+                    .cornerRadius(24)
+            } else if offset.width < 0 {
+                // Rejected/Passed Left
+                Color.red.opacity(Double(abs(offset.width) / 400))
+                    .cornerRadius(24)
+            }
+        }
+        .offset(x: offset.width, y: offset.height * 0.4)
+        .rotationEffect(.degrees(Double(offset.width / 40)))
+        .gesture(
+            DragGesture()
+                .onChanged { gesture in
+                    offset = gesture.translation
+                }
+                .onEnded { _ in
+                    if abs(offset.width) > 100 {
+                        // Swipe recognized
+                        onRemove()
+                    } else {
+                        // Reset back to center if swipe isn't far enough
+                        withAnimation(.spring()) {
+                            offset = .zero
+                        }
+                    }
+                }
+        )
+        .onTapGesture {
+            contentNavigation = true
+        }
+        .navigationDestination(isPresented: $contentNavigation) {
+            TripDetailView(tripId: trip.id)
         }
     }
 }
@@ -136,6 +212,7 @@ class MatchTripViewModel: ObservableObject {
         await MainActor.run {
             isLoading = true
             errorMessage = nil
+            // Clear out matches momentarily for a fresh bounce effect if desired, or keep them.
         }
         
         do {

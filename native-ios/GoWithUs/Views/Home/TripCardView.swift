@@ -100,20 +100,7 @@ struct TripCardView: View {
                     
                     // Creator
                     HStack(spacing: 6) {
-                        if let profileImage = trip.creator.profileImage, !profileImage.isEmpty {
-                            CustomAsyncImage(url: profileImage, contentMode: .fill)
-                                .frame(width: 24, height: 24)
-                                .clipShape(Circle())
-                        } else {
-                            Circle()
-                                .fill(Color.appAccent)
-                                .frame(width: 24, height: 24)
-                                .overlay(
-                                    Text(String(trip.creator.name.prefix(1)))
-                                        .font(.system(size: 11, weight: .bold))
-                                        .foregroundColor(.white)
-                                )
-                        }
+                        UserAvatarView(user: trip.creator, size: 24)
                         
                         Text(trip.creator.name)
                             .font(.system(size: 12, weight: .medium))

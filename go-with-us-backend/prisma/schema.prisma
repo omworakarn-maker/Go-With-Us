@@ -13,6 +13,7 @@ datasource db {
 model User {
   id        String   @id @default(uuid())
   name      String
+
   email     String   @unique
   password  String   // Will be hashed
   role      String   @default("user") // "user" or "admin"
@@ -42,6 +43,7 @@ model User {
   trips     Trip[]   // Trips created by this user
   sentMessages     Message[] @relation("SentMessages")
   receivedMessages Message[] @relation("ReceivedMessages")
+  joinedTrips      Participant[] // Trips joined by this user
   
   @@map("users")
 }
@@ -90,6 +92,7 @@ model Participant {
   
   // Relations
   trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   @@unique([tripId, userId]) // Can't join same trip twice
   @@map("participants")

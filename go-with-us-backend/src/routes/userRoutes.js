@@ -1,10 +1,11 @@
 import express from 'express';
 import { verifyToken } from '../middleware/auth.js';
-import { getProfile, updateProfile, getAllUsers, registerDeviceToken, getPublicProfile, updatePrivacySettings } from '../controllers/userController.js';
+import { getProfile, updateProfile, getAllUsers, registerDeviceToken, getPublicProfile, updatePrivacySettings, checkUsername } from '../controllers/userController.js';
 
 const router = express.Router();
 
-// Public route - Anyone can view a user's public profile (no auth needed)
+// Public routes - No auth needed
+router.get('/check-username', checkUsername);
 router.get('/:userId/public', getPublicProfile);
 
 // Protected routes

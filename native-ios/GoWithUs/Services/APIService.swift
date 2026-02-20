@@ -5,8 +5,11 @@ class APIService {
     static let shared = APIService()
     
     // Base URL - Production (Vercel)
-    private let baseURL = "https://go-with-us.vercel.app/api"
+    // private let baseURL = "https://go-with-us.vercel.app/api"
     // private let baseURL = "http://192.168.1.88:3000/api" // Local backup
+    
+    // Development (Localhost)
+    private let baseURL = "https://go-with-us.vercel.app/api"
     
     private init() {}
     

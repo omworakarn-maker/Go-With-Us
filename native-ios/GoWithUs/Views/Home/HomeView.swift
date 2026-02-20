@@ -4,7 +4,6 @@ struct HomeView: View {
     @StateObject private var viewModel = TripListViewModel()
     @ObservedObject private var notificationPoller = NotificationPoller.shared
     @State private var showNotifications = false
-
     
     @Binding var showSideMenu: Bool
     
@@ -179,11 +178,7 @@ struct HomeView: View {
             }
         }
     }
-
-    
 }
-
-
 
 #Preview {
     HomeView(showSideMenu: .constant(false))

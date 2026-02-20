@@ -21,6 +21,13 @@ interface ExtendedUser {
     createdAt: string;
     createdTrips: Trip[];
     participatedTrips: { trip: Trip }[];
+    travelStyle?: any;
+    isProfilePublic?: boolean;
+    showGender?: boolean;
+    showAge?: boolean;
+    showBio?: boolean;
+    showInterests?: boolean;
+    showEmail?: boolean;
 }
 
 const Profile: React.FC = () => {
@@ -69,6 +76,15 @@ const Profile: React.FC = () => {
             setNewAge(data.age ? String(data.age) : '');
             setNewBio(data.bio || '');
             setNewBirthDate(data.birthDate ? data.birthDate.split('T')[0] : '');
+            // Load privacy settings from API (not hardcoded defaults)
+            setPrivacySettings({
+                isProfilePublic: data.isProfilePublic ?? true,
+                showGender: data.showGender ?? true,
+                showAge: data.showAge ?? true,
+                showBio: data.showBio ?? true,
+                showInterests: data.showInterests ?? true,
+                showEmail: data.showEmail ?? false,
+            });
         } catch (error) {
             console.error('Failed to fetch profile:', error);
         } finally {

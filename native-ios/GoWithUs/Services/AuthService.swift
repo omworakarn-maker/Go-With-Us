@@ -85,10 +85,12 @@ class AuthService {
         bio: String? = nil,
         birthDate: Date? = nil,
         travelStyle: TravelStyle? = nil,
-        profileImage: String? = nil
+        profileImage: String? = nil,
+        username: String? = nil
     ) async throws -> User {
         struct UpdateProfileRequest: Encodable {
             let name: String
+            let username: String?
             let interests: [String]
             let gender: String?
             let age: Int?
@@ -105,6 +107,7 @@ class AuthService {
         
         let request = UpdateProfileRequest(
             name: name,
+            username: username,
             interests: interests,
             gender: gender,
             age: age,
@@ -124,6 +127,26 @@ class AuthService {
         UserDefaults.standard.set(response.user.id, forKey: "current_user_id")
         
         return response.user
+    }
+    
+    // Check username availability
+    func checkUsernameAvailability(username: String, excludeUserId: String?) async throws -> (available: Bool, message: String) {
+        var endpoint = "/users/check-username?username=\(username)"
+        if let userId = excludeUserId {
+            endpoint += "&excludeUserId=\(userId)"
+        }
+        
+        struct CheckResponse: Decodable {
+            let available: Bool
+            let message: String
+        }
+        
+        let response: CheckResponse = try await APIService.shared.request(
+            endpoint: endpoint,
+            method: .get,
+            requiresAuth: false
+        )
+        return (response.available, response.message)
     }
 
     // MARK: - Update FCM Token
@@ -157,5 +180,49 @@ class AuthService {
     // MARK: - Check if Logged In
     func isLoggedIn() -> Bool {
         return KeychainService.shared.getToken() != nil
+    }
+
+    // MARK: - Get Public Profile (by userId)
+    func fetchPublicProfile(userId: String) async throws -> User {
+        let response: User = try await APIService.shared.request(
+            endpoint: "/users/\(userId)/public",
+            method: .get,
+            requiresAuth: false
+        )
+        return response
+    }
+    
+    // MARK: - Update Privacy Settings
+    func updatePrivacySettings(
+        isProfilePublic: Bool,
+        showGender: Bool,
+        showAge: Bool,
+        showBio: Bool,
+        showInterests: Bool,
+        showEmail: Bool
+    ) async throws {
+        struct PrivacyRequest: Encodable {
+            let isProfilePublic: Bool
+            let showGender: Bool
+            let showAge: Bool
+            let showBio: Bool
+            let showInterests: Bool
+            let showEmail: Bool
+        }
+        
+        let request = PrivacyRequest(
+            isProfilePublic: isProfilePublic,
+            showGender: showGender,
+            showAge: showAge,
+            showBio: showBio,
+            showInterests: showInterests,
+            showEmail: showEmail
+        )
+        
+        let _: MessageResponse = try await APIService.shared.request(
+            endpoint: "/users/privacy-settings",
+            method: .put,
+            body: request
+        )
     }
 }

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Message } from '../types';
 import { messagesAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -12,6 +13,7 @@ interface GroupChatProps {
 
 export const GroupChat: React.FC<GroupChatProps> = ({ tripId, tripTitle, onClose, embedded = false }) => {
     const { user } = useAuth();
+    const navigate = useNavigate();
     const [messages, setMessages] = useState<Message[]>([]);
     const [newMessage, setNewMessage] = useState('');
     const [loading, setLoading] = useState(false);
@@ -146,7 +148,13 @@ export const GroupChat: React.FC<GroupChatProps> = ({ tripId, tripTitle, onClose
                         >
                             <div className={`max-w-[70%] ${isOwnMessage ? 'items-end' : 'items-start'} flex flex-col`}>
                                 {!isOwnMessage && (
-                                    <span className="text-[10px] text-gray-500 mb-1 px-2">{message.sender.name}</span>
+                                    <span
+                                        className="text-[10px] text-gray-500 mb-1 px-2 cursor-pointer hover:underline hover:text-black"
+                                        onClick={() => navigate(`/user/${message.senderId}`)}
+                                        title="ดูโปรไฟล์"
+                                    >
+                                        {message.sender.name}
+                                    </span>
                                 )}
                                 <div
                                     className={`rounded-2xl px-4 py-2 ${isOwnMessage

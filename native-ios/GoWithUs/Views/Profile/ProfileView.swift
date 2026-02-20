@@ -40,12 +40,17 @@ struct ProfileView: View {
                                                 .clipShape(Circle())
                                         } else {
                                             Circle()
-                                                .fill(Color.adaptiveText)
+                                                .fill(
+                                                    LinearGradient(
+                                                        colors: [Color.appPrimary, Color.appSecondary],
+                                                        startPoint: .topLeading, endPoint: .bottomTrailing
+                                                    )
+                                                )
                                                 .frame(width: 100, height: 100)
                                                 .overlay(
                                                     Text(String(user.name.prefix(1)))
                                                         .font(.system(size: 40, weight: .bold))
-                                                        .foregroundColor(Color.adaptiveBackground)
+                                                        .foregroundColor(.white)
                                                 )
                                         }
                                         
@@ -61,7 +66,7 @@ struct ProfileView: View {
                                             .offset(x: 2, y: 2)
                                     }
                                 }
-                                .onChange(of: selectedItem) { newItem in
+                                .onChange(of: selectedItem) { _, newItem in
                                     Task {
                                         if let data = try? await newItem?.loadTransferable(type: Data.self),
                                            let uiImage = UIImage(data: data) {
@@ -114,16 +119,17 @@ struct ProfileView: View {
                                         .font(.system(size: 22, weight: .bold))
                                         .foregroundColor(.adaptiveText)
                                     
-                                    // @ handle
-                                    if let username = UserDefaults.standard.string(forKey: "user_handle"), !username.isEmpty {
+                                    if let username = user.username {
                                         Text("@\(username)")
-                                            .font(.system(size: 15, weight: .medium))
+                                            .font(.system(size: 15, weight: .bold))
                                             .foregroundColor(.appAccent)
                                     }
                                     
-                                    Text(user.email)
-                                        .font(.system(size: 14, weight: .medium))
-                                        .foregroundColor(.adaptiveSecondaryText)
+                                    if let email = user.email {
+                                        Text(email)
+                                            .font(.system(size: 14, weight: .medium))
+                                            .foregroundColor(.adaptiveSecondaryText)
+                                    }
                                 }
                                 
                                 if user.role == .admin {

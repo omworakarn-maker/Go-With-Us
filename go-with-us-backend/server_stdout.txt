@@ -1,0 +1,37 @@
+prisma:warn In production, we recommend using `prisma generate --no-engine` (See: `prisma generate --help`)
+[dotenv@17.2.3] injecting env (0) from .env -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+[dotenv@17.2.3] injecting env (0) from .env -- tip: 📡 add observability to secrets: https://dotenvx.com/ops
+✅ Firebase Admin initialized via local file.
+[dotenv@17.2.3] injecting env (0) from .env -- tip: ⚙️  override existing env vars with { override: true }
+🚀 Server is running on port 3000
+📍 http://localhost:3000
+Get public profile error: PrismaClientKnownRequestError: 
+Invalid `prisma.user.findUnique()` invocation:
+
+
+The column `users.username` does not exist in the current database.
+    at $n.handleRequestError (/Users/worakanp/Desktop/go-with-us/go-with-us-backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/worakanp/Desktop/go-with-us/go-with-us-backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/worakanp/Desktop/go-with-us/go-with-us-backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async l (/Users/worakanp/Desktop/go-with-us/go-with-us-backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async getPublicProfile (file:///Users/worakanp/Desktop/go-with-us/go-with-us-backend/src/controllers/userController.js:145:22) {
+  code: 'P2022',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'User', column: 'users.username' }
+}
+Get profile error: PrismaClientKnownRequestError: 
+Invalid `prisma.user.findUnique()` invocation:
+
+
+The column `users.username` does not exist in the current database.
+    at $n.handleRequestError (/Users/worakanp/Desktop/go-with-us/go-with-us-backend/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/worakanp/Desktop/go-with-us/go-with-us-backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/worakanp/Desktop/go-with-us/go-with-us-backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async l (/Users/worakanp/Desktop/go-with-us/go-with-us-backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async getProfile (file:///Users/worakanp/Desktop/go-with-us/go-with-us-backend/src/controllers/userController.js:12:22) {
+  code: 'P2022',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'User', column: 'users.username' }
+}
