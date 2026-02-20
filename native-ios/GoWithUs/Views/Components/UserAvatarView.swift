@@ -38,6 +38,7 @@ struct UserAvatarView: View {
             }
         }
         .frame(width: size, height: size)
+        .compositingGroup() // Ensure it transitions cohesively as a single layer
     }
 }
 

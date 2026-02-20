@@ -26,9 +26,10 @@ struct UserProfileView: View {
             Color.adaptiveBackground
                 .ignoresSafeArea()
             
-            // ── Back Button (top-leading, safe area) ──
+            // ── Top Navigation Bar (safe area) ──
             VStack {
                 HStack {
+                    // Back Button
                     Button(action: { dismiss() }) {
                         Image(systemName: "chevron.left")
                             .font(.system(size: 16, weight: .bold))
@@ -38,9 +39,10 @@ struct UserProfileView: View {
                             .clipShape(Circle())
                             .shadow(color: .black.opacity(0.1), radius: 5, x: 0, y: 2)
                     }
-                // ── Action Menu Button (top-trailing) ──
-                HStack {
+                    
                     Spacer()
+                    
+                    // Action Menu Button
                     if authViewModel.currentUser?.id != user.id {
                         Button(action: { showingActionSheet = true }) {
                             Image(systemName: "ellipsis")
@@ -57,7 +59,7 @@ struct UserProfileView: View {
                 .padding(.top, 10)
                 Spacer()
             }
-            .zIndex(10)
+            .zIndex(100)
             
             if isLoading {
                 VStack(spacing: 12) {
@@ -279,7 +281,7 @@ struct UserProfileView: View {
                 }
             }
         }
-        }
+        .navigationBarHidden(true)
         .task {
             await loadProfile()
         }

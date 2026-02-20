@@ -321,7 +321,7 @@ struct EditProfileView: View {
                         Task {
                             // Convert profile image to base64 for backend
                             var profileImageBase64: String? = nil
-                            if let image = profileImage,
+                            if selectedItem != nil, let image = profileImage,
                                let scaledImage = image.resized(toWidth: 512),
                                let jpegData = scaledImage.jpegData(compressionQuality: 0.6) {
                                 // Save locally as cache
@@ -335,9 +335,9 @@ struct EditProfileView: View {
                                 name: name,
                                 username: username.isEmpty ? nil : username,
                                 interests: Array(selectedInterests),
-                                gender: gender.isEmpty ? nil : gender,
+                                gender: gender,
                                 age: ageInt,
-                                bio: bio.isEmpty ? nil : bio,
+                                bio: bio,
                                 birthDate: birthDate,
                                 travelStyle: authViewModel.currentUser?.travelStyle,
                                 profileImage: profileImageBase64
