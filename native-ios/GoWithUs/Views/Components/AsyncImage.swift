@@ -3,13 +3,13 @@ import SwiftUI
 struct CustomAsyncImage: View {
     @StateObject private var loader = ImageLoader()
     let url: String?
-    let placeholder: Image
     let contentMode: ContentMode
+    let loadDelay: Double // Delay before loading (useful to let animations complete first)
     
-    init(url: String?, placeholder: Image = Image(systemName: "photo"), contentMode: ContentMode = .fill) {
+    init(url: String?, contentMode: ContentMode = .fill, loadDelay: Double = 0) {
         self.url = url
-        self.placeholder = placeholder
         self.contentMode = contentMode
+        self.loadDelay = loadDelay
     }
     
     var body: some View {
@@ -18,14 +18,20 @@ struct CustomAsyncImage: View {
                 Image(uiImage: image)
                     .resizable()
                     .aspectRatio(contentMode: contentMode)
+                    .transition(.opacity)
             } else {
-                placeholder
-                    .resizable()
-                    .aspectRatio(contentMode: contentMode)
+                Color.clear
             }
         }
+        .animation(.easeIn(duration: 0.2), value: loader.image != nil)
         .onAppear {
-            loader.load(from: url)
+            if loadDelay > 0 {
+                DispatchQueue.main.asyncAfter(deadline: .now() + loadDelay) {
+                    loader.load(from: url)
+                }
+            } else {
+                loader.load(from: url)
+            }
         }
         .onChange(of: url) { _, newUrl in
             loader.load(from: newUrl)

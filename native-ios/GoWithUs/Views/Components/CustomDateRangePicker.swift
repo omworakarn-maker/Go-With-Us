@@ -22,7 +22,7 @@ struct CustomDateRangePicker: View {
                 }) {
                     Image(systemName: "chevron.left")
                         .font(.title3)
-                        .foregroundColor(.black)
+                        .foregroundColor(.adaptiveText)
                         .padding(8)
                 }
                 
@@ -30,7 +30,7 @@ struct CustomDateRangePicker: View {
                 
                 Text(monthYearString(from: currentMonth))
                     .font(.system(size: 16, weight: .bold))
-                    .foregroundColor(.black)
+                    .foregroundColor(.adaptiveText)
                 
                 Spacer()
                 
@@ -41,7 +41,7 @@ struct CustomDateRangePicker: View {
                 }) {
                     Image(systemName: "chevron.right")
                         .font(.title3)
-                        .foregroundColor(.black)
+                        .foregroundColor(.adaptiveText)
                         .padding(8)
                 }
             }
@@ -59,19 +59,15 @@ struct CustomDateRangePicker: View {
             
             // Calendar Grid
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 0), count: daysInWeek), spacing: 8) {
-                ForEach(daysInMonth(), id: \.self) { date in
-                    if let date = date {
-                        DayCell(
-                            date: date,
-                            startDate: $startDate,
-                            endDate: $endDate
-                        )
-                        .onTapGesture {
-                            handleDateTapped(date)
-                        }
-                    } else {
-                        Color.clear
-                            .frame(height: 40)
+                ForEach(daysToDisplay(), id: \.self) { date in
+                    DayCell(
+                        date: date,
+                        currentMonth: currentMonth,
+                        startDate: $startDate,
+                        endDate: $endDate
+                    )
+                    .onTapGesture {
+                        handleDateTapped(date)
                     }
                 }
             }
@@ -79,22 +75,25 @@ struct CustomDateRangePicker: View {
     }
     
     private func handleDateTapped(_ date: Date) {
-        if startDate == nil {
-            startDate = date
+        let normalizedDate = calendar.startOfDay(for: date)
+        
+        if startDate == nil || (startDate != nil && endDate != nil) {
+            // Start fresh selection
+            startDate = normalizedDate
             endDate = nil
         } else if let start = startDate, endDate == nil {
-            if date < start {
-                startDate = date // Tapped before start date, so reset start date
-            } else if date == start {
-                // Tapped same day twice, do nothing or unset? Let's keep it.
-                endDate = date
+            let normalizedStart = calendar.startOfDay(for: start)
+            if normalizedDate == normalizedStart {
+                // Tapped same day again — treat as single-day trip
+                endDate = normalizedStart
+            } else if normalizedDate < normalizedStart {
+                // Tapped earlier — swap: new start is tapped day, end is old start
+                endDate = normalizedStart
+                startDate = normalizedDate
             } else {
-                endDate = date // Valid range
+                // Valid end date after start
+                endDate = normalizedDate
             }
-        } else {
-            // Both are already set, restart selection
-            startDate = date
-            endDate = nil
         }
     }
     
@@ -105,32 +104,26 @@ struct CustomDateRangePicker: View {
         return formatter.string(from: date)
     }
     
-    private func daysInMonth() -> [Date?] {
+    private func daysToDisplay() -> [Date] {
         guard let monthInterval = calendar.dateInterval(of: .month, for: currentMonth) else { return [] }
-        let monthFirstWeek = calendar.dateInterval(of: .weekOfMonth, for: monthInterval.start)
         
-        var days: [Date?] = []
-        var currentDate = monthFirstWeek?.start ?? currentMonth
-        let endDate = monthInterval.end
+        var days: [Date] = []
         
-        // Find starting offset
+        // Calculate the start of the first week to display
         let firstDayOfMonth = monthInterval.start
-        let weekdayOffset = calendar.component(.weekday, from: firstDayOfMonth) - 1
+        let weekdayOfFirstDay = calendar.component(.weekday, from: firstDayOfMonth) // 1 for Sunday, 7 for Saturday
         
-        for _ in 0..<weekdayOffset {
-            days.append(nil) // Empty leading cells
-        }
+        // Adjust for calendar's firstWeekday (e.g., Sunday=1, Monday=2)
+        let daysToPrepend = (weekdayOfFirstDay - calendar.firstWeekday + daysInWeek) % daysInWeek
         
-        var currentDay = firstDayOfMonth
-        while currentDay < endDate {
-            days.append(currentDay)
-            currentDay = calendar.date(byAdding: .day, value: 1, to: currentDay)!
-        }
+        // Get the date for the first day to display (could be from previous month)
+        guard let startOfDisplay = calendar.date(byAdding: .day, value: -daysToPrepend, to: firstDayOfMonth) else { return [] }
         
-        // Add trailing empty cells to align grid
-        let trailingOffset = (7 - (days.count % 7)) % 7
-        for _ in 0..<trailingOffset {
-            days.append(nil)
+        var currentDate = startOfDisplay
+        // Generate 6 weeks (42 days) to ensure full calendar grid
+        for _ in 0..<42 {
+            days.append(currentDate)
+            currentDate = calendar.date(byAdding: .day, value: 1, to: currentDate)!
         }
         
         return days
@@ -140,43 +133,58 @@ struct CustomDateRangePicker: View {
 // Separate view for the cell to handle drawing the continuous highlighting
 struct DayCell: View {
     let date: Date
+    let currentMonth: Date
     @Binding var startDate: Date?
     @Binding var endDate: Date?
     
+    private let calendar = Calendar.current
+    
+    var isToday: Bool {
+        calendar.isDateInToday(date)
+    }
+    
     var isStartDate: Bool {
         guard let start = startDate else { return false }
-        return Calendar.current.isDate(date, inSameDayAs: start)
+        return calendar.isDate(date, inSameDayAs: start)
     }
     
     var isEndDate: Bool {
         guard let end = endDate else { return false }
-        return Calendar.current.isDate(date, inSameDayAs: end)
+        return calendar.isDate(date, inSameDayAs: end)
     }
     
-    var isBetween: Bool {
+    var isInRange: Bool {
         guard let start = startDate, let end = endDate else { return false }
-        // Ensure same day doesn't count as between if they are the exact same day
-        if Calendar.current.isDate(start, inSameDayAs: end) { return false }
+        // If start and end are the same day, it's not "in range" but rather start/end
+        if calendar.isDate(start, inSameDayAs: end) { return false }
         return date > start && date < end
+    }
+    
+    var isOutsideCurrentMonth: Bool {
+        !calendar.isDate(date, equalTo: currentMonth, toGranularity: .month)
     }
     
     var body: some View {
         ZStack {
-            // Connecting Background (Span highlight)
-            if isBetween {
+            // Range highlighting background
+            if isInRange {
                 Rectangle()
                     .fill(Color.gray.opacity(0.15))
-            } else if isStartDate && endDate != nil && !Calendar.current.isDate(startDate!, inSameDayAs: endDate!) {
-                Rectangle()
-                    .fill(Color.gray.opacity(0.15))
-                    .padding(.leading, 20) // Only cover right half
-            } else if isEndDate && startDate != nil && !Calendar.current.isDate(startDate!, inSameDayAs: endDate!) {
-                Rectangle()
-                    .fill(Color.gray.opacity(0.15))
-                    .padding(.trailing, 20) // Only cover left half
+            } else if isStartDate && endDate != nil && !calendar.isDate(startDate!, inSameDayAs: endDate!) {
+                // Start of a multi-day range — highlight right half
+                HStack(spacing: 0) {
+                    Color.clear
+                    Color.gray.opacity(0.15)
+                }
+            } else if isEndDate && startDate != nil && !calendar.isDate(startDate!, inSameDayAs: endDate!) {
+                // End of a multi-day range — highlight left half
+                HStack(spacing: 0) {
+                    Color.gray.opacity(0.15)
+                    Color.clear
+                }
             }
             
-            // The Circle selection
+            // Selection circle
             if isStartDate || isEndDate {
                 Circle()
                     .fill(Color.black)
@@ -186,9 +194,21 @@ struct DayCell: View {
             // Text Label
             Text(dayString(from: date))
                 .font(.system(size: 16, weight: (isStartDate || isEndDate) ? .bold : .regular))
-                .foregroundColor((isStartDate || isEndDate) ? .white : .black)
+                .foregroundColor(textColor)
         }
         .frame(height: 40)
+    }
+    
+    private var textColor: Color {
+        if isStartDate || isEndDate {
+            return .white
+        } else if isOutsideCurrentMonth {
+            return Color.adaptiveText.opacity(0.3)
+        } else if isToday {
+            return .appPrimary
+        } else {
+            return .adaptiveText
+        }
     }
     
     private func dayString(from date: Date) -> String {

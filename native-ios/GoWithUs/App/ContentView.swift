@@ -39,9 +39,20 @@ struct ContentView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .ignoresSafeArea(.all, edges: .bottom) // Make content go behind tabbar
                 
-                // Side Menu Overlay
-                SideMenuView(isShowing: $showSideMenu, currentScreen: $currentScreen, transition: $activeTransition)
-                    .zIndex(10) // Ensure it's above TabBar and content
+                // Side Menu — backdrop fades, panel slides, avatar stays in sync
+                if showSideMenu {
+                    Color.black.opacity(0.3)
+                        .ignoresSafeArea()
+                        .onTapGesture {
+                            withAnimation(.easeInOut(duration: 0.3)) { showSideMenu = false }
+                        }
+                        .zIndex(9)
+                        .transition(.opacity)
+                    
+                    SideMenuView(isShowing: $showSideMenu, currentScreen: $currentScreen, transition: $activeTransition)
+                        .zIndex(10)
+                        .transition(.move(edge: .leading))
+                }
                 
                 // Tab Bar
                 if shouldShowTabBar {

@@ -201,9 +201,7 @@ struct CreateTripView: View {
                                         .font(.system(size: 11, weight: .bold))
                                         .foregroundColor(.white)
                                         .padding(.horizontal, 10).padding(.vertical, 6)
-                                        .background(
-                                            LinearGradient(colors: [Color.appPrimary, Color.appSecondary], startPoint: .leading, endPoint: .trailing)
-                                        )
+                                        .background(Color.black)
                                         .cornerRadius(12)
                                     }
                                     .disabled(isGeneratingAI)
@@ -850,11 +848,11 @@ struct TripDateInputView: View {
                     CustomDateRangePicker(
                         startDate: Binding(
                             get: { startDate },
-                            set: { startDate = $0 ?? Date() }
+                            set: { if let newDate = $0 { startDate = newDate } }
                         ),
                         endDate: Binding(
                             get: { endDate },
-                            set: { endDate = $0 ?? startDate.addingTimeInterval(86400) }
+                            set: { if let newDate = $0 { endDate = newDate } }
                         )
                     )
                     .padding(.top, 24)

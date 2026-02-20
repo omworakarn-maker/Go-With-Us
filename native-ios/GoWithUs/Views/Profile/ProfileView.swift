@@ -40,12 +40,7 @@ struct ProfileView: View {
                                                 .clipShape(Circle())
                                         } else {
                                             Circle()
-                                                .fill(
-                                                    LinearGradient(
-                                                        colors: [Color.appPrimary, Color.appSecondary],
-                                                        startPoint: .topLeading, endPoint: .bottomTrailing
-                                                    )
-                                                )
+                                                .fill(Color.black)
                                                 .frame(width: 100, height: 100)
                                                 .overlay(
                                                     Text(String(user.name.prefix(1)))

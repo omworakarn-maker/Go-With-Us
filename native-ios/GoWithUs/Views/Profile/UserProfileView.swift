@@ -5,9 +5,17 @@ import SwiftUI
 struct UserProfileView: View {
     let user: User  // initial user object (may have incomplete data)
     @Environment(\.dismiss) var dismiss
+    @EnvironmentObject var authViewModel: AuthViewModel
     @State private var fullUser: User? = nil
     @State private var isLoading = true
     @State private var errorMessage: String? = nil
+    
+    // Moderation States
+    @State private var showingActionSheet = false
+    @State private var showingReportAlert = false
+    @State private var reportReason = ""
+    @State private var actionMessage = ""
+    @State private var showingActionMessage = false
     
     var displayUser: User {
         fullUser ?? user
@@ -30,7 +38,20 @@ struct UserProfileView: View {
                             .clipShape(Circle())
                             .shadow(color: .black.opacity(0.1), radius: 5, x: 0, y: 2)
                     }
+                // ── Action Menu Button (top-trailing) ──
+                HStack {
                     Spacer()
+                    if authViewModel.currentUser?.id != user.id {
+                        Button(action: { showingActionSheet = true }) {
+                            Image(systemName: "ellipsis")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundColor(.adaptiveText)
+                                .frame(width: 40, height: 40)
+                                .background(Color.adaptiveCardBackground)
+                                .clipShape(Circle())
+                                .shadow(color: .black.opacity(0.1), radius: 5, x: 0, y: 2)
+                        }
+                    }
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 10)
@@ -64,11 +85,7 @@ struct UserProfileView: View {
                         VStack(spacing: 16) {
                             // Cover art
                             ZStack(alignment: .bottom) {
-                                LinearGradient(
-                                    colors: [Color.appPrimary.opacity(0.4), Color.appSecondary.opacity(0.4)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
+                                Color.gray.opacity(0.1)
                                 .frame(height: 140)
                                 .cornerRadius(24)
                                 
@@ -76,11 +93,8 @@ struct UserProfileView: View {
                                 ZStack {
                                     Circle()
                                         .strokeBorder(
-                                            LinearGradient(
-                                                colors: [Color.appPrimary, Color.appSecondary], // Same colorful gradient
-                                                startPoint: .topLeading, endPoint: .bottomTrailing
-                                            ),
-                                            lineWidth: 4
+                                            Color.adaptiveText.opacity(0.1),
+                                        lineWidth: 4
                                         )
                                         .frame(width: 110, height: 110)
                                         .background(Circle().fill(Color.adaptiveBackground))
@@ -265,8 +279,40 @@ struct UserProfileView: View {
                 }
             }
         }
+        }
         .task {
             await loadProfile()
+        }
+        .actionSheet(isPresented: $showingActionSheet) {
+            var buttons: [ActionSheet.Button] = [
+                .destructive(Text("รายงานผู้ใช้ (Report)")) {
+                    showingReportAlert = true
+                },
+                .cancel(Text("ยกเลิก"))
+            ]
+            
+            // If current user is Admin, they can Ban
+            if authViewModel.currentUser?.role == .admin {
+                buttons.insert(.destructive(Text("แบนผู้ใช้ (Ban)")) {
+                    Task { await banUser() }
+                }, at: 0)
+            }
+            
+            return ActionSheet(title: Text("จัดการผู้ใช้"), message: nil, buttons: buttons)
+        }
+        .alert("รายงานผู้ใช้นี้", isPresented: $showingReportAlert) {
+            TextField("ระบุเหตุผล (เช่น สแปม, ก้าวร้าว)", text: $reportReason)
+            Button("ยกเลิก", role: .cancel) {
+                reportReason = ""
+            }
+            Button("ส่งรายงาน") {
+                Task { await reportUser() }
+            }
+        } message: {
+            Text("โปรดระบุเหตุผลที่คุณต้องการรายงานผู้ใช้คนนี้ ข้อมูลจะถูกส่งไปยังแอดมินเพื่อตรวจสอบ")
+        }
+        .alert(actionMessage, isPresented: $showingActionMessage) {
+            Button("ตกลง", role: .cancel) { }
         }
     }
     
@@ -300,6 +346,16 @@ struct UserProfileView: View {
     private func loadProfile() async {
         isLoading = true
         errorMessage = nil
+        
+        // If viewing own profile, bypass public fetch and show everything
+        if user.id == authViewModel.currentUser?.id {
+            if let currentUser = authViewModel.currentUser {
+                self.fullUser = currentUser
+                self.isLoading = false
+                return
+            }
+        }
+        
         do {
             let fetched = try await AuthService.shared.fetchPublicProfile(userId: user.id)
             fullUser = fetched
@@ -316,6 +372,31 @@ struct UserProfileView: View {
             errorMessage = "เกิดข้อผิดพลาดในการโหลดโปรไฟล์"
         }
         isLoading = false
+    }
+    
+    // ── Moderation Handlers ──
+    private func reportUser() async {
+        guard !reportReason.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+        do {
+            try await AuthService.shared.reportUser(userId: user.id, reason: reportReason)
+            actionMessage = "ส่งรายงานปัญหาสำเร็จ! แอดมินจะตรวจสอบเร็วๆนี้"
+            showingActionMessage = true
+            reportReason = ""
+        } catch {
+            actionMessage = "เกิดข้อผิดพลาดในการรายงาน"
+            showingActionMessage = true
+        }
+    }
+    
+    private func banUser() async {
+        do {
+            try await AuthService.shared.banUser(userId: user.id, isBanned: true)
+            actionMessage = "ทำการแบนผู้ใช้ท่านนี้เรียบร้อยแล้ว"
+            showingActionMessage = true
+        } catch {
+            actionMessage = "เกิดข้อผิดพลาดในการแบนผู้ใช้"
+            showingActionMessage = true
+        }
     }
     
 }

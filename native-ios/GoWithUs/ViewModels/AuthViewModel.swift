@@ -54,6 +54,8 @@ class AuthViewModel: ObservableObject {
             currentUser = user
             isAuthenticated = true
             print("✅ isAuthenticated set to: \(isAuthenticated)")
+            // Fetch full profile immediately so all fields (bio, gender, etc.) are available
+            await loadCurrentUser()
         } catch {
             print("❌ Login failed: \(error.localizedDescription)")
             errorMessage = error.localizedDescription

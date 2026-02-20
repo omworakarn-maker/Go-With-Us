@@ -105,12 +105,7 @@ struct EditProfileView: View {
                                         .clipShape(Circle())
                                 } else {
                                     Circle()
-                                        .fill(
-                                            LinearGradient(
-                                                colors: [Color.appPrimary, Color.appSecondary],
-                                                startPoint: .topLeading, endPoint: .bottomTrailing
-                                            )
-                                        )
+                                        .fill(Color.black)
                                         .frame(width: 90, height: 90)
                                         .overlay(
                                             Text(String(name.prefix(1)))
@@ -312,15 +307,7 @@ struct EditProfileView: View {
                     }
                 }
                 
-                if authViewModel.isLoading {
-                    Section {
-                        HStack {
-                            Spacer()
-                            ProgressView()
-                            Spacer()
-                        }
-                    }
-                }
+
             }
             .navigationTitle("แก้ไขโปรไฟล์")
             .navigationBarTitleDisplayMode(.inline)
@@ -330,9 +317,8 @@ struct EditProfileView: View {
                         .foregroundColor(.appAccent)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("บันทึก") {
+                    Button(action: {
                         Task {
-                            // Convert profile image to base64 for backend
                             // Convert profile image to base64 for backend
                             var profileImageBase64: String? = nil
                             if let image = profileImage,
@@ -367,7 +353,18 @@ struct EditProfileView: View {
                                 showEmail: showEmail
                             )
                             
+                            // Refresh current user logic to sync entirely with DB
+                            await authViewModel.loadCurrentUser()
+                            
                             dismiss()
+                        }
+                    }) {
+                        if authViewModel.isLoading {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle())
+                                .tint(.appAccent)
+                        } else {
+                            Text("บันทึก")
                         }
                     }
                     .foregroundColor(.appAccent)

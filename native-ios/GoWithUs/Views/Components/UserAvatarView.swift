@@ -3,11 +3,10 @@ import SwiftUI
 struct UserAvatarView: View {
     let user: User?
     let size: CGFloat
+    var imageLoadDelay: Double = 0 // Set to ~0.35 in side menu to wait for slide animation
     
     @EnvironmentObject var authViewModel: AuthViewModel
     
-    // To explicitly handle local changes without reloading the whole object, 
-    // we use the live current user if IDs match.
     private var displayUser: User? {
         if let u = user, let currentUser = authViewModel.currentUser, u.id == currentUser.id {
             return currentUser
@@ -17,20 +16,13 @@ struct UserAvatarView: View {
     
     var body: some View {
         ZStack {
-            // Default Colorful Gradient Background
             Circle()
-                .fill(
-                    LinearGradient(
-                        colors: [Color.appPrimary, Color.appSecondary],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+                .fill(Color.black)
                 .frame(width: size, height: size)
             
             if let displayUser = displayUser {
                 if let profileImage = displayUser.profileImage, !profileImage.isEmpty {
-                    CustomAsyncImage(url: profileImage, contentMode: .fill)
+                    CustomAsyncImage(url: profileImage, contentMode: .fill, loadDelay: imageLoadDelay)
                         .frame(width: size, height: size)
                         .clipShape(Circle())
                 } else {
@@ -48,3 +40,4 @@ struct UserAvatarView: View {
         .frame(width: size, height: size)
     }
 }
+

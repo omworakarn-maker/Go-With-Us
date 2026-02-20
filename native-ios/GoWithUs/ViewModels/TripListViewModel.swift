@@ -51,7 +51,7 @@ class TripListViewModel: ObservableObject {
             // Map tab to API type
             let type: String
             switch activeTab {
-            case "มาแรง": type = "popular"
+            case "ยอดนิยม", "มาแรง": type = "popular"
             case "แนะนำ": type = "recommended"
             case "มาใหม่": type = "new"
             default: type = "recommended"

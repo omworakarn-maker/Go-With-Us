@@ -85,7 +85,7 @@ struct HomeView: View {
                         
                         // New Segmented Control (Tabs)
                         SegmentedControl(
-                            options: ["แนะนำ", "มาใหม่", "มาแรง"],
+                            options: ["แนะนำ", "มาใหม่", "ยอดนิยม"],
                             selected: $viewModel.activeTab
                         )
                         .padding(.horizontal)

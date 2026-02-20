@@ -34,14 +34,14 @@ struct ProvincePicker: View {
     @Environment(\.dismiss) var dismiss
     @Binding var selectedProvince: String?
     let provinces = [
-        "ทุกจังหวัด", "กรุงเทพฯ", "กระบี่", "กาญจนบุรี", "กาฬสินธุ์", "กำแพงเพชร", "ขอนแก่น", "จันทบุรี", "ฉะเชิงเทรา", 
-        "ชลบุรี", "ชัยนาท", "ชัยภูมิ", "ชุมพร", "เชียงราย", "เชียงใหม่", "ตรัง", "ตราด", "ตาก", "นครนายก", "นครปฐม", 
-        "นครพนม", "นครราชสีมา", "นครศรีธรรมราช", "นครสวรรค์", "นนทบุรี", "นราธิวาส", "น่าน", "บึงกาฬ", "บุรีรัมย์", 
-        "ปทุมธานี", "ประจวบคีรีขันธ์", "ปราจีนบุรี", "ปัตตานี", "พระนครศรีอยุธยา", "พะเยา", "พังงา", "พัทลุง", "พิจิตร", 
-        "พิษณุโลก", "เพชรบุรี", "เพชรบูรณ์", "แพร่", "ภูเก็ต", "มหาสารคาม", "มุกดาหาร", "แม่ฮ่องสอน", "ยโสธร", "ยะลา", 
-        "ร้อยเอ็ด", "ระนอง", "ระยอง", "ราชบุรี", "ลพบุรี", "ลำปาง", "ลำพูน", "เลย", "ศรีสะเกษ", "สกลนคร", "สงขลา", "สตูล", 
-        "สมุทรปราการ", "สมุทรสงคราม", "สมุทรสาคร", "สระแก้ว", "สระบุรี", "สิงห์บุรี", "สุโขทัย", "สุพรรณบุรี", 
-        "สุราษฎร์ธานี", "สุรินทร์", "หนองคาย", "หนองบัวลำภู", "อ่างทอง", "อำนาจเจริญ", "อุดรธานี", "อุตรดิตถ์", 
+        "ทุกจังหวัด", "กรุงเทพฯ", "กระบี่", "กาญจนบุรี", "กาฬสินธุ์", "กำแพงเพชร", "ขอนแก่น", "จันทบุรี", "ฉะเชิงเทรา",
+        "ชลบุรี", "ชัยนาท", "ชัยภูมิ", "ชุมพร", "เชียงราย", "เชียงใหม่", "ตรัง", "ตราด", "ตาก", "นครนายก", "นครปฐม",
+        "นครพนม", "นครราชสีมา", "นครศรีธรรมราช", "นครสวรรค์", "นนทบุรี", "นราธิวาส", "น่าน", "บึงกาฬ", "บุรีรัมย์",
+        "ปทุมธานี", "ประจวบคีรีขันธ์", "ปราจีนบุรี", "ปัตตานี", "พระนครศรีอยุธยา", "พะเยา", "พังงา", "พัทลุง", "พิจิตร",
+        "พิษณุโลก", "เพชรบุรี", "เพชรบูรณ์", "แพร่", "ภูเก็ต", "มหาสารคาม", "มุกดาหาร", "แม่ฮ่องสอน", "ยโสธร", "ยะลา",
+        "ร้อยเอ็ด", "ระนอง", "ระยอง", "ราชบุรี", "ลพบุรี", "ลำปาง", "ลำพูน", "เลย", "ศรีสะเกษ", "สกลนคร", "สงขลา", "สตูล",
+        "สมุทรปราการ", "สมุทรสงคราม", "สมุทรสาคร", "สระแก้ว", "สระบุรี", "สิงห์บุรี", "สุโขทัย", "สุพรรณบุรี",
+        "สุราษฎร์ธานี", "สุรินทร์", "หนองคาย", "หนองบัวลำภู", "อ่างทอง", "อำนาจเจริญ", "อุดรธานี", "อุตรดิตถ์",
         "อุทัยธานี", "อุบลราชธานี"
     ]
     
@@ -76,19 +76,12 @@ struct ProvincePicker: View {
 
 struct DatePickerSheet: View {
     @Environment(\.dismiss) var dismiss
-    @Binding var selectedDate: Date? // Used as Start Date
-    // If we want range, we need to bind endDate too, but FilterBar calls this with 1 binding.
-    // For now, I will add local state for range and update logic. 
-    // Wait, the prompt implies "Home Page" datepicker.
-    // I will modify the struct to accept endDate and update calls later.
+    @Binding var selectedDate: Date?
+    @Binding var selectedEndDate: Date?
     
-    @Binding var selectedEndDate: Date? // Optional End Date
+    @State private var startDate: Date? = nil
+    @State private var endDate: Date? = nil
     
-    @State private var selectionMode: Int = 0 // 0 = Single, 1 = Range
-    @State private var startDate = Date()
-    @State private var endDate = Date().addingTimeInterval(86400)
-    
-    // Initializer to handle optional bindings if needed (but we will update call sites)
     init(selectedDate: Binding<Date?>, selectedEndDate: Binding<Date?> = .constant(nil)) {
         self._selectedDate = selectedDate
         self._selectedEndDate = selectedEndDate
@@ -97,78 +90,30 @@ struct DatePickerSheet: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
-                // Mode Toggle
-                Picker("ระบุระยะเวลา", selection: $selectionMode) {
-                    Text("วันเดียว").tag(0)
-                    Text("ไป-กลับ").tag(1)
-                }
-                .pickerStyle(.segmented)
-                .padding(.horizontal)
-                .padding(.top, 16)
-                .onChange(of: selectionMode) { oldValue, newValue in
-                    // Adjust end date if switching to range and it's before start
-                    if newValue == 1 && endDate < startDate {
-                        endDate = startDate.addingTimeInterval(86400)
-                    }
-                }
-                
                 ScrollView {
-                    VStack(spacing: 24) {
-                        if selectionMode == 0 {
-                            // Single Date
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("เลือกวันเดินทาง")
-                                    .font(.system(size: 14, weight: .bold))
-                                    .foregroundColor(.gray)
-                                    .padding(.horizontal, 8)
-                                
-                                DatePicker("", selection: $startDate, displayedComponents: .date)
-                                    .datePickerStyle(.graphical)
-                                    .tint(.black)
-                            }
-                            .padding()
-                            .background(Color.white)
-                            .cornerRadius(16)
-                            .shadow(color: .black.opacity(0.04), radius: 8, x: 0, y: 3)
-                        } else {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("เลือกช่วงเวลาเดินทาง (ไป-กลับ)")
-                                    .font(.system(size: 14, weight: .bold))
-                                    .foregroundColor(.gray)
-                                    .padding(.horizontal, 8)
-                                
-                                CustomDateRangePicker(
-                                    startDate: Binding(
-                                        get: { startDate },
-                                        set: { startDate = $0 ?? Date() }
-                                    ),
-                                    endDate: Binding(
-                                        get: { endDate },
-                                        set: { endDate = $0 ?? startDate.addingTimeInterval(86400) }
-                                    )
-                                )
-                            }
-                            .padding()
-                            .background(Color.white)
-                            .cornerRadius(16)
-                            .shadow(color: .black.opacity(0.04), radius: 8, x: 0, y: 3)
-                        }
+                    VStack(spacing: 16) {
+                        // Instruction text
+                        Text("แตะวันเริ่ม แล้วแตะวันสิ้นสุดได้เลย")
+                            .font(.system(size: 13, weight: .regular))
+                            .foregroundColor(.gray)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal)
+                            .padding(.top, 12)
+                        
+                        CustomDateRangePicker(
+                            startDate: $startDate,
+                            endDate: $endDate
+                        )
+                        .padding(.horizontal)
                     }
-                    .padding()
+                    .padding(.bottom, 16)
                 }
                 
-                Spacer()
-                
-                // Bottom Fixed Actions
+                // Bottom Actions
                 VStack(spacing: 12) {
                     Button(action: {
-                        if selectionMode == 0 {
-                            selectedDate = startDate
-                            selectedEndDate = nil
-                        } else {
-                            selectedDate = startDate
-                            selectedEndDate = endDate
-                        }
+                        selectedDate = startDate
+                        selectedEndDate = endDate
                         dismiss()
                     }) {
                         Text("ตกลง")
@@ -176,23 +121,23 @@ struct DatePickerSheet: View {
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(
-                                LinearGradient(colors: [Color.appPrimary, Color.appSecondary], startPoint: .leading, endPoint: .trailing)
-                            )
+                            .background(startDate != nil ? Color.black : Color.gray.opacity(0.4))
                             .cornerRadius(14)
-                            .shadow(color: Color.appPrimary.opacity(0.3), radius: 8, x: 0, y: 4)
                     }
+                    .disabled(startDate == nil)
                     
                     Button("ล้างค่า") {
+                        startDate = nil
+                        endDate = nil
                         selectedDate = nil
                         selectedEndDate = nil
                         dismiss()
                     }
-                    .foregroundColor(.appPrimary)
+                    .foregroundColor(.gray)
                     .font(.system(size: 15, weight: .semibold))
                 }
                 .padding()
-                .background(Color.white)
+                .background(Color.adaptiveBackground)
                 .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: -5)
             }
             .background(Color.adaptiveBackground.ignoresSafeArea())
@@ -201,21 +146,14 @@ struct DatePickerSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("ปิด") { dismiss() }
-                        .foregroundColor(.black)
+                        .foregroundColor(.adaptiveText)
                 }
             }
         }
-        .presentationDetents([.large, .fraction(0.8)])
+        .presentationDetents([.large])
         .onAppear {
-            if let start = selectedDate {
-                startDate = start
-                if let end = selectedEndDate {
-                    endDate = end
-                    selectionMode = 1
-                } else {
-                    selectionMode = 0
-                }
-            }
+            startDate = selectedDate
+            endDate = selectedEndDate
         }
     }
 }

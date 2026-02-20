@@ -13,8 +13,7 @@ export const getProfile = async (req, res) => {
                 id: true,
                 email: true,
                 name: true,
-                name: true,
-                // username: true, // Unavailable in DB
+                username: true,
                 role: true,
                 gender: true,
                 age: true,
@@ -22,7 +21,9 @@ export const getProfile = async (req, res) => {
                 birthDate: true,
                 profileImage: true,
                 interests: true,
+                travelStyle: true,
                 createdAt: true,
+                updatedAt: true,
                 isProfilePublic: true,
                 showGender: true,
                 showAge: true,
@@ -72,33 +73,20 @@ export const getProfile = async (req, res) => {
 export const updateProfile = async (req, res) => {
     try {
         const userId = req.user.userId;
-        const { name, password, interests, gender, age, bio, birthDate, profileImage } = req.body;
+        const { name, username, password, interests, gender, age, bio, birthDate, profileImage, travelStyle } = req.body;
 
         const updateData = {};
-        if (name) updateData.name = name;
-        if (gender) updateData.gender = gender;
-        if (age !== undefined && age !== null) updateData.age = parseInt(age);
-        if (bio) updateData.bio = bio;
-        if (birthDate) updateData.birthDate = new Date(birthDate);
-        if (profileImage !== undefined) updateData.profileImage = profileImage || null;
+        // iOS sends null for missing optionals — only update if a real value is present
+        if (name !== undefined && name !== null) updateData.name = name;
+        if (username !== undefined) updateData.username = username || null; // username: null is OK to clear
+        if (gender !== undefined && gender !== null) updateData.gender = gender === '' ? null : gender;
+        if (age !== undefined && age !== null) updateData.age = age !== '' ? parseInt(age) : null;
+        if (bio !== undefined && bio !== null) updateData.bio = bio === '' ? null : bio;
+        if (birthDate !== undefined && birthDate !== null) updateData.birthDate = new Date(birthDate);
+        if (profileImage !== undefined && profileImage !== null) updateData.profileImage = profileImage === '' ? null : profileImage;
+        if (travelStyle !== undefined && travelStyle !== null) updateData.travelStyle = travelStyle;
 
-        // Username update disabled (DB column missing)
-        /*
-        if (username !== undefined) {
-            if (username === '' || username === null) {
-                updateData.username = null;
-            } else {
-                // Check uniqueness
-                const existing = await prisma.user.findUnique({ where: { username } });
-                if (existing && existing.id !== userId) {
-                    return res.status(409).json({ message: 'Username is already taken' });
-                }
-                updateData.username = username;
-            }
-        }
-        */
-
-        if (interests) {
+        if (interests !== undefined) {
             updateData.interests = interests; // Array of strings
 
             // Generate AI Vector from interests
@@ -120,15 +108,23 @@ export const updateProfile = async (req, res) => {
                 id: true,
                 email: true,
                 name: true,
-                name: true,
-                // username: true,
+                username: true,
                 role: true,
                 gender: true,
                 age: true,
                 bio: true,
                 birthDate: true,
                 profileImage: true,
-                interests: true
+                interests: true,
+                travelStyle: true,
+                createdAt: true,
+                updatedAt: true,
+                isProfilePublic: true,
+                showGender: true,
+                showAge: true,
+                showBio: true,
+                showInterests: true,
+                showEmail: true
             }
         });
 
@@ -349,3 +345,85 @@ export const checkUsername = async (req, res) => {
         res.status(500).json({ available: false, message: 'Error checking username' });
     }
 };
+
+// Report a user
+export const reportUser = async (req, res) => {
+    try {
+        const { userId } = req.user;
+        const { targetId } = req.params;
+        const { reason } = req.body;
+
+        if (!reason) {
+            return res.status(400).json({ error: 'Reason is required' });
+        }
+
+        // Prevent self-reporting
+        if (userId === targetId) {
+            return res.status(400).json({ error: 'You cannot report yourself' });
+        }
+
+        const report = await prisma.report.create({
+            data: {
+                reporterId: userId,
+                reportedId: targetId,
+                reason,
+                status: 'pending'
+            }
+        });
+
+        // Fetch admins to notify them
+        const admins = await prisma.user.findMany({
+            where: { role: 'admin' },
+            select: { id: true, fcmToken: true }
+        });
+
+        // You could send a direct push or save a notification
+        // For simplicity, we just save a notification to admins
+        await Promise.all(admins.map(async (admin) => {
+            await prisma.notification.create({
+                data: {
+                    title: 'New User Report',
+                    message: `A user has been reported for: ${reason}`,
+                    type: 'system',
+                    userId: admin.id
+                }
+            });
+        }));
+
+        res.status(201).json({ message: 'User reported successfully', report });
+    } catch (error) {
+        console.error('Error reporting user:', error);
+        res.status(500).json({ error: 'Server error while reporting user' });
+    }
+};
+
+// Ban or unban a user (Admin only)
+export const banUser = async (req, res) => {
+    try {
+        const { userId: adminId } = req.user;
+        const { targetId } = req.params;
+        const { isBanned } = req.body; // true to ban, false to unban
+
+        // Verify admin
+        const admin = await prisma.user.findUnique({ where: { id: adminId } });
+        if (!admin || admin.role !== 'admin') {
+            return res.status(403).json({ error: 'Admin access required' });
+        }
+
+        // Prevent self-ban
+        if (adminId === targetId) {
+            return res.status(400).json({ error: 'You cannot ban yourself' });
+        }
+
+        const updatedUser = await prisma.user.update({
+            where: { id: targetId },
+            data: { isBanned }
+        });
+
+        res.status(200).json({ message: `User ${isBanned ? 'banned' : 'unbanned'} successfully`, isBanned: updatedUser.isBanned });
+    } catch (error) {
+        console.error('Error banning user:', error);
+        res.status(500).json({ error: 'Server error while banning/unbanning user' });
+    }
+};
+

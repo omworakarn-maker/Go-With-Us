@@ -9,97 +9,88 @@ struct SideMenuView: View {
     
     var body: some View {
         ZStack(alignment: .leading) {
-            if isShowing {
-                // Dimmed Background
-                Color.black
-                    .opacity(0.3)
-                    .ignoresSafeArea()
-                    .onTapGesture {
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            isShowing = false
-                        }
-                    }
-                
-                // Menu Content
-                VStack(alignment: .leading, spacing: 0) {
-                    // Header
-                    VStack(alignment: .leading, spacing: 12) {
-                        if let user = authViewModel.currentUser {
-                            // Profile image or initial
-                            UserAvatarView(user: user, size: 60)
-                            
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(user.name)
-                                    .font(.headline)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(.adaptiveText)
-                                
-                                if let handle = UserDefaults.standard.string(forKey: "user_handle"), !handle.isEmpty {
-                                    Text("@\(handle)")
-                                        .font(.caption)
-                                        .foregroundColor(.appAccent)
-                                } else if let email = user.email {
-                                    Text(email)
-                                        .font(.caption)
-                                        .foregroundColor(.adaptiveSecondaryText)
-                                }
-                            }
-                        } else {
-                            Image(systemName: "person.circle.fill")
-                                .resizable()
-                                .frame(width: 60, height: 60)
-                                .foregroundColor(.adaptiveSecondaryText)
-                            Text("Guest")
-                                .font(.headline)
-                                .foregroundColor(.adaptiveText)
-                        }
-                    }
-                    .padding(.top, 60)
-                    .padding(.horizontal)
-                    .padding(.bottom, 20)
-                    
-                    Divider()
-                        .padding(.bottom, 20)
-                    
-                    // Menu Items
-                    VStack(alignment: .leading, spacing: 24) {
-                        MenuButton(icon: "house", text: "หน้าแรก", targetScreen: .home, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
-                        
-                        MenuButton(icon: "arrow.triangle.2.circlepath", text: "แมตช์ทริป", targetScreen: .matchTrip, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
-                        
-                        MenuButton(icon: "suitcase", text: "ทริปของฉัน", targetScreen: .myTrips, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
-                        
-                        MenuButton(icon: "bubble.left.and.text.bubble.right", text: "คุยกับ AI", targetScreen: .aiChat, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
-                        
-                        MenuButton(icon: "person.crop.circle", text: "โปรไฟล์", targetScreen: .profile, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
-                    }
-                    .padding(.horizontal)
-                    
-                    Spacer()
-                    
-                    // Bottom Actions — Logout with confirmation
-                    if authViewModel.currentUser != nil {
-                        Button(action: {
-                            showLogoutAlert = true
-                        }) {
-                            HStack(spacing: 16) {
-                                Image(systemName: "arrow.right.square")
-                                    .font(.system(size: 20))
-                                Text("ออกจากระบบ")
-                                    .font(.headline)
-                            }
-                            .foregroundColor(.red)
-                            .padding()
-                            .padding(.bottom, 40)
-                        }
+            // Dimmed Background
+            Color.black
+                .opacity(0.3)
+                .ignoresSafeArea()
+                .onTapGesture {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        isShowing = false
                     }
                 }
-                .frame(width: UIScreen.main.bounds.width * 0.75)
+            
+            // Menu Content
+            VStack(alignment: .leading, spacing: 0) {
+                // Header
+                VStack(alignment: .leading, spacing: 12) {
+                    if let user = authViewModel.currentUser {
+                        UserAvatarView(user: user, size: 70, imageLoadDelay: 0.35)
+                            .shadow(color: .black.opacity(0.1), radius: 5, x: 0, y: 3)
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(user.name)
+                                .font(.title3)
+                                .fontWeight(.bold)
+                                .foregroundColor(.adaptiveText)
+                            
+                            if let handle = UserDefaults.standard.string(forKey: "user_handle"), !handle.isEmpty {
+                                Text("@\(handle)")
+                                    .font(.caption)
+                                    .foregroundColor(.adaptiveSecondaryText)
+                            } else if let email = user.email {
+                                Text(email)
+                                    .font(.caption)
+                                    .foregroundColor(.adaptiveSecondaryText)
+                            }
+                        }
+                    } else {
+                        Image(systemName: "person.circle.fill")
+                            .resizable()
+                            .frame(width: 70, height: 70)
+                            .foregroundColor(.adaptiveSecondaryText)
+                        Text("Guest")
+                            .font(.title3)
+                            .fontWeight(.bold)
+                            .foregroundColor(.adaptiveText)
+                    }
+                }
+                .padding(.top, 70)
+                .padding(.horizontal, 24)
+                .padding(.bottom, 30)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Color.adaptiveBackground)
-                .transition(.move(edge: .leading))
+                .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 5)
+                .padding(.bottom, 20)
+                
+                // Menu Items
+                VStack(alignment: .leading, spacing: 24) {
+                    MenuButton(icon: "house", text: "หน้าแรก", targetScreen: .home, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
+                    MenuButton(icon: "arrow.triangle.2.circlepath", text: "แมตช์ทริป", targetScreen: .matchTrip, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
+                    MenuButton(icon: "suitcase", text: "ทริปของฉัน", targetScreen: .myTrips, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
+                    MenuButton(icon: "bubble.left.and.text.bubble.right", text: "คุยกับ AI", targetScreen: .aiChat, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
+                    MenuButton(icon: "person.crop.circle", text: "โปรไฟล์", targetScreen: .profile, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
+                }
+                .padding(.horizontal)
+                
+                Spacer()
+                
+                if authViewModel.currentUser != nil {
+                    Button(action: { showLogoutAlert = true }) {
+                        HStack(spacing: 16) {
+                            Image(systemName: "arrow.right.square")
+                                .font(.system(size: 20))
+                            Text("ออกจากระบบ")
+                                .font(.headline)
+                        }
+                        .foregroundColor(.red)
+                        .padding()
+                        .padding(.bottom, 40)
+                    }
+                }
             }
+            .frame(width: UIScreen.main.bounds.width * 0.75)
+            .background(Color.adaptiveBackground)
         }
-        .animation(.easeInOut(duration: 0.3), value: isShowing)
         .ignoresSafeArea(.all)
         .alert("ออกจากระบบ", isPresented: $showLogoutAlert) {
             Button("ยกเลิก", role: .cancel) {}
@@ -135,15 +126,28 @@ struct MenuButton: View {
             HStack(spacing: 16) {
                 Image(systemName: icon)
                     .font(.system(size: 20))
-                    .foregroundColor(currentScreen == targetScreen ? .appAccent : .adaptiveSecondaryText)
+                    .foregroundColor(currentScreen == targetScreen ? .adaptiveText : .adaptiveSecondaryText)
                     .frame(width: 24)
                 
                 Text(text)
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(currentScreen == targetScreen ? .appAccent : .adaptiveSecondaryText)
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(currentScreen == targetScreen ? .adaptiveText : .adaptiveSecondaryText)
                 
                 Spacer()
             }
+            .padding(.vertical, 14)
+            .padding(.horizontal, 16)
+            .background(
+                Group {
+                    if currentScreen == targetScreen {
+                        Color.adaptiveText.opacity(0.05)
+                            .cornerRadius(16)
+                    } else {
+                        Color.clear
+                    }
+                }
+            )
         }
+        .padding(.horizontal, 8)
     }
 }

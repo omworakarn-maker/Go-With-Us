@@ -98,7 +98,26 @@ class AuthService {
             let birthDate: Date?
             let travelStyle: TravelStyle?
             let profileImage: String?
+            
+            // Custom encode: omit nil fields entirely (don't send "null")
+            // so backend's `!== undefined` check works correctly
+            enum CodingKeys: String, CodingKey {
+                case name, username, interests, gender, age, bio, birthDate, travelStyle, profileImage
+            }
+            func encode(to encoder: Encoder) throws {
+                var c = encoder.container(keyedBy: CodingKeys.self)
+                try c.encode(name, forKey: .name)
+                try c.encode(interests, forKey: .interests)
+                try c.encodeIfPresent(username, forKey: .username)
+                try c.encodeIfPresent(gender, forKey: .gender)
+                try c.encodeIfPresent(age, forKey: .age)
+                try c.encodeIfPresent(bio, forKey: .bio)
+                try c.encodeIfPresent(birthDate, forKey: .birthDate)
+                try c.encodeIfPresent(travelStyle, forKey: .travelStyle)
+                try c.encodeIfPresent(profileImage, forKey: .profileImage)
+            }
         }
+
         
         struct UpdateProfileResponse: Decodable {
             let message: String
@@ -222,6 +241,33 @@ class AuthService {
         let _: MessageResponse = try await APIService.shared.request(
             endpoint: "/users/privacy-settings",
             method: .put,
+            body: request
+        )
+    }
+    
+    // MARK: - Moderation Actions
+    func reportUser(userId: String, reason: String) async throws {
+        struct ReportRequest: Encodable {
+            let reason: String
+        }
+        
+        let request = ReportRequest(reason: reason)
+        let _: MessageResponse = try await APIService.shared.request(
+            endpoint: "/users/\(userId)/report",
+            method: .post,
+            body: request
+        )
+    }
+    
+    func banUser(userId: String, isBanned: Bool) async throws {
+        struct BanRequest: Encodable {
+            let isBanned: Bool
+        }
+        
+        let request = BanRequest(isBanned: isBanned)
+        let _: MessageResponse = try await APIService.shared.request(
+            endpoint: "/users/\(userId)/ban",
+            method: .post,
             body: request
         )
     }

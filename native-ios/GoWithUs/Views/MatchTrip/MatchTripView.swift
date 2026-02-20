@@ -156,9 +156,7 @@ struct TinderSwipeCardView: View {
                         .foregroundColor(.white)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
-                        .background(
-                            LinearGradient(colors: [.orange, .pink], startPoint: .topLeading, endPoint: .bottomTrailing)
-                        )
+                        .background(Color.black)
                         .cornerRadius(20)
                         .padding(16)
                 }

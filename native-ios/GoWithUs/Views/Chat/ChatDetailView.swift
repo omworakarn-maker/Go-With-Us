@@ -150,12 +150,15 @@ struct ChatDetailView: View {
                         Task { await sendMessageWithContent(content) }
                     }) {
                         Circle()
-                            .fill(messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? Color.gray.opacity(0.3) : Color.adaptiveText)
+                            .fill(messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 
+                                  AnyShapeStyle(Color.gray.opacity(0.3)) : 
+                                  AnyShapeStyle(Color.black))
                             .frame(width: 44, height: 44)
+                            .shadow(color: messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? .clear : Color.appAccent.opacity(0.4), radius: 6, x: 0, y: 3)
                             .overlay(
                                 Image(systemName: "paperplane.fill")
                                     .font(.system(size: 18))
-                                    .foregroundColor(messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? .white.opacity(0.5) : Color.adaptiveBackground)
+                                    .foregroundColor(.white)
                                     .offset(x: -2, y: 2)
                             )
                     }
@@ -268,10 +271,10 @@ struct MessageBubble: View {
                     .padding(.vertical, 12)
                     .background(
                         isCurrentUser ?
-                        AnyShapeStyle(Color.adaptiveText) :
+                        AnyShapeStyle(Color.black) :
                             AnyShapeStyle(Color.adaptiveCardBackground)
                     )
-                    .foregroundColor(isCurrentUser ? Color.adaptiveBackground : .adaptiveText)
+                    .foregroundColor(isCurrentUser ? .white : .adaptiveText)
                     .clipShape(
                         RoundedCorner(
                             radius: 20,
