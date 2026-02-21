@@ -215,7 +215,15 @@ struct TripDetailView: View {
                     .foregroundColor(.white)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
-                    .background(participant.status == "interested" ? Color.yellow : Color.rainbowGradient)
+                    .background(
+                        Group {
+                            if participant.status == "interested" {
+                                Color.yellow
+                            } else {
+                                Color.rainbowGradient
+                            }
+                        }
+                    )
                     .cornerRadius(10)
                     .shadow(color: (participant.status == "interested" ? Color.yellow : Color.appPrimary).opacity(0.5), radius: 8)
                     .padding(.top, 4)
