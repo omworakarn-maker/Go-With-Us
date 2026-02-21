@@ -654,36 +654,43 @@ struct TripDetailView: View {
                                     }
                                 )
                                 
-                                VStack(alignment: .leading, spacing: 2) {
-                                    HStack(spacing: 4) {
-                                        Text(name)
-                                            .font(.system(size: 14, weight: .semibold))
-                                            .foregroundColor(.adaptiveText)
-                                        
-                                        if p.user?.isVerified == true {
-                                            Image(systemName: "checkmark.seal.fill")
-                                                .font(.system(size: 10))
-                                                .foregroundColor(.blue)
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        HStack(spacing: 4) {
+                                            Text(name)
+                                                .font(.system(size: 15, weight: .bold))
+                                                .foregroundColor(.adaptiveText)
+                                            
+                                            if p.user?.isVerified == true {
+                                                Image(systemName: "checkmark.seal.fill")
+                                                    .font(.system(size: 10))
+                                                    .foregroundColor(.blue)
+                                            }
+                                            
+                                            if isMe {
+                                                Text("(คุณ)")
+                                                    .font(.system(size: 12, weight: .medium))
+                                                    .foregroundColor(.appPrimary.opacity(0.8))
+                                            }
                                         }
-                                    }
-                                    
-                                    if isMe {
-                                        Text("คุณ")
-                                            .font(.system(size: 11, weight: .bold))
-                                            .foregroundColor(.appPrimary)
-                                    }
-                                    
-                                    if let status = p.status {
-                                        Text(status == "interested" ? "สนใจ" : "จะไปด้วย")
-                                            .font(.system(size: 10, weight: .black))
+                                        
+                                        // ✅ STATUS BELOW NAME (As requested)
+                                        if let status = p.status {
+                                            HStack(spacing: 4) {
+                                                Image(systemName: status == "interested" ? "star.fill" : "checkmark.seal.fill")
+                                                    .font(.system(size: 9))
+                                                Text(status == "interested" ? "สนใจทริปนี้" : "จะไปด้วยแน่นอน")
+                                                    .font(.system(size: 11, weight: .black))
+                                            }
                                             .foregroundColor(.white)
                                             .padding(.horizontal, 8)
                                             .padding(.vertical, 3)
-                                            .background(status == "interested" ? Color.yellow : Color.appPrimary)
+                                            .background(
+                                                status == "interested" ? AnyView(Color.yellow) : AnyView(Color.rainbowGradient)
+                                            )
                                             .cornerRadius(6)
                                             .shadow(color: (status == "interested" ? Color.yellow : Color.appPrimary).opacity(0.3), radius: 4, x: 0, y: 2)
+                                        }
                                     }
-                                }
                                 
                                 Spacer()
                                 
