@@ -78,6 +78,7 @@ export const getAllTrips = async (req, res, next) => {
                         name: true,
                         interests: true,
                         joinedAt: true,
+                        status: true,
                         user: {
                             select: {
                                 id: true,
@@ -124,6 +125,7 @@ export const getTripById = async (req, res, next) => {
                         name: true,
                         interests: true,
                         joinedAt: true,
+                        status: true,
                         user: {
                             select: {
                                 id: true,

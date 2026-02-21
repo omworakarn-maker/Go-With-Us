@@ -782,8 +782,8 @@ struct TripDetailView: View {
                             
                             // Switch Status Button
                             Button {
-                                let currentStatus = participant.status ?? "interested"
-                                let newStatus = (currentStatus == "interested") ? "going" : "interested"
+                                let currentStatus = participant.status ?? "going"
+                                let newStatus = (currentStatus == "going") ? "interested" : "going"
                                 Task {
                                     if await viewModel.joinTrip(interests: participant.interests ?? [], status: newStatus) {
                                         // RELOAD IMMEDIATELY
