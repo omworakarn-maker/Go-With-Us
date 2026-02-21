@@ -184,20 +184,6 @@ struct TripDetailView: View {
                 .frame(height: 300)
             }
             
-            // Rainbow Frame (Border) if joined/interested
-            if let userId = viewModel.currentUserId,
-               let participant = trip.participants?.first(where: { $0.userId == userId }) {
-                RoundedRectangle(cornerRadius: 0)
-                    .stroke(participant.status == "interested" ? AnyShapeStyle(Color.yellow) : AnyShapeStyle(Color.rainbowGradient), lineWidth: 10)
-                    .frame(height: 300)
-                    .blur(radius: 3)
-                    .opacity(0.6)
-                
-                RoundedRectangle(cornerRadius: 0)
-                    .stroke(participant.status == "interested" ? AnyShapeStyle(Color.yellow) : AnyShapeStyle(Color.rainbowGradient), lineWidth: 5)
-                    .frame(height: 300)
-            }
-            
             // Gradient scrim
             LinearGradient(colors: [.clear, .black.opacity(0.8)],
                            startPoint: .center, endPoint: .bottom)
@@ -638,19 +624,16 @@ struct TripDetailView: View {
                         
                         VStack(spacing: 0) {
                             HStack(spacing: 12) {
-                                // Avatar with colored ring for status
+                                // Avatar with colored ring ONLY for 'going' status
                                 UserAvatarView(user: p.user, size: 40)
                                 .overlay(
                                     Group {
                                         if p.status == "going" {
                                             Circle()
-                                                .stroke(Color.rainbowGradient, lineWidth: 5) // THICKER RAINBOW FRAME
-                                                .frame(width: 48, height: 48)
-                                        } else if p.status == "interested" {
-                                            Circle()
-                                                .stroke(Color.yellow, lineWidth: 4)
-                                                .frame(width: 48, height: 48)
+                                                .stroke(Color.rainbowGradient, lineWidth: 3) // Rainbow Frame for 'Going'
+                                                .frame(width: 46, height: 46)
                                         }
+                                        // No frame for 'interested' as requested
                                     }
                                 )
                                 
@@ -782,16 +765,26 @@ struct TripDetailView: View {
                             // Switch Status Button
                             Button {
                                 let newStatus = (participant.status == "interested") ? "going" : "interested"
-                                Task { await viewModel.joinTrip(interests: participant.interests ?? [], status: newStatus) }
+                                Task { 
+                                    if await viewModel.joinTrip(interests: participant.interests ?? [], status: newStatus) {
+                                        await viewModel.loadTrip() // Force refresh after switch
+                                    }
+                                }
                             } label: {
-                                Text(participant.status == "interested" ? "เปลี่ยนเป็นจะไปด้วย" : "เปลี่ยนเป็นสนใจ")
-                                    .font(.system(size: 13, weight: .bold))
-                                    .foregroundColor(participant.status == "interested" ? .white : .black)
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 8)
-                                    .background(participant.status == "interested" ? Color.appPrimary : Color.yellow)
-                                    .cornerRadius(10)
+                                HStack {
+                                    if viewModel.isJoining {
+                                        ProgressView().scaleEffect(0.7)
+                                    }
+                                    Text(participant.status == "interested" ? "เปลี่ยนเป็นจะไปด้วย" : "เปลี่ยนเป็นสนใจ")
+                                }
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundColor(participant.status == "interested" ? .white : .black)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(participant.status == "interested" ? Color.appPrimary : Color.yellow)
+                                .cornerRadius(10)
                             }
+                            .disabled(viewModel.isJoining)
                         }
                         
                         Button { viewModel.showLeaveSheet = true } label: {
