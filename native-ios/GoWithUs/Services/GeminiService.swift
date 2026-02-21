@@ -18,21 +18,15 @@ enum AIError: LocalizedError {
 
 class GeminiService {
     static let shared = GeminiService()
-    // 👉 คำเตือน: ห้ามนำ API Key จริง push ขึ้น GitHub เด็ดขาดเพื่อความปลอดภัย!
-    // กรุณาใส่ API Key ของคุณเวลาต้องการรันทดสอบในเครื่องตัวเอง 
-    // หรือใช้วิธีเก็บใน Secrets.xcconfig / Backend proxy แทน
-    private let apiKey = "" // ใส่ Key ตรงนี้ตอนจะรันในเครื่อง
-    private let model = "gemini-2.5-flash-lite"
+    
+    // ✅ NO MORE HARDCODED API KEY!
+    // The key is now stored securely on the backend.
+    // iOS app calls our own backend proxy instead.
     
     private init() {}
     
     func chat(message: String, history: [ChatMessage]) async throws -> String {
-        guard !apiKey.isEmpty else { throw AIError.invalidAPIKey }
-        
-        let urlString = "https://generativelanguage.googleapis.com/v1beta/models/\(model):generateContent?key=\(apiKey)"
-        guard let url = URL(string: urlString) else { throw AIError.invalidURL }
-        
-        var contents: [[String: Any]] = []
+        var contents: [GeminiContent] = []
         
         let systemPrompt = """
         คุณคือ 'ที่ปรึกษา' ผู้เชี่ยวชาญด้านการท่องเที่ยว หน้าที่ของคุณคือช่วยหาทริปเที่ยว ให้คำแนะนำสถานที่ท่องเที่ยว และร่างแผนการเดินทาง (Itinerary)
@@ -50,55 +44,67 @@ class GeminiService {
           "budget": 5000,
           "maxParticipants": 10,
           "category": "หมวดหมู่ไทย",
-              "tags": ["tag1"]
+          "tags": ["tag1"]
         }
         """
         
-        contents.append(["role": "user", "parts": [["text": systemPrompt]]])
-        contents.append(["role": "model", "parts": [["text": "รับทราบครับ พร้อมช่วยจัดทริปครับ"]]])
+        contents.append(GeminiContent(role: "user", parts: [GeminiPart(text: systemPrompt)]))
+        contents.append(GeminiContent(role: "model", parts: [GeminiPart(text: "รับทราบครับ พร้อมช่วยจัดทริปครับ")]))
         
         for msg in history {
-            contents.append([
-                "role": msg.isUser ? "user" : "model",
-                "parts": [["text": msg.content]]
-            ])
+            contents.append(GeminiContent(
+                role: msg.isUser ? "user" : "model",
+                parts: [GeminiPart(text: msg.content)]
+            ))
         }
         
-        contents.append([
-            "role": "user",
-            "parts": [["text": message]]
-        ])
+        contents.append(GeminiContent(
+            role: "user",
+            parts: [GeminiPart(text: message)]
+        ))
         
-        let body: [String: Any] = ["contents": contents]
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        let requestBody = GeminiChatRequest(contents: contents)
         
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-            let errorString = String(data: data, encoding: .utf8) ?? "Unknown Error"
-            print("Gemini API Error: \(errorString)")
+        do {
+            let response: GeminiResponse = try await APIService.shared.request(
+                endpoint: "/ai/chat",
+                method: .post,
+                body: requestBody,
+                requiresAuth: true
+            )
+            
+            return response.candidates?.first?.content.parts.first?.text ?? "ขออภัยครับ ลองใหม่อีกครั้ง"
+        } catch {
+            print("❌ Proxy AI Error: \(error.localizedDescription)")
             throw AIError.noData
         }
-        
-        let geminiResponse = try JSONDecoder().decode(GeminiResponse.self, from: data)
-        return geminiResponse.candidates?.first?.content.parts.first?.text ?? "ขออภัยครับ ลองใหม่อีกครั้ง"
     }
 }
 
 // MARK: - Models
-struct GeminiResponse: Decodable {
+struct GeminiChatRequest: Codable {
+    let contents: [GeminiContent]
+}
+
+struct GeminiContent: Codable {
+    let role: String
+    let parts: [GeminiPart]
+}
+
+struct GeminiPart: Codable {
+    let text: String
+}
+
+struct GeminiResponse: Codable {
     let candidates: [Candidate]?
 }
-struct Candidate: Decodable {
+struct Candidate: Codable {
     let content: Content
 }
-struct Content: Decodable {
+struct Content: Codable {
     let parts: [Part]
 }
-struct Part: Decodable {
+struct Part: Codable {
     let text: String?
 }
 
