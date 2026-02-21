@@ -624,56 +624,61 @@ struct TripDetailView: View {
                         
                         VStack(spacing: 0) {
                             HStack(spacing: 12) {
-                                // Avatar with colored ring ONLY for 'going' status
-                                UserAvatarView(user: p.user, size: 40)
-                                .overlay(
-                                    Group {
-                                        if p.status == "going" {
-                                            Circle()
-                                                .stroke(Color.rainbowGradient, lineWidth: 3) // Rainbow Frame for 'Going'
-                                                .frame(width: 46, height: 46)
-                                        }
-                                        // No frame for 'interested' as requested
+                                // ✅ RAINBOW FRAME & AVATAR
+                                ZStack {
+                                    UserAvatarView(user: p.user, size: 42)
+                                    
+                                    // Rainbow ring ONLY if going (or default)
+                                    let currentStatus = p.status ?? "going"
+                                    if currentStatus == "going" {
+                                        Circle()
+                                            .stroke(Color.rainbowGradient, lineWidth: 4)
+                                            .frame(width: 50, height: 50)
+                                            .shadow(color: Color.appPrimary.opacity(0.3), radius: 4)
+                                    } else if currentStatus == "interested" {
+                                        Circle()
+                                            .stroke(Color.yellow, lineWidth: 3)
+                                            .frame(width: 50, height: 50)
                                     }
-                                )
+                                }
+                                .frame(width: 50, height: 50)
                                 
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        HStack(spacing: 4) {
-                                            Text(name)
-                                                .font(.system(size: 15, weight: .bold))
-                                                .foregroundColor(.adaptiveText)
-                                            
-                                            if p.user?.isVerified == true {
-                                                Image(systemName: "checkmark.seal.fill")
-                                                    .font(.system(size: 10))
-                                                    .foregroundColor(.blue)
-                                            }
-                                            
-                                            if isMe {
-                                                Text("(คุณ)")
-                                                    .font(.system(size: 12, weight: .medium))
-                                                    .foregroundColor(.appPrimary.opacity(0.8))
-                                            }
+                                VStack(alignment: .leading, spacing: 4) {
+                                    HStack(spacing: 4) {
+                                        Text(name)
+                                            .font(.system(size: 16, weight: .black))
+                                            .foregroundColor(.adaptiveText)
+                                        
+                                        if p.user?.isVerified == true {
+                                            Image(systemName: "checkmark.seal.fill")
+                                                .font(.system(size: 11))
+                                                .foregroundColor(.blue)
                                         }
                                         
-                                        // ✅ STATUS BELOW NAME (As requested)
-                                        if let status = p.status {
-                                            HStack(spacing: 4) {
-                                                Image(systemName: status == "interested" ? "star.fill" : "checkmark.seal.fill")
-                                                    .font(.system(size: 9))
-                                                Text(status == "interested" ? "สนใจทริปนี้" : "จะไปด้วยแน่นอน")
-                                                    .font(.system(size: 11, weight: .black))
-                                            }
-                                            .foregroundColor(.white)
-                                            .padding(.horizontal, 8)
-                                            .padding(.vertical, 3)
-                                            .background(
-                                                status == "interested" ? AnyView(Color.yellow) : AnyView(Color.rainbowGradient)
-                                            )
-                                            .cornerRadius(6)
-                                            .shadow(color: (status == "interested" ? Color.yellow : Color.appPrimary).opacity(0.3), radius: 4, x: 0, y: 2)
+                                        if isMe {
+                                            Text("(คุณ)")
+                                                .font(.system(size: 13, weight: .bold))
+                                                .foregroundColor(.appPrimary)
                                         }
                                     }
+                                    
+                                    // ✅ STATUS ALWAYS BELOW NAME
+                                    let displayStatus = p.status ?? "going"
+                                    HStack(spacing: 5) {
+                                        Image(systemName: displayStatus == "interested" ? "star.fill" : "checkmark.seal.fill")
+                                            .font(.system(size: 9, weight: .black))
+                                        Text(displayStatus == "interested" ? "สนใจทริปนี้อยู่" : "จะไปด้วยแน่นอน!")
+                                            .font(.system(size: 11, weight: .black))
+                                    }
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 4)
+                                    .background(
+                                        displayStatus == "interested" ? AnyView(Color.yellow) : AnyView(Color.rainbowGradient)
+                                    )
+                                    .cornerRadius(8)
+                                    .shadow(color: (displayStatus == "interested" ? Color.yellow : Color.appPrimary).opacity(0.4), radius: 5, x: 0, y: 2)
+                                }
                                 
                                 Spacer()
                                 
@@ -764,10 +769,11 @@ struct TripDetailView: View {
                             
                             // Switch Status Button
                             Button {
-                                let newStatus = (participant.status == "interested") ? "going" : "interested"
-                                Task { 
+                                let currentStatus = participant.status ?? "going"
+                                let newStatus = (currentStatus == "interested") ? "going" : "interested"
+                                Task {
                                     if await viewModel.joinTrip(interests: participant.interests ?? [], status: newStatus) {
-                                        await viewModel.loadTrip() // Force refresh after switch
+                                        await viewModel.loadTrip() // Refresh UI
                                     }
                                 }
                             } label: {
