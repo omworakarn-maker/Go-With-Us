@@ -14,6 +14,8 @@ class FindBuddyViewModel: ObservableObject {
         do {
             let response = try await MatchService.shared.getBuddyMatches()
             self.matches = response.matches
+        } catch let error as URLError where error.code == .cancelled {
+            // Ignore cancellation
         } catch {
             print("Failed to fetch matches: \(error)")
             self.errorMessage = "ไม่สามารถโหลดข้อมูลเพื่อนได้"

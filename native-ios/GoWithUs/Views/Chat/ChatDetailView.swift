@@ -139,6 +139,7 @@ struct ChatDetailView: View {
                 Divider()
                 HStack(spacing: 12) {
                     TextField("พิมพ์ข้อความ...", text: $messageText)
+                        .foregroundColor(.black)
                         .padding(12)
                         .background(Color.gray.opacity(0.08))
                         .cornerRadius(24)
@@ -165,6 +166,7 @@ struct ChatDetailView: View {
                     .disabled(messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
                 .padding(12)
+                .padding(.bottom, getSafeAreaBottom()) // Move up text field off indicator
                 .background(Color.adaptiveBackground)
             }
             .background(Color.adaptiveBackground)

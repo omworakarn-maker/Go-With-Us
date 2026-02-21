@@ -66,6 +66,8 @@ struct TripDetailView: View {
                             descriptionSection(trip: trip)
                             tagsSection(trip: trip)
                             
+                            itinerarySection(trip: trip)
+                            
                             gallerySection(trip: trip)
                             participantsSection(trip: trip)
                         }
@@ -334,9 +336,17 @@ struct TripDetailView: View {
                         .shadow(color: Color.appPrimary.opacity(0.2), radius: 6, x: 0, y: 3)
                     
                     VStack(alignment: .leading, spacing: 3) {
-                        Text(trip.creator.name)
-                            .font(.system(size: 15, weight: .bold))
-                            .foregroundColor(.adaptiveText)
+                        HStack(spacing: 4) {
+                            Text(trip.creator.name)
+                                .font(.system(size: 15, weight: .bold))
+                                .foregroundColor(.adaptiveText)
+                            
+                            if trip.creator.isVerified == true {
+                                Image(systemName: "checkmark.seal.fill")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.blue)
+                            }
+                        }
                         
                         if trip.creator.role == .admin {
                             Text("ADMIN")
@@ -424,6 +434,74 @@ struct TripDetailView: View {
         }
     }
     
+    // MARK: - Itinerary
+    @ViewBuilder
+    private func itinerarySection(trip: Trip) -> some View {
+        if let itinerary = trip.itinerary, !itinerary.isEmpty {
+            softDivider()
+            
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(spacing: 6) {
+                    Image(systemName: "list.bullet.clipboard")
+                        .font(.system(size: 13))
+                        .foregroundColor(Color(hex: "#10B981"))
+                    Text("การเดินทางแต่ละวัน")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(.adaptiveText)
+                }
+                
+                VStack(alignment: .leading, spacing: 18) {
+                    ForEach(itinerary.sorted(by: { $0.day < $1.day })) { dayPlan in
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("วันที่ \(dayPlan.day)")
+                                .font(.system(size: 15, weight: .bold))
+                                .foregroundColor(.appPrimary)
+                                .padding(.horizontal, 10).padding(.vertical, 4)
+                                .background(Color.appPrimary.opacity(0.1))
+                                .cornerRadius(8)
+                            
+                            VStack(alignment: .leading, spacing: 12) {
+                                ForEach(dayPlan.activities) { activity in
+                                    HStack(alignment: .top, spacing: 12) {
+                                        Text(activity.time)
+                                            .font(.system(size: 13, weight: .bold))
+                                            .foregroundColor(.adaptiveSecondaryText)
+                                            .frame(width: 45, alignment: .leading)
+                                        
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(activity.name)
+                                                .font(.system(size: 14, weight: .bold))
+                                                .foregroundColor(.adaptiveText)
+                                            
+                                            if !activity.location.isEmpty {
+                                                HStack(spacing: 4) {
+                                                    Image(systemName: "mappin.circle.fill")
+                                                        .foregroundColor(.red)
+                                                    Text(activity.location)
+                                                }
+                                                .font(.system(size: 12))
+                                                .foregroundColor(.adaptiveSecondaryText)
+                                            }
+                                            
+                                            if !activity.description.isEmpty {
+                                                Text(activity.description)
+                                                    .font(.system(size: 13))
+                                                    .foregroundColor(.gray)
+                                                    .lineLimit(2)
+                                            }
+                                        }
+                                        Spacer()
+                                    }
+                                }
+                            }
+                            .padding(.leading, 8)
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
     // MARK: - Gallery
     @ViewBuilder
     private func gallerySection(trip: Trip) -> some View {
@@ -490,9 +568,17 @@ struct TripDetailView: View {
                                 )
                                 
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(name)
-                                        .font(.system(size: 14, weight: .semibold))
-                                        .foregroundColor(.adaptiveText)
+                                    HStack(spacing: 4) {
+                                        Text(name)
+                                            .font(.system(size: 14, weight: .semibold))
+                                            .foregroundColor(.adaptiveText)
+                                        
+                                        if p.user?.isVerified == true {
+                                            Image(systemName: "checkmark.seal.fill")
+                                                .font(.system(size: 10))
+                                                .foregroundColor(.blue)
+                                        }
+                                    }
                                     
                                     if isMe {
                                         Text("คุณ")
@@ -580,22 +666,36 @@ struct TripDetailView: View {
                             .cornerRadius(14)
                     }
                 } else if !trip.isFull {
-                    Button { viewModel.showJoinSheet = true } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: "airplane")
-                                .font(.system(size: 14, weight: .bold))
-                            Text("เข้าร่วมทริป")
+                    HStack(spacing: 12) {
+                        // "Interested" button redirects to chat with creator
+                        NavigationLink(destination: ChatDetailView(chatTitle: trip.creator.name, tripId: nil, partnerId: trip.creator.id)) {
+                            Text("สนใจดูก่อน")
                                 .font(.system(size: 15, weight: .bold))
+                                .foregroundColor(.appPrimary)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(Color.appPrimary.opacity(0.08))
+                                .cornerRadius(14)
                         }
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(
-                            LinearGradient(colors: [Color.appPrimary, Color.appSecondary],
-                                           startPoint: .leading, endPoint: .trailing)
-                        )
-                        .cornerRadius(14)
-                        .shadow(color: Color.appPrimary.opacity(0.25), radius: 10, x: 0, y: 4)
+
+                        // "Will Go" triggers the join flow
+                        Button { viewModel.showJoinSheet = true } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "airplane")
+                                    .font(.system(size: 14, weight: .bold))
+                                Text("จะไปด้วย")
+                                    .font(.system(size: 15, weight: .bold))
+                            }
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(
+                                LinearGradient(colors: [Color.appPrimary, Color.appSecondary],
+                                               startPoint: .leading, endPoint: .trailing)
+                            )
+                            .cornerRadius(14)
+                            .shadow(color: Color.appPrimary.opacity(0.25), radius: 10, x: 0, y: 4)
+                        }
                     }
                 } else {
                     Text("ทริปเต็มแล้ว")

@@ -14,37 +14,55 @@ struct TripCardView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Image
-            ZStack(alignment: .topTrailing) {
-            if let imageUrl = trip.imageUrl, !imageUrl.isEmpty {
-                CustomAsyncImage(url: imageUrl, contentMode: .fill)
-                    .frame(height: 200)
-                    .clipped()
-            } else {
-                Image("sosuke")
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(height: 200)
-                    .clipped()
-            }
+            ZStack(alignment: .top) {
+                if let imageUrl = trip.imageUrl, !imageUrl.isEmpty {
+                    CustomAsyncImage(url: imageUrl, contentMode: .fill)
+                        .frame(height: 200)
+                        .clipped()
+                } else {
+                    Image("sosuke")
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(height: 200)
+                        .clipped()
+                }
                 
-                // Category Badge
-                HStack(spacing: 6) {
-                    Text(trip.category.rawValue)
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundColor(.black)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(Color.white)
-                        .cornerRadius(20)
-                    
-                    ForEach(tags, id: \.self) { tag in
-                        Text("#\(tag)")
-                            .font(.system(size: 9, weight: .bold))
-                            .foregroundColor(.appPrimary)
-                            .padding(.horizontal, 8)
+                HStack(alignment: .top) {
+                    if let score = trip.matchScore {
+                        Text("\(score)% Match")
+                            .font(.system(size: 10, weight: .heavy))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 10)
                             .padding(.vertical, 6)
-                            .background(Color.appPrimary.opacity(0.15))
+                            .background(
+                                LinearGradient(colors: [Color(hex: "#10B981"), Color(hex: "#34D399")], startPoint: .leading, endPoint: .trailing)
+                            )
                             .cornerRadius(20)
+                            .shadow(color: .black.opacity(0.15), radius: 4, x: 0, y: 2)
+                    }
+                    
+                    Spacer()
+                    
+                    // Category Badge
+                    HStack(spacing: 6) {
+                        Text(trip.category.rawValue)
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(.black)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(Color.white)
+                            .cornerRadius(20)
+                        
+                        ForEach(tags, id: \.self) { tag in
+                            Text("#\(tag)")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundColor(.appPrimary)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 6)
+                                .background(Color.appPrimary.opacity(0.15))
+                                .background(Color.white)
+                                .cornerRadius(20)
+                        }
                     }
                 }
                 .padding(12)
@@ -106,6 +124,12 @@ struct TripCardView: View {
                             .font(.system(size: 12, weight: .medium))
                             .foregroundColor(.adaptiveText)
                             .lineLimit(1)
+                        
+                        if trip.creator.isVerified == true {
+                            Image(systemName: "checkmark.seal.fill")
+                                .font(.system(size: 10))
+                                .foregroundColor(Color(hex: "#3B82F6"))
+                        }
                     }
                 }
             }

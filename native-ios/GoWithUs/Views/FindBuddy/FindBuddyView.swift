@@ -45,9 +45,17 @@ struct FindBuddyView: View {
                                 )
                             
                             VStack(alignment: .leading, spacing: 4) {
-                                Text(user.name)
-                                    .font(.headline)
-                                    .foregroundColor(.adaptiveText)
+                                HStack(spacing: 4) {
+                                    Text(user.name)
+                                        .font(.headline)
+                                        .foregroundColor(.adaptiveText)
+                                    
+                                    if user.isVerified == true {
+                                        Image(systemName: "checkmark.seal.fill")
+                                            .font(.system(size: 12))
+                                            .foregroundColor(.blue)
+                                    }
+                                }
                                 
                                 if let interests = user.interests, !interests.isEmpty {
                                     Text(interests.prefix(3).joined(separator: ", "))

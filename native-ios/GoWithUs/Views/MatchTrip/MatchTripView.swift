@@ -219,6 +219,8 @@ class MatchTripViewModel: ObservableObject {
                 self.matches = response.matches
                 self.isLoading = false
             }
+        } catch let error as URLError where error.code == .cancelled {
+            // Ignore cancellation
         } catch {
             await MainActor.run {
                 self.errorMessage = "เกิดข้อผิดพลาดในการโหลดข้อมูล"

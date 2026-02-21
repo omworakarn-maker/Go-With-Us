@@ -178,6 +178,24 @@ const Navbar: React.FC<NavbarProps> = ({ onCreateActivity }) => {
                             >
                               โปรไฟล์
                             </Link>
+                            {user?.role === 'admin' && (
+                              <>
+                                <Link
+                                  to="/admin/reports"
+                                  onClick={() => setShowProfileMenu(false)}
+                                  className="block px-4 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50 transition-colors"
+                                >
+                                  จัดการรายงาน (Admin)
+                                </Link>
+                                <Link
+                                  to="/admin/verify"
+                                  onClick={() => setShowProfileMenu(false)}
+                                  className="block px-4 py-2.5 text-sm font-bold text-indigo-600 hover:bg-indigo-50 transition-colors"
+                                >
+                                  ตรวจสอบยืนยันตัวตน (Admin)
+                                </Link>
+                              </>
+                            )}
                             <Link
                               to="/mytrips"
                               onClick={() => setShowProfileMenu(false)}

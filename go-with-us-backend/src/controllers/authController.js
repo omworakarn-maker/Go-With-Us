@@ -95,11 +95,18 @@ export const login = async (req, res, next) => {
                 showBio: true,
                 showInterests: true,
                 showEmail: true,
+                isBanned: true,
+                isVerified: true,
+                verificationStatus: true,
             }
         });
 
         if (!user) {
             return res.status(401).json({ error: 'Invalid email or password.' });
+        }
+
+        if (user.isBanned) {
+            return res.status(403).json({ error: 'บัญชีของคุณถูกระงับการใช้งาน โปรดติดต่อผู้ดูแลระบบ' });
         }
 
         // Check password
@@ -138,6 +145,8 @@ export const login = async (req, res, next) => {
                 showBio: user.showBio,
                 showInterests: user.showInterests,
                 showEmail: user.showEmail,
+                isVerified: user.isVerified,
+                verificationStatus: user.verificationStatus,
             },
         });
     } catch (error) {
@@ -169,11 +178,18 @@ export const getCurrentUser = async (req, res, next) => {
                 showBio: true,
                 showInterests: true,
                 showEmail: true,
+                isBanned: true,
+                isVerified: true,
+                verificationStatus: true,
             },
         });
 
         if (!user) {
             return res.status(404).json({ error: 'User not found.' });
+        }
+
+        if (user.isBanned) {
+            return res.status(403).json({ error: 'บัญชีของคุณถูกระงับการใช้งาน โปรดติดต่อผู้ดูแลระบบ' });
         }
 
         res.json({ user });

@@ -18,6 +18,7 @@ struct ChatInputBar: View {
     var body: some View {
         HStack(spacing: 12) {
             TextField("พิมพ์ข้อความ...", text: $text)
+                .foregroundColor(.black)
                 .padding(12)
                 .background(Color.gray.opacity(0.1))
                 .cornerRadius(24)

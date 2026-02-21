@@ -91,6 +91,8 @@ class TripListViewModel: ObservableObject {
                 }
             }
             
+        } catch let error as URLError where error.code == .cancelled {
+            return // Ignore cancellation
         } catch {
             errorMessage = error.localizedDescription
         }

@@ -61,6 +61,8 @@ class TripDetailViewModel: ObservableObject {
         do {
             trip = try await TripService.shared.getTrip(id: tripId)
             await fetchCurrentUser() // Refresh user data as well
+        } catch let error as URLError where error.code == .cancelled {
+            return // Ignore cancellation
         } catch {
             errorMessage = error.localizedDescription
         }

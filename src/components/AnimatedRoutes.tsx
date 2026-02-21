@@ -16,6 +16,9 @@ import Chat from '../pages/Chat';
 import SearchPage from '../pages/Search';
 import TripHistory from '../pages/TripHistory';
 import AdminAlert from '../pages/AdminAlert';
+import AdminReports from '../pages/AdminReports';
+import AdminVerification from '../pages/AdminVerification';
+import VerificationForm from '../pages/VerificationForm';
 import { TripDetails } from './TripDetails';
 import { CreateTripModal } from './CreateTripModal';
 import ProtectedRoute from './ProtectedRoute';
@@ -233,6 +236,30 @@ const AnimatedRoutes: React.FC = () => {
                         element={
                             <ProtectedRoute>
                                 <AdminAlert />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/admin/reports"
+                        element={
+                            <ProtectedRoute>
+                                <AdminReports />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/admin/verify"
+                        element={
+                            <ProtectedRoute>
+                                <AdminVerification />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/verify"
+                        element={
+                            <ProtectedRoute>
+                                <VerificationForm />
                             </ProtectedRoute>
                         }
                     />

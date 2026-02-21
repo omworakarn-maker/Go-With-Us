@@ -58,7 +58,7 @@ struct CustomTabBar: View {
                                             .foregroundColor(selectedTab == tab ? .appAccent : .gray.opacity(0.6))
                                     }
                                     
-                                    Text(tab.rawValue)
+                                    Text(getThaiTitle(for: tab))
                                         .font(.system(size: 10, weight: .bold))
                                         .foregroundColor(selectedTab == tab ? .appAccent : .gray.opacity(0.6))
                                 }
@@ -93,11 +93,9 @@ struct CustomTabBar: View {
                 }
                 .offset(y: -28) // Center of the bar
             }
-            
-            // Extra background for bottom safe area
-            Color.adaptiveBackground
-                .frame(height: bottomPadding)
         }
+        .background(Color.adaptiveBackground)
+        .ignoresSafeArea(edges: .bottom)
 
     }
     
@@ -113,6 +111,16 @@ struct CustomTabBar: View {
             return selectedTab == .chat ? "message.fill" : "message"
         case .profile:
             return selectedTab == .profile ? "person.fill" : "person"
+        }
+    }
+    
+    func getThaiTitle(for tab: Tab) -> String {
+        switch tab {
+        case .home: return LanguageManager.shared.localizedString(for: "home")
+        case .buddy: return LanguageManager.shared.localizedString(for: "find_friend")
+        case .create: return LanguageManager.shared.localizedString(for: "create")
+        case .chat: return LanguageManager.shared.currentLanguage == .thai ? "แชท" : "Chat"
+        case .profile: return LanguageManager.shared.localizedString(for: "profile")
         }
     }
 }

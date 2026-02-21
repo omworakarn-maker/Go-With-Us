@@ -142,6 +142,21 @@ struct UserProfileView: View {
                             }
                         }
                         
+                        // Verification Status
+                        if displayUser.isVerified == true {
+                            HStack(spacing: 5) {
+                                Image(systemName: "checkmark.seal.fill")
+                                    .foregroundColor(.green)
+                                Text("ผู้ใช้งานที่ยืนยันตัวตนแล้ว")
+                                    .font(.system(size: 13, weight: .bold))
+                                    .foregroundColor(.green)
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .background(Color.green.opacity(0.1))
+                            .cornerRadius(20)
+                        }
+                        
                         // ── User Info Cards ──
                         VStack(spacing: 14) {
                             // Gender & Age
@@ -313,6 +328,7 @@ struct UserProfileView: View {
         } message: {
             Text("โปรดระบุเหตุผลที่คุณต้องการรายงานผู้ใช้คนนี้ ข้อมูลจะถูกส่งไปยังแอดมินเพื่อตรวจสอบ")
         }
+        .tint(.black)
         .alert(actionMessage, isPresented: $showingActionMessage) {
             Button("ตกลง", role: .cancel) { }
         }
@@ -370,6 +386,8 @@ struct UserProfileView: View {
             default:
                 errorMessage = "ไม่สามารถโหลดโปรไฟล์ได้"
             }
+        } catch let error as URLError where error.code == .cancelled {
+            return // Ignore cancellation
         } catch {
             errorMessage = "เกิดข้อผิดพลาดในการโหลดโปรไฟล์"
         }

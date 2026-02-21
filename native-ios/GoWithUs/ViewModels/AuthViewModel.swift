@@ -31,6 +31,8 @@ class AuthViewModel: ObservableObject {
     func loadCurrentUser() async {
         do {
             currentUser = try await AuthService.shared.getCurrentUser()
+        } catch let error as URLError where error.code == .cancelled {
+            // Ignore cancellation, don't logout
         } catch {
             // Token might be expired, logout
             logout()

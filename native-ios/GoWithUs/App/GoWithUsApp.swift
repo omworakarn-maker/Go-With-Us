@@ -16,6 +16,8 @@ struct GoWithUsApp: App {
                 } else {
                     ContentView()
                         .environmentObject(authViewModel)
+                        .environmentObject(LanguageManager.shared)
+                        .environment(\.locale, Locale(identifier: LanguageManager.shared.currentLanguage.rawValue))
                         .zIndex(0)
                         .transition(.asymmetric(
                             insertion: .move(edge: .bottom),

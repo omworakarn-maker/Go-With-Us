@@ -9,22 +9,12 @@ struct SideMenuView: View {
     
     var body: some View {
         ZStack(alignment: .leading) {
-            // Dimmed Background
-            Color.black
-                .opacity(0.3)
-                .ignoresSafeArea()
-                .onTapGesture {
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        isShowing = false
-                    }
-                }
-            
             // Menu Content
             VStack(alignment: .leading, spacing: 0) {
                 // Header
                 VStack(alignment: .leading, spacing: 12) {
                     if let user = authViewModel.currentUser {
-                        UserAvatarView(user: user, size: 70, imageLoadDelay: 0.35)
+                        UserAvatarView(user: user, size: 70)
                             .shadow(color: .black.opacity(0.1), radius: 5, x: 0, y: 3)
                         
                         VStack(alignment: .leading, spacing: 4) {
@@ -64,13 +54,58 @@ struct SideMenuView: View {
                 
                 // Menu Items
                 VStack(alignment: .leading, spacing: 24) {
-                    MenuButton(icon: "house", text: "หน้าแรก", targetScreen: .home, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
-                    MenuButton(icon: "arrow.triangle.2.circlepath", text: "แมตช์ทริป", targetScreen: .matchTrip, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
-                    MenuButton(icon: "suitcase", text: "ทริปของฉัน", targetScreen: .myTrips, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
-                    MenuButton(icon: "bubble.left.and.text.bubble.right", text: "คุยกับ AI", targetScreen: .aiChat, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
-                    MenuButton(icon: "person.crop.circle", text: "โปรไฟล์", targetScreen: .profile, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
+                    MenuButton(icon: "house", text: LanguageManager.shared.localizedString(for: "home"), targetScreen: .home, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
+                    MenuButton(icon: "arrow.triangle.2.circlepath", text: LanguageManager.shared.localizedString(for: "match"), targetScreen: .matchTrip, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
+                    MenuButton(icon: "suitcase", text: LanguageManager.shared.localizedString(for: "my_trips"), targetScreen: .myTrips, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
+                    MenuButton(icon: "bubble.left.and.text.bubble.right", text: LanguageManager.shared.currentLanguage == .thai ? "คุยกับ AI" : "AI Agent", targetScreen: .aiChat, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
+                    MenuButton(icon: "person.crop.circle", text: LanguageManager.shared.localizedString(for: "profile"), targetScreen: .profile, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
                 }
                 .padding(.horizontal)
+                
+                Divider().padding(.vertical, 16)
+                
+                // Settings Header
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("การตั้งค่า")
+                        .font(.headline)
+                        .foregroundColor(.gray)
+                        .padding(.horizontal, 24)
+                    
+                    HStack(spacing: 16) {
+                        Image(systemName: "globe")
+                            .font(.system(size: 20))
+                            .foregroundColor(.adaptiveText)
+                            .frame(width: 24)
+                        
+                        Text("ภาษา (Language)")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(.adaptiveText)
+                        
+                        Spacer()
+                        
+                        Menu {
+                            Button(AppLanguage.thai.displayName) {
+                                LanguageManager.shared.currentLanguage = .thai
+                            }
+                            Button(AppLanguage.english.displayName) {
+                                LanguageManager.shared.currentLanguage = .english
+                            }
+                        } label: {
+                            HStack {
+                                Text(LanguageManager.shared.currentLanguage.displayName)
+                                    .font(.subheadline)
+                                    .foregroundColor(.gray)
+                                Image(systemName: "chevron.up.chevron.down")
+                                    .font(.system(size: 10))
+                                    .foregroundColor(.gray)
+                            }
+                            .padding(.horizontal, 10).padding(.vertical, 5)
+                            .background(Color.gray.opacity(0.1))
+                            .cornerRadius(8)
+                        }
+                    }
+                    .padding(.horizontal, 24)
+                }
                 
                 Spacer()
                 
@@ -88,10 +123,10 @@ struct SideMenuView: View {
                     }
                 }
             }
-            .frame(width: UIScreen.main.bounds.width * 0.75)
+            .frame(width: UIScreen.main.bounds.width * 0.8)
             .background(Color.adaptiveBackground)
         }
-        .ignoresSafeArea(.all)
+        .ignoresSafeArea(.all, edges: .vertical) // Don't ignore horizontal safe area to avoid left gap
         .alert("ออกจากระบบ", isPresented: $showLogoutAlert) {
             Button("ยกเลิก", role: .cancel) {}
             Button("ออกจากระบบ", role: .destructive) {
@@ -103,6 +138,7 @@ struct SideMenuView: View {
         } message: {
             Text("คุณต้องการออกจากระบบใช่หรือไม่?")
         }
+        .tint(.black)
     }
 }
 

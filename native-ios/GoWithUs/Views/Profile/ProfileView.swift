@@ -139,6 +139,57 @@ struct ProfileView: View {
                             }
                             .padding(.top, 32)
                             
+                            // Verification Status
+                            if user.isVerified == true {
+                                HStack(spacing: 5) {
+                                    Image(systemName: "checkmark.seal.fill")
+                                        .foregroundColor(.green)
+                                    Text("ยืนยันตัวตนแล้ว")
+                                        .font(.system(size: 13, weight: .bold))
+                                        .foregroundColor(.green)
+                                }
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 8)
+                                .background(Color.green.opacity(0.1))
+                                .cornerRadius(20)
+                            } else if user.verificationStatus == "pending" {
+                                HStack(spacing: 5) {
+                                    Image(systemName: "clock.fill")
+                                        .foregroundColor(.orange)
+                                    Text("รอตรวจสอบข้อมูล")
+                                        .font(.system(size: 13, weight: .bold))
+                                        .foregroundColor(.orange)
+                                }
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 8)
+                                .background(Color.orange.opacity(0.1))
+                                .cornerRadius(20)
+                            } else {
+                                let verificationURL: URL = {
+                                    let base = "https://go-with-us.vercel.app/verify"
+                                    guard let token = KeychainService.shared.getToken(),
+                                          var components = URLComponents(string: base) else {
+                                        return URL(string: base)!
+                                    }
+                                    components.queryItems = [URLQueryItem(name: "token", value: token)]
+                                    return components.url ?? URL(string: base)!
+                                }()
+                                
+                                Link(destination: verificationURL) {
+                                    HStack(spacing: 5) {
+                                        Image(systemName: "exclamationmark.shield.fill")
+                                        Text("ยังไม่ยืนยันตัวตน (คลิกเพื่อยืนยัน)")
+                                            .font(.system(size: 13, weight: .bold))
+                                    }
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 8)
+                                    .background(Color.appPrimary)
+                                    .cornerRadius(20)
+                                }
+                                .shadow(color: .appPrimary.opacity(0.3), radius: 5, x: 0, y: 3)
+                            }
+                            
                             // User Info
                             VStack(spacing: 16) {
                                 // Basic Info Cards

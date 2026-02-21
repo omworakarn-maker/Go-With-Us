@@ -310,6 +310,16 @@ export const userAPI = {
         method: 'POST',
         body: JSON.stringify({ isBanned })
     }),
+    getAllReports: () => authFetch(`${API_BASE_URL}/users/reports/all`),
+    requestVerification: (data: { idCardImage: string, faceScanImage: string }) => authFetch(`${API_BASE_URL}/users/verify/request`, {
+        method: 'POST',
+        body: JSON.stringify(data)
+    }),
+    getVerificationRequests: () => authFetch(`${API_BASE_URL}/users/verify/requests`),
+    verifyUser: (userId: string, status: 'verified' | 'rejected' | 'unverified') => authFetch(`${API_BASE_URL}/users/verify/${userId}`, {
+        method: 'POST',
+        body: JSON.stringify({ status })
+    }),
 };
 
 export default {

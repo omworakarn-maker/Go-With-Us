@@ -93,7 +93,7 @@ struct HomeView: View {
                     .padding(.bottom, 8)
                     
                     // Trip List
-                    if viewModel.isLoading {
+                    if viewModel.isLoading && viewModel.trips.isEmpty {
                         Spacer()
                         ProgressView()
                             .tint(.adaptiveText)
@@ -161,7 +161,7 @@ struct HomeView: View {
                                 }
                             }
                             .padding()
-                            .padding(.bottom, 100)
+                            .padding(.bottom, 0)
                         }
                         .refreshable {
                             await viewModel.loadTrips()

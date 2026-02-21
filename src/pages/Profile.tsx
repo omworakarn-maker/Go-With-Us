@@ -28,6 +28,8 @@ interface ExtendedUser {
     showBio?: boolean;
     showInterests?: boolean;
     showEmail?: boolean;
+    isVerified?: boolean;
+    verificationStatus?: string;
 }
 
 const Profile: React.FC = () => {
@@ -187,9 +189,26 @@ const Profile: React.FC = () => {
                                 <p className="text-gray-500 font-medium mb-4">{profile.email}</p>
 
                                 <div className="flex flex-col items-center gap-2 mb-6">
-                                    <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${profile.role === 'admin' ? 'bg-black text-white' : 'bg-gray-100 text-gray-600'}`}>
-                                        {profile.role}
-                                    </span>
+                                    <div className="flex gap-2">
+                                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${profile.role === 'admin' ? 'bg-black text-white' : 'bg-gray-100 text-gray-600'}`}>
+                                            {profile.role}
+                                        </span>
+                                        {profile.isVerified ? (
+                                            <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-[10px] font-bold tracking-widest flex items-center gap-1">
+                                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>
+                                                ยืนยันตัวตนแล้ว
+                                            </span>
+                                        ) : profile.verificationStatus === 'pending' ? (
+                                            <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-[10px] font-bold tracking-widest">
+                                                รอตรวจสอบข้อมูล
+                                            </span>
+                                        ) : (
+                                            <a href="/verify" className="px-3 py-1 bg-red-100 text-red-600 rounded-full text-[10px] font-bold tracking-widest hover:bg-red-200 transition-colors flex items-center gap-1 cursor-pointer">
+                                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                                                ยังไม่ยืนยันตัวตน
+                                            </a>
+                                        )}
+                                    </div>
                                     {/* Display Interests - Black Theme */}
                                     {profile.interests && profile.interests.length > 0 && (
                                         <div className="flex flex-wrap justify-center gap-1.5 mt-2">

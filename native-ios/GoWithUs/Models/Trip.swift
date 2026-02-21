@@ -17,6 +17,7 @@ struct Trip: Codable, Identifiable {
     let creatorId: String
     let creator: User
     let participants: [Participant]?
+    let itinerary: [DayPlan]?
     let aiAnalysis: AIAnalysis?
     let matchScore: Int?
     let createdAt: Date?
@@ -37,6 +38,7 @@ struct Trip: Codable, Identifiable {
         gallery: [String]? = nil,
         creator: User,
         participants: [Participant]? = nil,
+        itinerary: [DayPlan]? = nil,
         creatorId: String? = nil,
         aiAnalysis: AIAnalysis? = nil,
         matchScore: Int? = nil,
@@ -57,6 +59,7 @@ struct Trip: Codable, Identifiable {
         self.gallery = gallery
         self.creator = creator
         self.participants = participants
+        self.itinerary = itinerary
         self.creatorId = creatorId ?? creator.id
         self.aiAnalysis = aiAnalysis
         self.matchScore = matchScore
@@ -65,7 +68,7 @@ struct Trip: Codable, Identifiable {
     }
     
     enum CodingKeys: String, CodingKey {
-        case id, title, destination, description, startDate, endDate, budget, maxParticipants, category, isPublic, imageUrl, gallery, creatorId, creator, participants, aiAnalysis, matchScore, createdAt, updatedAt
+        case id, title, destination, description, startDate, endDate, budget, maxParticipants, category, isPublic, imageUrl, gallery, creatorId, creator, participants, itinerary, aiAnalysis, matchScore, createdAt, updatedAt
     }
     
     init(from decoder: Decoder) throws {
@@ -85,6 +88,7 @@ struct Trip: Codable, Identifiable {
         creatorId = try container.decode(String.self, forKey: .creatorId)
         creator = try container.decode(User.self, forKey: .creator)
         participants = try container.decodeIfPresent([Participant].self, forKey: .participants)
+        itinerary = try container.decodeIfPresent([DayPlan].self, forKey: .itinerary)
         aiAnalysis = try container.decodeIfPresent(AIAnalysis.self, forKey: .aiAnalysis)
         matchScore = try container.decodeIfPresent(Int.self, forKey: .matchScore)
         createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt)
@@ -161,4 +165,27 @@ struct AIAnalysis: Codable {
     let highlights: [String]
     let recommendations: [String]
     let compatibility: Int?
+}
+
+// MARK: - Itinerary
+struct DayPlan: Codable, Identifiable {
+    var id = UUID()
+    let day: Int
+    let activities: [Activity]
+    
+    enum CodingKeys: String, CodingKey {
+        case day, activities
+    }
+}
+
+struct Activity: Codable, Identifiable {
+    var id = UUID()
+    let time: String
+    let name: String
+    let location: String
+    let description: String
+    
+    enum CodingKeys: String, CodingKey {
+        case time, name, location, description
+    }
 }

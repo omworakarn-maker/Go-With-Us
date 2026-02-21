@@ -40,6 +40,11 @@ model User {
   interests String[] @default([])
   embedding Json?    // AI Vector for recommendation
   fcmToken  String?  // Firebase Cloud Messaging Token for Push Notifications
+  // Verification System
+  isVerified         Boolean @default(false)
+  verificationStatus String  @default("unverified") // "unverified", "pending", "verified", "rejected"
+  idCardImage        String? @db.Text
+  faceScanImage      String? @db.Text
   
   // Relations
   trips     Trip[]   // Trips created by this user

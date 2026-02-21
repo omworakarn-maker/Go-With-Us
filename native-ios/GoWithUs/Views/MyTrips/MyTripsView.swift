@@ -7,7 +7,7 @@ struct MyTripsView: View {
     
     var body: some View {
         ZStack {
-            Color.white.ignoresSafeArea()
+            Color.adaptiveBackground.ignoresSafeArea()
             
             NavigationStack {
                 VStack(spacing: 0) {
@@ -20,14 +20,14 @@ struct MyTripsView: View {
                         }) {
                             Image(systemName: "line.3.horizontal")
                                 .font(.system(size: 24, weight: .bold))
-                                .foregroundColor(.black)
+                                .foregroundColor(.adaptiveText)
                         }
                         
                         Spacer()
                         
                         Text("ทริปของฉัน")
                             .font(.system(size: 22, weight: .bold))
-                            .foregroundColor(.black)
+                            .foregroundColor(.adaptiveText)
                         
                         Spacer()
                         
@@ -37,6 +37,7 @@ struct MyTripsView: View {
                             .foregroundColor(.clear)
                     }
                     .padding()
+                    .background(Color.adaptiveBackground)
                     
                     Group {
                         if viewModel.isLoading {

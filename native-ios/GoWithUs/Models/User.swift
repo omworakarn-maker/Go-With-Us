@@ -25,6 +25,10 @@ struct User: Codable, Identifiable {
     let showInterests: Bool?
     let showEmail: Bool?
     
+    // Verification
+    let isVerified: Bool?
+    let verificationStatus: String?
+    
     init(
         id: String,
         name: String,
@@ -45,7 +49,9 @@ struct User: Codable, Identifiable {
         showAge: Bool? = nil,
         showBio: Bool? = nil,
         showInterests: Bool? = nil,
-        showEmail: Bool? = nil
+        showEmail: Bool? = nil,
+        isVerified: Bool? = nil,
+        verificationStatus: String? = nil
     ) {
         self.id = id
         self.name = name
@@ -67,6 +73,8 @@ struct User: Codable, Identifiable {
         self.showBio = showBio
         self.showInterests = showInterests
         self.showEmail = showEmail
+        self.isVerified = isVerified
+        self.verificationStatus = verificationStatus
     }
 }
 

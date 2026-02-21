@@ -28,8 +28,10 @@ export const getProfile = async (req, res) => {
                 showBio: true,
                 showInterests: true,
                 showEmail: true,
+                isVerified: true,
+                verificationStatus: true,
                 trips: {
-                    orderBy: { startDate: 'desc' },
+                    orderBy: { createdAt: 'desc' },
                     include: {
                         participants: true
                     }
@@ -413,6 +415,150 @@ export const banUser = async (req, res) => {
     } catch (error) {
         console.error('Error banning user:', error);
         res.status(500).json({ error: 'Server error while banning/unbanning user' });
+    }
+};
+
+// Get all reports (Admin only)
+export const getAllReports = async (req, res) => {
+    try {
+        const { userId: adminId } = req.user;
+
+        // Verify admin
+        const admin = await prisma.user.findUnique({ where: { id: adminId } });
+        if (!admin || admin.role !== 'admin') {
+            return res.status(403).json({ error: 'Admin access required' });
+        }
+
+        const reports = await prisma.report.findMany({
+            orderBy: { createdAt: 'desc' },
+            include: {
+                reporter: {
+                    select: { id: true, name: true, email: true, profileImage: true }
+                },
+                reported: {
+                    select: { id: true, name: true, email: true, profileImage: true, isBanned: true }
+                }
+            }
+        });
+
+        res.json({ reports });
+    } catch (error) {
+        console.error('Error getting reports:', error);
+        res.status(500).json({ error: 'Server error while getting reports' });
+    }
+};
+
+// ==================== Identity Verification System ====================
+
+// User requests verification by submitting images
+export const requestVerification = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const { idCardImage, faceScanImage } = req.body;
+
+        if (!idCardImage || !faceScanImage) {
+            return res.status(400).json({ error: 'Both ID Card and Face Scan images are required' });
+        }
+
+        const updatedUser = await prisma.user.update({
+            where: { id: userId },
+            data: {
+                idCardImage,
+                faceScanImage,
+                verificationStatus: 'pending'
+            }
+        });
+
+        res.json({ message: 'Verification requested successfully', status: updatedUser.verificationStatus });
+    } catch (error) {
+        console.error('Error requesting verification:', error);
+        res.status(500).json({ error: 'Server error while requesting verification' });
+    }
+};
+
+// Admin gets all pending verification requests
+export const getVerificationRequests = async (req, res) => {
+    try {
+        const { userId: adminId } = req.user;
+
+        // Verify admin
+        const admin = await prisma.user.findUnique({ where: { id: adminId } });
+        if (!admin || admin.role !== 'admin') {
+            return res.status(403).json({ error: 'Admin access required' });
+        }
+
+        const requests = await prisma.user.findMany({
+            where: { verificationStatus: 'pending' },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                profileImage: true,
+                idCardImage: true,
+                faceScanImage: true,
+                createdAt: true
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+
+        res.json({ requests });
+    } catch (error) {
+        console.error('Error getting verification requests:', error);
+        res.status(500).json({ error: 'Server error while getting requests' });
+    }
+};
+
+// Admin approves or rejects a verification request
+export const verifyUser = async (req, res) => {
+    try {
+        const { userId: adminId } = req.user;
+        const { targetId } = req.params;
+        const { status } = req.body; // 'verified' or 'rejected'
+
+        if (!['verified', 'rejected', 'unverified'].includes(status)) {
+            return res.status(400).json({ error: 'Invalid verification status' });
+        }
+
+        // Verify admin
+        const admin = await prisma.user.findUnique({ where: { id: adminId } });
+        if (!admin || admin.role !== 'admin') {
+            return res.status(403).json({ error: 'Admin access required' });
+        }
+
+        const data = {
+            verificationStatus: status,
+            isVerified: status === 'verified'
+        };
+
+        // If rejected, maybe clear the images so they have to upload again
+        if (status === 'rejected') {
+            data.idCardImage = null;
+            data.faceScanImage = null;
+        }
+
+        const updatedUser = await prisma.user.update({
+            where: { id: targetId },
+            data
+        });
+
+        // Notify the user about their verification status
+        let notifMessage = status === 'verified'
+            ? 'ยินดีด้วย! บัญชีของคุณได้รับการยืนยันตัวตนเรียบร้อยแล้ว'
+            : 'การยืนยันตัวตนของคุณถูกปฏิเสธ โปรดอัปโหลดรูปภาพที่ชัดเจนอีกครั้ง';
+
+        await prisma.notification.create({
+            data: {
+                title: 'สถานะการยืนยันตัวตน',
+                message: notifMessage,
+                type: 'system',
+                userId: targetId
+            }
+        });
+
+        res.json({ message: `User verification marked as ${status}`, isVerified: updatedUser.isVerified });
+    } catch (error) {
+        console.error('Error verifying user:', error);
+        res.status(500).json({ error: 'Server error while verifying user' });
     }
 };
 

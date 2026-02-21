@@ -386,6 +386,21 @@ export const joinTrip = async (req, res, next) => {
             },
         });
 
+        // Notify existing participants
+        if (trip.participants && trip.participants.length > 0) {
+            const notifications = trip.participants.map((p) => ({
+                title: 'มีสมาชิกใหม่เข้าร่วมทริป!',
+                message: `${name} ได้เข้าร่วมทริป "${trip.title}" แล้ว`,
+                type: 'trip',
+                targetId: id,
+                userId: p.userId,
+            }));
+
+            await prisma.notification.createMany({
+                data: notifications,
+            });
+        }
+
         res.status(201).json({
             message: 'Successfully joined the trip',
             participant,

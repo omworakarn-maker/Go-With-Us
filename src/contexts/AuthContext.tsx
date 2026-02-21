@@ -29,11 +29,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Check if user is logged in on mount
     useEffect(() => {
         const initAuth = async () => {
+            // Priority: URL token (from app) > LocalStorage token
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlToken = urlParams.get('token');
+
+            if (urlToken) {
+                localStorage.setItem('authToken', urlToken);
+                // Clean up URL
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+
             const token = localStorage.getItem('authToken');
             if (token) {
                 try {
                     const response = await authAPI.getCurrentUser();
                     setUser(response.user);
+                    localStorage.setItem('currentUser', JSON.stringify(response.user));
                 } catch (error) {
                     // Token is invalid, clear it
                     localStorage.removeItem('authToken');

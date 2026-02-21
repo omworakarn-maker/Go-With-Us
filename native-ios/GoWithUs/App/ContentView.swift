@@ -37,33 +37,33 @@ struct ContentView: View {
                 .transition(activeTransition)
                 .id(currentScreen) // Force transition when state changes
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .ignoresSafeArea(.all, edges: .bottom) // Make content go behind tabbar
-                
-                // Side Menu — backdrop fades, panel slides, avatar stays in sync
-                if showSideMenu {
-                    Color.black.opacity(0.3)
-                        .ignoresSafeArea()
-                        .onTapGesture {
-                            withAnimation(.easeInOut(duration: 0.3)) { showSideMenu = false }
-                        }
-                        .zIndex(9)
-                        .transition(.opacity)
-                    
-                    SideMenuView(isShowing: $showSideMenu, currentScreen: $currentScreen, transition: $activeTransition)
-                        .zIndex(10)
-                        .transition(.move(edge: .leading))
-                }
-                
-                // Tab Bar
+            }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
                 if shouldShowTabBar {
                     CustomTabBar(
                         selectedTab: selectedTabBinding,
                         onCreateTap: { showingCreateTrip = true },
                         badgeCounts: badgeCounts
                     )
-                    .transition(.move(edge: .bottom))
-                    .zIndex(1)
                 }
+            }
+            .overlay {
+                // Side Menu Backdrop
+                if showSideMenu {
+                    Color.black.opacity(0.3)
+                        .ignoresSafeArea()
+                        .onTapGesture {
+                            withAnimation(.easeInOut(duration: 0.3)) { showSideMenu = false }
+                        }
+                        .transition(.opacity)
+                }
+            }
+            .overlay(alignment: .leading) {
+                // Side Menu Panel
+                SideMenuView(isShowing: $showSideMenu, currentScreen: $currentScreen, transition: $activeTransition)
+                    .frame(width: UIScreen.main.bounds.width * 0.8)
+                    .offset(x: showSideMenu ? 0 : -UIScreen.main.bounds.width)
+                    .animation(.easeInOut(duration: 0.3), value: showSideMenu)
             }
             .sheet(isPresented: $showingCreateTrip) {
                 CreateTripView()
