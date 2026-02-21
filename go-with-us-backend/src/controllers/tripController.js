@@ -345,7 +345,7 @@ export const deleteTrip = async (req, res, next) => {
 export const joinTrip = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { name, interests } = req.body;
+        const { name, interests, status } = req.body;
 
         if (!name) {
             return res.status(400).json({ error: 'Name is required.' });
@@ -362,14 +362,29 @@ export const joinTrip = async (req, res, next) => {
         if (!trip) {
             return res.status(404).json({ error: 'Trip not found.' });
         }
-
         // Check if already joined
         const alreadyJoined = trip.participants.some(
             (p) => p.userId === req.user.userId
         );
 
         if (alreadyJoined) {
-            return res.status(400).json({ error: 'You have already joined this trip.' });
+            const updatedParticipant = await prisma.participant.update({
+                where: {
+                    tripId_userId: {
+                        tripId: id,
+                        userId: req.user.userId
+                    }
+                },
+                data: {
+                    name,
+                    interests: interests || [],
+                    status: status || 'going'
+                }
+            });
+            return res.json({
+                message: 'Participant updated successfully',
+                participant: updatedParticipant
+            });
         }
 
         // Check if trip is full
@@ -383,6 +398,7 @@ export const joinTrip = async (req, res, next) => {
                 userId: req.user.userId,
                 name,
                 interests: interests || [],
+                status: status || 'going',
             },
         });
 

@@ -22,6 +22,7 @@ struct CreateTripView: View {
     @State private var errorMessage: String?
     @State private var tags: [String] = []
     @State private var tagInput: String = ""
+    @State private var itinerary: [DayPlan]?
     
 
     
@@ -76,6 +77,7 @@ struct CreateTripView: View {
         _selectedCategoryRaw = State(initialValue: trip.category.rawValue)
         _imageUrl = State(initialValue: trip.imageUrl ?? "")
         _isPublic = State(initialValue: trip.isPublic)
+        _itinerary = State(initialValue: trip.itinerary)
         
         // Note: For now, we don't load current gallery URLs back into the picker (selectedImages),
         // but we handle them in saveTrip to ensure they aren't deleted.
@@ -91,10 +93,11 @@ struct CreateTripView: View {
                     VStack(alignment: .leading, spacing: 24) {
                         // Header
                         VStack(alignment: .leading, spacing: 8) {
-                            Text(editingTrip != nil ? "แก้ไขทริป" : "สร้างทริปใหม่")
-                                .font(.system(size: 32, weight: .black))
+                            Text(editingTrip != nil ? "แก้ไข \(title)" : "สร้างทริปใหม่")
+                                .font(.system(size: 28, weight: .black))
                                 .foregroundColor(.adaptiveText)
-                                .tracking(-1)
+                                .lineLimit(2)
+                                .tracking(-0.5)
                             
                             Text(editingTrip != nil ? "อัปเดตข้อมูลการเดินทางของคุณ" : "เริ่มต้นการผจญภัยของคุณ")
                                 .font(.system(size: 14, weight: .medium))
@@ -177,9 +180,44 @@ struct CreateTripView: View {
                                 .cornerRadius(12)
                             }
                             
-                            // Destination (Restored)
-                            FormField(label: "สถานที่", placeholder: "เช่น เชียงใหม่", text: $destination)
-
+                            // Destination Selection & Specific Place
+                            VStack(alignment: .leading, spacing: 12) {
+                                // Province Selection
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("จังหวัด")
+                                        .font(.system(size: 11, weight: .bold))
+                                        .foregroundColor(.gray)
+                                        .textCase(.uppercase)
+                                        .tracking(1)
+                                    
+                                    Menu {
+                                        ForEach(thaiProvinces, id: \.self) { province in
+                                            Button(province) {
+                                                destination = province
+                                            }
+                                        }
+                                    } label: {
+                                        HStack {
+                                            Text(destination.isEmpty ? "เลือกจังหวัด" : destination)
+                                                .foregroundColor(destination.isEmpty ? .gray : .adaptiveText)
+                                            Spacer()
+                                            Image(systemName: "chevron.down")
+                                                .foregroundColor(.gray)
+                                        }
+                                        .padding()
+                                        .background(Color.gray.opacity(0.05))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                                        )
+                                        .cornerRadius(12)
+                                    }
+                                }
+                                
+                                // Optional specific place (could reuse title or add to description)
+                                // They said: "สถานที่ให้การสร้างทริปหรือแก้ไขให้เลือกจังหวัดเปลี่ยนเป็นเขียนว่าจังหวัดแล้วให้เลือกแล้วค่อยเพิ่มตัวเลือกสถานที่ว่าระบุอีกทีว่าที่ไหนในอันนี้ไม่จำเป็นต้องระบุก็ได้เพราะมีจังหวัดบอกแล้วและยังไงหัวข้อก็ต้องเป็นชื่อทริปที่ผู้ใช้เอามาตั้ง"
+                                // We will change destination to be the province, and title is the specific place.
+                            }
                             // Description
                             VStack(alignment: .leading, spacing: 8) {
                                 HStack {
@@ -465,7 +503,8 @@ struct CreateTripView: View {
                         category: selectedCategoryRaw,
                         isPublic: isPublic,
                         imageUrl: mainImageUrl,
-                        gallery: galleryImages
+                        gallery: galleryImages,
+                        itinerary: itinerary
                     )
                 } else {
                     // Create
@@ -480,7 +519,8 @@ struct CreateTripView: View {
                         category: selectedCategoryRaw,
                         isPublic: isPublic,
                         imageUrl: mainImageUrl,
-                        gallery: galleryImages
+                        gallery: galleryImages,
+                        itinerary: itinerary
                     )
                 }
                 
@@ -505,13 +545,32 @@ struct CreateTripView: View {
         // Ensure budget is valid integer for JSON
         let budgetValue = Int(budget) ?? 0
         
+        let days = Calendar.current.dateComponents([.day], from: startDate, to: endDate).day ?? 0
+        let totalDays = max(1, days + 1)
+        
         let prompt = """
         ช่วยร่างทริปสำหรับ \(destination.isEmpty ? title : destination)
         หัวข้อ: \(title)
         จำนวนคน: \(maxParticipants)
+        จำนวนวัน: \(totalDays) วัน
         งบประมาณ: \(budgetValue == 0 ? "ไม่ได้ระบุ" : "\(budgetValue) บาท")
         ตอบกลับเป็น JSON format ตามโครงสร้างนี้ ห้ามใส่ Markdown block เนื้อหาแบบ text/plain เท่านั้น:
-        { "title": "...", "destination": "...", "description": "...", "tags": ["..."], "category": "..." }
+        { 
+          "title": "...", 
+          "destination": "...", 
+          "description": "...", 
+          "tags": ["..."], 
+          "category": "...",
+          "itinerary": [
+            {
+              "day": 1,
+              "activities": [
+                { "time": "09:00", "name": "...", "location": "...", "description": "..." }
+              ]
+            }
+          ]
+        }
+        จัดตารางกิจกรรมให้ครบ \(totalDays) วัน
         """
         
         Task {
@@ -535,6 +594,12 @@ struct CreateTripView: View {
                                 if !self.tags.contains(tag) { self.tags.append(tag) }
                             }
                         }
+                        if let itinData = dict["itinerary"] as? [[String: Any]] {
+                            if let data = try? JSONSerialization.data(withJSONObject: itinData),
+                               let itin = try? JSONDecoder().decode([DayPlan].self, from: data) {
+                                self.itinerary = itin
+                            }
+                        }
                         self.isGeneratingAI = false
                     }
                 } else {
@@ -553,6 +618,20 @@ struct CreateTripView: View {
     }
 }
 
+let thaiProvinces = [
+    "เชียงราย", "เชียงใหม่", "น่าน", "พะเยา", "แพร่", "แม่ฮ่องสอน", "ลำปาง", "ลำพูน", "อุตรดิตถ์",
+    "กาฬสินธุ์", "ขอนแก่น", "ชัยภูมิ", "นครพนม", "นครราชสีมา", "บึงกาฬ", "บุรีรัมย์", "มหาสารคาม",
+    "มุกดาหาร", "ยโสธร", "ร้อยเอ็ด", "เลย", "ศรีสะเกษ", "สกลนคร", "สุรินทร์", "หนองคาย", "หนองบัวลำภู",
+    "อำนาจเจริญ", "อุดรธานี", "อุบลราชธานี",
+    "กำแพงเพชร", "ชัยนาท", "นครนายก", "นครปฐม", "นครสวรรค์", "นนทบุรี", "ปทุมธานี", "พระนครศรีอยุธยา",
+    "พิจิตร", "พิษณุโลก", "เพชรบูรณ์", "ลพบุรี", "สมุทรปราการ", "สมุทรสงคราม", "สมุทรสาคร", "สระบุรี",
+    "สิงห์บุรี", "สุโขทัย", "สุพรรณบุรี", "อ่างทอง", "อุทัยธานี", "กรุงเทพมหานคร",
+    "จันทบุรี", "ฉะเชิงเทรา", "ชลบุรี", "ตราด", "ปราจีนบุรี", "ระยอง", "สระแก้ว",
+    "กาญจนบุรี", "ตาก", "ประจวบคีรีขันธ์", "เพชรบุรี", "ราชบุรี",
+    "กระบี่", "ชุมพร", "ตรัง", "นครศรีธรรมราช", "นราธิวาส", "ปัตตานี", "พังงา", "พัทลุง", "ภูเก็ต",
+    "ยะลา", "ระนอง", "สงขลา", "สตูล"
+].sorted()
+
 // MARK: - Identifiable image wrapper
 struct CreateTripImageItem: Identifiable {
     let id = UUID()
@@ -570,8 +649,7 @@ struct TripMultiImagePickerView: View {
     @State private var isFirstLoad = true
     
     // Image Cropping State
-    @State private var showImageCropper = false
-    @State private var imageToCrop: UIImage?
+    @State private var itemToCrop: CreateTripImageItem?
     @State private var croppingIndex: Int?
     
     var body: some View {
@@ -596,9 +674,8 @@ struct TripMultiImagePickerView: View {
                                 
                                 // Crop Button (Top Left)
                                 Button {
-                                    imageToCrop = item.image
+                                    itemToCrop = item
                                     croppingIndex = idx
-                                    showImageCropper = true
                                 } label: {
                                     Image(systemName: "crop")
                                         .font(.system(size: 14, weight: .bold))
@@ -715,17 +792,22 @@ struct TripMultiImagePickerView: View {
                 loadImages(from: selectedItems)
             }
         }
-        .sheet(isPresented: $showImageCropper) {
-            if let image = imageToCrop {
-                ImageCropperView(image: $imageToCrop, onCrop: { croppedImage in
+        .sheet(item: $itemToCrop) { item in
+            ImageCropperView(
+                image: Binding(
+                    get: { item.image },
+                    set: { _ in } // Ignored since we don't bind back this way
+                ),
+                onCrop: { croppedImage in
                     if let index = croppingIndex {
                         updateImage(at: index, with: croppedImage)
                     }
-                    showImageCropper = false
-                }, onCancel: {
-                    showImageCropper = false
-                })
-            }
+                    itemToCrop = nil
+                },
+                onCancel: {
+                    itemToCrop = nil
+                }
+            )
         }
     }
     

@@ -11,11 +11,7 @@ struct FilterBar: View {
     @State private var showDateSheet = false
     @State private var showCategorySheet = false
     
-    // Constants
-    let provinces = [
-        "ทุกจังหวัด", "กรุงเทพฯ", "เชียงใหม่", "ภูเก็ต", "ชลบุรี", "กระบี่",
-        "กาญจนบุรี", "ขอนแก่น", "นครราชสีมา", "ประจวบคีรีขันธ์", "สุราษฎร์ธานี"
-    ]
+    // Constants removed since using ProvincePicker
     
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {

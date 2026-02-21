@@ -8,7 +8,7 @@ struct JoinTripSheet: View {
     
     var body: some View {
         VStack(spacing: 24) {
-            Image(systemName: "airplane.circle.fill")
+            Image(systemName: "person.crop.circle.badge.plus")
                 .font(.system(size: 60))
                 .foregroundColor(.appPrimary)
                 .padding(.top, 32)
@@ -29,14 +29,10 @@ struct JoinTripSheet: View {
                 }) {
                     Text("ยกเลิก")
                         .font(.system(size: 15, weight: .bold))
-                        .foregroundColor(.adaptiveText)
+                        .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(Color.adaptiveBackground)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 14)
-                                .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                        )
+                        .background(Color.black)
                         .cornerRadius(14)
                 }
                 

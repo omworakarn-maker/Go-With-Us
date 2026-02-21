@@ -56,7 +56,6 @@ struct TripDetailView: View {
                         // ══════════════════════════════════════════════
                         VStack(alignment: .leading, spacing: 22) {
                             badgesRow(trip: trip)
-                            titleSection(trip: trip)
                             infoCards(trip: trip)
                             
                             softDivider()
@@ -186,9 +185,28 @@ struct TripDetailView: View {
             }
             
             // Gradient scrim
-            LinearGradient(colors: [.clear, .black.opacity(0.5)],
+            LinearGradient(colors: [.clear, .black.opacity(0.8)],
                            startPoint: .center, endPoint: .bottom)
-                .frame(height: 120)
+                .frame(height: 140)
+            
+            // Title Header Overlay
+            VStack(alignment: .leading, spacing: 6) {
+                Text(trip.title)
+                    .font(.system(size: 28, weight: .black))
+                    .foregroundColor(.white)
+                    .lineLimit(2)
+                    .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
+                
+                HStack(spacing: 4) {
+                    Image(systemName: "mappin.circle.fill")
+                    Text(trip.destination)
+                }
+                .font(.system(size: 15, weight: .bold))
+                .foregroundColor(.white.opacity(0.95))
+            }
+            .padding(.horizontal, 22)
+            .padding(.bottom, 25)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
     
@@ -303,7 +321,7 @@ struct TripDetailView: View {
                 Text("จำนวนคน")
                     .font(.system(size: 11, weight: .medium))
                     .foregroundColor(.adaptiveSecondaryText)
-                Text("\(trip.currentParticipants)/\(trip.maxParticipants) คน")
+                Text("\(trip.currentParticipants)/\(trip.maxParticipants)")
                     .font(.system(size: 15, weight: .black))
                     .foregroundColor(.adaptiveText)
             }
@@ -312,6 +330,31 @@ struct TripDetailView: View {
             .background(Color.adaptiveCardBackground)
             .cornerRadius(18)
             .shadow(color: Color(hex: "#F43F5E").opacity(0.08), radius: 10, x: 0, y: 4)
+
+            // Dates card — purple gradient
+            VStack(spacing: 6) {
+                ZStack {
+                    Circle()
+                        .fill(LinearGradient(colors: [Color(hex: "#8B5CF6"), Color(hex: "#A78BFA")],
+                                             startPoint: .topLeading, endPoint: .bottomTrailing))
+                        .frame(width: 40, height: 40)
+                    Image(systemName: "calendar")
+                        .font(.system(size: 17, weight: .medium))
+                        .foregroundColor(.white)
+                }
+                Text("ระยะเวลา")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(.adaptiveSecondaryText)
+                Text(trip.formattedDateRange)
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(.adaptiveText)
+                    .multilineTextAlignment(.center)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 18)
+            .background(Color.adaptiveCardBackground)
+            .cornerRadius(18)
+            .shadow(color: Color(hex: "#8B5CF6").opacity(0.08), radius: 10, x: 0, y: 4)
         }
     }
     
@@ -559,12 +602,18 @@ struct TripDetailView: View {
                                 // Avatar with colored ring for current user
                                 UserAvatarView(user: p.user, size: 40)
                                 .overlay(
-                                    isMe ? Circle().stroke(
-                                        LinearGradient(colors: [.appPrimary, .appAccent],
-                                                       startPoint: .topLeading, endPoint: .bottomTrailing),
-                                        lineWidth: 2
-                                    ).frame(width: 44, height: 44)
-                                    : nil
+                                    Group {
+                                        if p.status == "going" {
+                                            Circle().stroke(
+                                                LinearGradient(colors: [.appPrimary, .appAccent],
+                                                               startPoint: .topLeading, endPoint: .bottomTrailing),
+                                                lineWidth: 2
+                                            ).frame(width: 44, height: 44)
+                                        } else if p.status == "interested" {
+                                            Circle().stroke(Color.yellow, lineWidth: 2)
+                                                .frame(width: 44, height: 44)
+                                        }
+                                    }
                                 )
                                 
                                 VStack(alignment: .leading, spacing: 2) {
@@ -584,6 +633,16 @@ struct TripDetailView: View {
                                         Text("คุณ")
                                             .font(.system(size: 11, weight: .bold))
                                             .foregroundColor(.appPrimary)
+                                    }
+                                    
+                                    if let status = p.status {
+                                        Text(status == "interested" ? "สนใจ" : "จะไปด้วย")
+                                            .font(.system(size: 10, weight: .bold))
+                                            .foregroundColor(status == "interested" ? .yellow : .green)
+                                            .padding(.horizontal, 6)
+                                            .padding(.vertical, 2)
+                                            .background((status == "interested" ? Color.yellow : Color.green).opacity(0.1))
+                                            .cornerRadius(4)
                                     }
                                 }
                                 
@@ -653,23 +712,62 @@ struct TripDetailView: View {
                 .frame(height: 24).allowsHitTesting(false)
             
             VStack(spacing: 12) {
-                if viewModel.hasJoined {
-                    Button { viewModel.showLeaveSheet = true } label: {
-                        Text("ออกจากทริป")
-                            .font(.system(size: 15, weight: .bold))
-                            .foregroundColor(.appPrimary)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(Color.appPrimary.opacity(0.08))
-                            .overlay(RoundedRectangle(cornerRadius: 14)
-                                .stroke(Color.appPrimary.opacity(0.3), lineWidth: 1.5))
-                            .cornerRadius(14)
+                if let userId = viewModel.currentUserId, 
+                   let participant = trip.participants?.first(where: { $0.userId == userId }) {
+                    // USER ALREADY JOINED
+                    VStack(spacing: 10) {
+                        HStack(spacing: 12) {
+                            // Current Status Display
+                            HStack {
+                                Text("สถานะ:")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(.adaptiveSecondaryText)
+                                Text(participant.status == "interested" ? "สนใจ" : "จะไปด้วย")
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundColor(participant.status == "interested" ? .yellow : .appPrimary)
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(Color.adaptiveCardBackground)
+                            .cornerRadius(10)
+                            
+                            Spacer()
+                            
+                            // Switch Status Button
+                            Button {
+                                let newStatus = (participant.status == "interested") ? "going" : "interested"
+                                Task { await viewModel.joinTrip(interests: participant.interests ?? [], status: newStatus) }
+                            } label: {
+                                Text(participant.status == "interested" ? "เปลี่ยนเป็นจะไปด้วย" : "เปลี่ยนเป็นสนใจ")
+                                    .font(.system(size: 13, weight: .bold))
+                                    .foregroundColor(participant.status == "interested" ? .white : .black)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 8)
+                                    .background(participant.status == "interested" ? Color.appPrimary : Color.yellow)
+                                    .cornerRadius(10)
+                            }
+                        }
+                        
+                        Button { viewModel.showLeaveSheet = true } label: {
+                            Text("ออกจากทริป")
+                                .font(.system(size: 15, weight: .bold))
+                                .foregroundColor(.red.opacity(0.8))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .background(Color.red.opacity(0.06))
+                                .overlay(RoundedRectangle(cornerRadius: 14)
+                                    .stroke(Color.red.opacity(0.2), lineWidth: 1))
+                                .cornerRadius(14)
+                        }
                     }
                 } else if !trip.isFull {
+                    // USER NOT JOINED
                     HStack(spacing: 12) {
-                        // "Interested" button redirects to chat with creator
-                        NavigationLink(destination: ChatDetailView(chatTitle: trip.creator.name, tripId: nil, partnerId: trip.creator.id)) {
-                            Text("สนใจดูก่อน")
+                        // "Interested" button
+                        Button {
+                            Task { await viewModel.joinTrip(interests: [], status: "interested") }
+                        } label: {
+                            Text("สนใจ")
                                 .font(.system(size: 15, weight: .bold))
                                 .foregroundColor(.appPrimary)
                                 .frame(maxWidth: .infinity)
@@ -678,10 +776,10 @@ struct TripDetailView: View {
                                 .cornerRadius(14)
                         }
 
-                        // "Will Go" triggers the join flow
+                        // "Will Go" triggers the join flow (with interests)
                         Button { viewModel.showJoinSheet = true } label: {
                             HStack(spacing: 6) {
-                                Image(systemName: "airplane")
+                                Image(systemName: "person.crop.circle.badge.plus")
                                     .font(.system(size: 14, weight: .bold))
                                 Text("จะไปด้วย")
                                     .font(.system(size: 15, weight: .bold))
@@ -734,8 +832,9 @@ struct TripDetailView: View {
                 }
             }
             .padding(.horizontal, 18)
-            .padding(.bottom, 28)
-            .background(Color.adaptiveBackground)
+            .padding(.top, 10)
+            .padding(.bottom, 12)
+            .background(Color.adaptiveBackground.ignoresSafeArea(edges: .bottom))
             .shadow(color: .black.opacity(0.06), radius: 12, x: 0, y: -5)
         }
     }

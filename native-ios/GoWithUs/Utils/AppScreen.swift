@@ -3,6 +3,7 @@ import Foundation
 enum AppScreen: String, CaseIterable {
     // Bottom Tab Items
     case home = "Home"
+    case homeGrid = "Home Grid"
     case findBuddy = "Buddy"
     case chat = "Chat" // Normal Chat
     case profile = "Profile"

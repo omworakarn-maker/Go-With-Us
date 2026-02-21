@@ -85,28 +85,20 @@ struct UserProfileView: View {
                     VStack(spacing: 28) {
                         // ── Profile Header ──
                         VStack(spacing: 16) {
-                            // Cover art
-                            ZStack(alignment: .bottom) {
-                                Color.gray.opacity(0.1)
-                                .frame(height: 140)
-                                .cornerRadius(24)
-                                
-                                // Avatar with gradient ring
-                                ZStack {
-                                    Circle()
-                                        .strokeBorder(
-                                            Color.adaptiveText.opacity(0.1),
+                            // Avatar with gradient ring
+                            ZStack {
+                                Circle()
+                                    .strokeBorder(
+                                        Color.adaptiveText.opacity(0.1),
                                         lineWidth: 4
-                                        )
-                                        .frame(width: 110, height: 110)
-                                        .background(Circle().fill(Color.adaptiveBackground))
-                                
-                                    UserAvatarView(user: displayUser, size: 100)
-                                        .background(Circle().fill(Color.adaptiveBackground))
-                                }
+                                    )
+                                    .frame(width: 110, height: 110)
+                                    .background(Circle().fill(Color.adaptiveBackground))
+                            
+                                UserAvatarView(user: displayUser, size: 100)
+                                    .background(Circle().fill(Color.adaptiveBackground))
                             }
-                            .offset(y: 50)
-                            .padding(.bottom, 50)
+                            .padding(.top, 16)
                             
                             VStack(spacing: 5) {
                                 Text(displayUser.name)

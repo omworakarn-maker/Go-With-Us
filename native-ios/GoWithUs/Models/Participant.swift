@@ -8,6 +8,7 @@ struct Participant: Codable, Identifiable {
     let user: User?
     let name: String
     let interests: [String]?
+    let status: String?
     let joinedAt: Date
     
     init(
@@ -17,6 +18,7 @@ struct Participant: Codable, Identifiable {
         user: User? = nil,
         name: String,
         interests: [String]? = nil,
+        status: String? = nil,
         joinedAt: Date = Date()
     ) {
         self.id = id
@@ -25,6 +27,7 @@ struct Participant: Codable, Identifiable {
         self.user = user
         self.name = name
         self.interests = interests
+        self.status = status
         self.joinedAt = joinedAt
     }
 }

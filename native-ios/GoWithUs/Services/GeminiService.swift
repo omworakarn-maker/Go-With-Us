@@ -18,12 +18,11 @@ enum AIError: LocalizedError {
 
 class GeminiService {
     static let shared = GeminiService()
-    // Using an ENV variable or fallback to a known working key.
-    // Replace with valid complete key if available, but for now I'll use a placeholder that user can replace, or let's use the one in APIService if any.
-    // Wait, the prompt provided "AIzaSyCBxIlQroyzGdy1jb1br9f671z9pDsg6cM", which looks 39 chars. It might be valid.
-    // The issue might be HTTP status != 200 because of JSON format. Let's fix the JSON structure.
-    private let apiKey = "AIzaSyCBxIlQroyzGdy1jb1br9f671z9pDsg6cM"
-    private let model = "gemini-1.5-flash"
+    // 👉 คำเตือน: ห้ามนำ API Key จริง push ขึ้น GitHub เด็ดขาดเพื่อความปลอดภัย!
+    // กรุณาใส่ API Key ของคุณเวลาต้องการรันทดสอบในเครื่องตัวเอง 
+    // หรือใช้วิธีเก็บใน Secrets.xcconfig / Backend proxy แทน
+    private let apiKey = "" // ใส่ Key ตรงนี้ตอนจะรันในเครื่อง
+    private let model = "gemini-2.5-flash-lite"
     
     private init() {}
     

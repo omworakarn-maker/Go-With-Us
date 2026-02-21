@@ -46,6 +46,7 @@ class TripListViewModel: ObservableObject {
     func loadTrips() async {
         isLoading = true
         errorMessage = nil
+        trips = [] // Clear list to show loading state
         
         do {
             // Map tab to API type

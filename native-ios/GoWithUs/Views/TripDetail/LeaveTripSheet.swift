@@ -7,7 +7,7 @@ struct LeaveTripSheet: View {
     
     var body: some View {
         VStack(spacing: 24) {
-            Image(systemName: "figure.walk.departure")
+            Image(systemName: "person.fill.xmark")
                 .font(.system(size: 60))
                 .foregroundColor(Color(hex: "#EF4444"))
                 .padding(.top, 32)
@@ -28,14 +28,10 @@ struct LeaveTripSheet: View {
                 }) {
                     Text("ยกเลิก")
                         .font(.system(size: 15, weight: .bold))
-                        .foregroundColor(.adaptiveText)
+                        .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(Color.adaptiveBackground)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 14)
-                                .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                        )
+                        .background(Color.black)
                         .cornerRadius(14)
                 }
                 
@@ -69,9 +65,7 @@ struct LeaveTripSheet: View {
             .padding(.top, 10)
             
             Spacer()
-        }
-        .padding()
-        .presentationDetents([.height(250)])
+        .presentationDetents([.height(300)])
         .alert("ไม่สามารถออกจากทริปได้", isPresented: $showErrorAlert) {
             Button("ตกลง", role: .cancel) {}
         } message: {

@@ -98,6 +98,7 @@ model Participant {
   userId    String   @map("user_id")
   name      String   // For now, just store name
   interests String[] // Array of interests
+  status    String   @default("going") // "going" or "interested"
   joinedAt  DateTime @default(now()) @map("joined_at")
   
   // Relations

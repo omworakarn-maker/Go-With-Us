@@ -70,7 +70,6 @@ struct EditProfileView: View {
     
     @State private var selectedInterests: Set<String> = []
     @State private var gender: String = ""
-    @State private var age: String = ""
     @State private var bio: String = ""
     @State private var birthDate = Date()
     @State private var showBirthDatePicker = false
@@ -149,7 +148,7 @@ struct EditProfileView: View {
                                 .foregroundColor(.adaptiveSecondaryText)
                                 .font(.system(size: 16, weight: .medium))
                             if let originalUsername = authViewModel.currentUser?.username, !originalUsername.isEmpty {
-                                Text("\(username)")
+                                Text(originalUsername)
                                     .font(.system(size: 16, weight: .medium))
                                     .foregroundColor(.gray)
                                Spacer()
@@ -204,10 +203,7 @@ struct EditProfileView: View {
                     }
                     .font(.system(size: 16, weight: .medium))
                     
-                    // Age Input
-                    TextField("อายุ", text: $age)
-                        .keyboardType(.numberPad)
-                        .font(.system(size: 16, weight: .medium))
+                    // Age is removed, computed from birth date
                     
                     // Birth Date Picker
                     HStack {
@@ -330,7 +326,9 @@ struct EditProfileView: View {
                                 profileImageBase64 = "data:image/jpeg;base64," + jpegData.base64EncodedString()
                             }
                             
-                            let ageInt = Int(age) ?? nil
+                            let calendar = Calendar.current
+                            let ageInt = calendar.dateComponents([.year], from: birthDate, to: Date()).year
+                            
                             await authViewModel.updateProfile(
                                 name: name,
                                 username: username.isEmpty ? nil : username,
@@ -377,7 +375,6 @@ struct EditProfileView: View {
                     username = user.username ?? ""
                     selectedInterests = Set(user.interests ?? [])
                     gender = user.gender ?? ""
-                    age = user.age.map { String($0) } ?? ""
                     bio = user.bio ?? ""
                     if let birthDate = user.birthDate {
                         self.birthDate = birthDate

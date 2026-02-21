@@ -118,15 +118,16 @@ struct SideMenuView: View {
                                 .font(.headline)
                         }
                         .foregroundColor(.red)
-                        .padding()
-                        .padding(.bottom, 40)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 12)
+                        .padding(.bottom, 60)
                     }
                 }
             }
             .frame(width: UIScreen.main.bounds.width * 0.8)
             .background(Color.adaptiveBackground)
         }
-        .ignoresSafeArea(.all, edges: .vertical) // Don't ignore horizontal safe area to avoid left gap
+        .ignoresSafeArea(.container, edges: .top) // Keep top ignored for full height feel, but respect bottom
         .alert("ออกจากระบบ", isPresented: $showLogoutAlert) {
             Button("ยกเลิก", role: .cancel) {}
             Button("ออกจากระบบ", role: .destructive) {

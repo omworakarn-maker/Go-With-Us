@@ -6,6 +6,7 @@ struct HomeView: View {
     @State private var showNotifications = false
     
     @Binding var showSideMenu: Bool
+    @Binding var currentScreen: AppScreen
     
     var body: some View {
         NavigationStack {
@@ -15,42 +16,61 @@ struct HomeView: View {
                     // Header
                     VStack(spacing: 16) {
                         // Title & Menu
-                        HStack {
-                            Button(action: {
-                                withAnimation {
-                                    showSideMenu.toggle()
-                                }
-                            }) {
-                                Image(systemName: "line.3.horizontal")
-                                    .font(.system(size: 24, weight: .bold))
-                                    .foregroundColor(.adaptiveText)
-                            }
-                            
-                            Spacer()
-                            
+                        ZStack {
+                            // Center Title
                             Text("GoWithUs")
                                 .font(.system(size: 22, weight: .bold))
                                 .foregroundColor(.adaptiveText)
                             
-                            Spacer()
-                            
-                            // Notification Bell
-                            Button(action: {
-                                showNotifications = true
-                            }) {
-                                ZStack(alignment: .topTrailing) {
-                                    Image(systemName: "bell.fill")
-                                        .font(.system(size: 22, weight: .bold))
+                            HStack {
+                                // Left actions
+                                Button(action: {
+                                    withAnimation {
+                                        showSideMenu.toggle()
+                                    }
+                                }) {
+                                    Image(systemName: "line.3.horizontal")
+                                        .font(.system(size: 24, weight: .bold))
                                         .foregroundColor(.adaptiveText)
-                                    
-                                    if notificationPoller.unreadCount > 0 {
-                                        Text("\(notificationPoller.unreadCount)")
-                                            .font(.system(size: 10, weight: .bold))
-                                            .foregroundColor(.white)
-                                            .padding(4)
-                                            .background(Color.red)
+                                }
+                                
+                                Spacer()
+                                
+                                // Right actions
+                                HStack(spacing: 8) {
+                                    // Layout Switcher
+                                    Button(action: {
+                                        withAnimation {
+                                            currentScreen = .homeGrid
+                                        }
+                                    }) {
+                                        Image(systemName: "square.grid.2x2")
+                                            .font(.system(size: 18))
+                                            .foregroundColor(.adaptiveText)
+                                            .padding(8)
+                                            .background(Color.gray.opacity(0.1))
                                             .clipShape(Circle())
-                                            .offset(x: 8, y: -8)
+                                    }
+                                    
+                                    // Notification Bell
+                                    Button(action: {
+                                        showNotifications = true
+                                    }) {
+                                        ZStack(alignment: .topTrailing) {
+                                            Image(systemName: "bell.fill")
+                                                .font(.system(size: 22, weight: .bold))
+                                                .foregroundColor(.adaptiveText)
+                                            
+                                            if notificationPoller.unreadCount > 0 {
+                                                Text("\(notificationPoller.unreadCount)")
+                                                    .font(.system(size: 10, weight: .bold))
+                                                    .foregroundColor(.white)
+                                                    .padding(4)
+                                                    .background(Color.red)
+                                                    .clipShape(Circle())
+                                                    .offset(x: 8, y: -8)
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -93,10 +113,16 @@ struct HomeView: View {
                     .padding(.bottom, 8)
                     
                     // Trip List
-                    if viewModel.isLoading && viewModel.trips.isEmpty {
+                    if viewModel.isLoading {
                         Spacer()
-                        ProgressView()
-                            .tint(.adaptiveText)
+                        VStack(spacing: 12) {
+                            ProgressView()
+                                .scaleEffect(1.5)
+                                .tint(.appPrimary)
+                            Text("กำลังโหลดทริป...")
+                                .font(.system(size: 14))
+                                .foregroundColor(.gray)
+                        }
                         Spacer()
                     } else if let error = viewModel.errorMessage {
                         Spacer()
@@ -161,7 +187,7 @@ struct HomeView: View {
                                 }
                             }
                             .padding()
-                            .padding(.bottom, 0)
+                            .padding(.bottom, 90)
                         }
                         .refreshable {
                             await viewModel.loadTrips()
@@ -181,5 +207,5 @@ struct HomeView: View {
 }
 
 #Preview {
-    HomeView(showSideMenu: .constant(false))
+    HomeView(showSideMenu: .constant(false), currentScreen: .constant(.home))
 }

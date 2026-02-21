@@ -69,6 +69,7 @@ struct ProfileView: View {
                                             // Save locally as cache
                                             if let jpegData = uiImage.jpegData(compressionQuality: 0.5) {
                                                 UserDefaults.standard.set(jpegData, forKey: "local_profile_image")
+                                                UserDefaults.standard.set(user.id, forKey: "local_profile_image_user_id")
                                                 // Upload to backend
                                                 let base64Str = "data:image/jpeg;base64," + jpegData.base64EncodedString()
                                                 await authViewModel.updateProfile(
@@ -87,6 +88,7 @@ struct ProfileView: View {
                                         Task {
                                             localProfileImage = nil
                                             UserDefaults.standard.removeObject(forKey: "local_profile_image")
+                                            UserDefaults.standard.removeObject(forKey: "local_profile_image_user_id")
                                             await authViewModel.updateProfile(
                                                 name: user.name,
                                                 interests: user.interests ?? [],
@@ -395,10 +397,15 @@ struct ProfileView: View {
                 AdminAlertView()
             }
             .onAppear {
-                // Load saved profile image
-                if let data = UserDefaults.standard.data(forKey: "local_profile_image"),
+                // Load saved profile image only if it belongs to the current user
+                if let userId = authViewModel.currentUser?.id,
+                   let savedUserId = UserDefaults.standard.string(forKey: "local_profile_image_user_id"),
+                   userId == savedUserId,
+                   let data = UserDefaults.standard.data(forKey: "local_profile_image"),
                    let image = UIImage(data: data) {
                     localProfileImage = image
+                } else {
+                    localProfileImage = nil
                 }
             }
         }

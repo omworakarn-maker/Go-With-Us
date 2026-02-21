@@ -9,6 +9,7 @@ struct ContentView: View {
     @State private var showingCreateTrip = false
     @State private var badgeCounts: [Tab: Int] = [:]
     @State private var activeTransition: AnyTransition = .identity 
+    @State private var showTabBarWithAnimation = false
     
     var body: some View {
         if authViewModel.isAuthenticated {
@@ -17,7 +18,9 @@ struct ContentView: View {
                 Group {
                     switch currentScreen {
                     case .home:
-                        HomeView(showSideMenu: $showSideMenu)
+                        HomeView(showSideMenu: $showSideMenu, currentScreen: $currentScreen)
+                    case .homeGrid:
+                        HomeGridView(showSideMenu: $showSideMenu, currentScreen: $currentScreen)
                     case .findBuddy:
                         FindBuddyView()
                     case .chat:
@@ -39,12 +42,20 @@ struct ContentView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                if shouldShowTabBar {
+                if shouldShowTabBar && showTabBarWithAnimation {
                     CustomTabBar(
                         selectedTab: selectedTabBinding,
                         onCreateTap: { showingCreateTrip = true },
                         badgeCounts: badgeCounts
                     )
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+            }
+            .onAppear {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
+                        showTabBarWithAnimation = true
+                    }
                 }
             }
             .overlay {

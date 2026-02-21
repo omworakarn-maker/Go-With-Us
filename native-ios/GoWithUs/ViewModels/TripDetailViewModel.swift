@@ -71,7 +71,7 @@ class TripDetailViewModel: ObservableObject {
     }
     
     // MARK: - Join Trip
-    func joinTrip(interests: [String]) async -> Bool {
+    func joinTrip(interests: [String], status: String = "going") async -> Bool {
         isJoining = true
         errorMessage = nil
         
@@ -79,7 +79,7 @@ class TripDetailViewModel: ObservableObject {
             // Get current user's name
             let user = try await AuthService.shared.getCurrentUser()
             
-            trip = try await TripService.shared.joinTrip(id: tripId, name: user.name, interests: interests)
+            trip = try await TripService.shared.joinTrip(id: tripId, name: user.name, interests: interests, status: status)
             showJoinSheet = false
             isJoining = false
             return true

@@ -68,7 +68,8 @@ class TripService {
         category: String,
         isPublic: Bool = true,
         imageUrl: String? = nil,
-        gallery: [String]? = nil
+        gallery: [String]? = nil,
+        itinerary: [DayPlan]? = nil
     ) async throws -> Trip {
         struct CreateTripRequest: Encodable {
             let title: String
@@ -82,6 +83,7 @@ class TripService {
             let isPublic: Bool
             let imageUrl: String?
             let gallery: [String]?
+            let itinerary: [DayPlan]?
         }
         
         struct CreateTripResponse: Decodable {
@@ -100,7 +102,8 @@ class TripService {
             category: category,
             isPublic: isPublic,
             imageUrl: imageUrl,
-            gallery: gallery
+            gallery: gallery,
+            itinerary: itinerary
         )
         
         let response: CreateTripResponse = try await APIService.shared.request(
@@ -125,7 +128,8 @@ class TripService {
         category: String,
         isPublic: Bool = true,
         imageUrl: String? = nil,
-        gallery: [String]? = nil
+        gallery: [String]? = nil,
+        itinerary: [DayPlan]? = nil
     ) async throws -> Trip {
         struct UpdateTripRequest: Encodable {
             let title: String
@@ -139,6 +143,7 @@ class TripService {
             let isPublic: Bool
             let imageUrl: String?
             let gallery: [String]?
+            let itinerary: [DayPlan]?
         }
         
         let request = UpdateTripRequest(
@@ -152,7 +157,8 @@ class TripService {
             category: category,
             isPublic: isPublic,
             imageUrl: imageUrl,
-            gallery: gallery
+            gallery: gallery,
+            itinerary: itinerary
         )
         
         struct UpdateTripResponse: Decodable {
@@ -178,10 +184,11 @@ class TripService {
     }
     
     // MARK: - Join Trip
-    func joinTrip(id: String, name: String, interests: [String]) async throws -> Trip {
+    func joinTrip(id: String, name: String, interests: [String], status: String = "going") async throws -> Trip {
         struct JoinTripRequest: Encodable {
             let name: String
             let interests: [String]
+            let status: String
         }
         
         struct JoinTripResponse: Decodable {
@@ -189,7 +196,7 @@ class TripService {
             let participant: Participant
         }
         
-        let request = JoinTripRequest(name: name, interests: interests)
+        let request = JoinTripRequest(name: name, interests: interests, status: status)
         
         let _: JoinTripResponse = try await APIService.shared.request(
             endpoint: "/trips/\(id)/join",
