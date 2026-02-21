@@ -628,11 +628,11 @@ struct TripDetailView: View {
                                 ZStack {
                                     UserAvatarView(user: p.user, size: 42)
                                     
-                                    // ✅ STATUS RING
+                                    // ✅ RAINBOW RING FOR GOING
                                     let currentStatus = p.status ?? "going"
                                     if currentStatus == "going" {
                                         Circle()
-                                            .stroke(Color.appPrimary, lineWidth: 3.5)
+                                            .stroke(Color.rainbowGradient, lineWidth: 3.5)
                                             .frame(width: 48, height: 48)
                                     } else if currentStatus == "interested" {
                                         Circle()
@@ -661,22 +661,6 @@ struct TripDetailView: View {
                                         }
                                     }
                                     
-                                    // ✅ STATUS DISPLAY (RAINBOW BACK!)
-                                    let displayStatus = p.status ?? "going"
-                                    HStack(spacing: 5) {
-                                        Image(systemName: displayStatus == "interested" ? "star.fill" : "checkmark.seal.fill")
-                                            .font(.system(size: 9, weight: .black))
-                                        Text(displayStatus == "interested" ? "สนใจทริปนี้อยู่" : "จะไปด้วยแน่นอน!")
-                                            .font(.system(size: 11, weight: .black))
-                                    }
-                                    .foregroundColor(.white)
-                                    .padding(.horizontal, 10)
-                                    .padding(.vertical, 5)
-                                    .background(
-                                        displayStatus == "interested" ? AnyView(Color.yellow) : AnyView(Color.appPrimary)
-                                    )
-                                    .cornerRadius(8)
-                                    .shadow(color: (displayStatus == "interested" ? Color.yellow : Color.appPrimary).opacity(0.4), radius: 5, x: 0, y: 2)
                                 }
                                 
                                 Spacer()
@@ -750,30 +734,13 @@ struct TripDetailView: View {
                     // USER ALREADY JOINED
                     VStack(spacing: 10) {
                         HStack(spacing: 12) {
-                            // Current Status Display
-                            HStack {
-                                Text("สถานะ:")
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(.adaptiveSecondaryText)
-                                Text(participant.status == "interested" ? "สนใจ" : "จะไปด้วย")
-                                    .font(.system(size: 14, weight: .bold))
-                                    .foregroundColor(participant.status == "interested" ? .yellow : .appPrimary)
-                            }
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                            .background(Color.adaptiveCardBackground)
-                            .cornerRadius(10)
-                            
-                            Spacer()
-                            
-                            // Switch Status Button
+                            // Switch Status Button (Prominent)
                             Button {
                                 let currentStatus = participant.status ?? "going"
                                 let newStatus = (currentStatus == "going") ? "interested" : "going"
                                 Task {
                                     if await viewModel.joinTrip(interests: participant.interests ?? [], status: newStatus) {
-                                        // RELOAD IMMEDIATELY
-                                        try? await Task.sleep(nanoseconds: 300_000_000) // Small delay for backend sync
+                                        try? await Task.sleep(nanoseconds: 300_000_000)
                                         await viewModel.loadTrip()
                                     }
                                 }
@@ -782,14 +749,14 @@ struct TripDetailView: View {
                                     if viewModel.isJoining {
                                         ProgressView().scaleEffect(0.7)
                                     }
-                                    Text(participant.status == "interested" ? "เปลี่ยนเป็นจะไปด้วย" : "เปลี่ยนเป็นสนใจ")
+                                    Text(participant.status == "interested" ? "เปลี่ยนเป็นจะไปด้วย" : "เปลี่ยนเป็นสนใจแทน")
                                 }
-                                .font(.system(size: 13, weight: .bold))
+                                .font(.system(size: 14, weight: .bold))
                                 .foregroundColor(participant.status == "interested" ? .white : .black)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 8)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
                                 .background(participant.status == "interested" ? Color.appPrimary : Color.yellow)
-                                .cornerRadius(10)
+                                .cornerRadius(12)
                             }
                             .disabled(viewModel.isJoining)
                         }
@@ -846,7 +813,7 @@ struct TripDetailView: View {
                             .background(Color.adaptiveBackground)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 14)
-                                    .stroke(Color.rainbowGradient, lineWidth: 3) // RAINBOW FRAME!
+                                    .stroke(Color.appPrimary, lineWidth: 3) // NO RAINBOW HERE!
                             )
                             .cornerRadius(14)
                             .shadow(color: Color.appAccent.opacity(0.2), radius: 10, x: 0, y: 4)
