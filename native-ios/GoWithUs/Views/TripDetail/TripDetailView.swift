@@ -661,6 +661,21 @@ struct TripDetailView: View {
                                         }
                                     }
                                     
+                                    // Status Badge (Below Name)
+                                    let displayStatus = p.status ?? "going"
+                                    HStack(spacing: 5) {
+                                        Image(systemName: displayStatus == "interested" ? "star.fill" : "checkmark.seal.fill")
+                                            .font(.system(size: 8, weight: .bold))
+                                        Text(displayStatus == "interested" ? "สนใจทริปนี้" : "จะไปด้วยแน่นอน!")
+                                            .font(.system(size: 10, weight: .bold))
+                                    }
+                                    .foregroundColor(displayStatus == "interested" ? .black : .white)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 4)
+                                    .background(
+                                        displayStatus == "interested" ? AnyView(Color.yellow) : AnyView(Color.appPrimary)
+                                    )
+                                    .cornerRadius(8)
                                 }
                                 
                                 Spacer()
