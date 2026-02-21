@@ -62,4 +62,16 @@ extension Color {
     
     /// Subtle background tint for cards
     static let adaptiveCardTint = Color(.tertiarySystemFill)
+    
+    /// Rainbow gradient for special highlights
+    static let rainbowGradient = LinearGradient(
+        colors: [
+            Color(hex: "#FF5F6D"), // Sunset Coral
+            Color(hex: "#FFC371"), // Yellow/Orange
+            Color(hex: "#00B4DB"), // Vibrant Blue
+            Color(hex: "#8E54E9")  // Purple
+        ],
+        startPoint: .leading,
+        endPoint: .trailing
+    )
 }

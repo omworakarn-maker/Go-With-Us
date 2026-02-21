@@ -203,6 +203,23 @@ struct TripDetailView: View {
                 }
                 .font(.system(size: 15, weight: .bold))
                 .foregroundColor(.white.opacity(0.95))
+                
+                // Current User Status Badge (Top right of title)
+                if let userId = viewModel.currentUserId,
+                   let participant = trip.participants?.first(where: { $0.userId == userId }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: participant.status == "interested" ? "star.fill" : "checkmark.seal.fill")
+                        Text(participant.status == "interested" ? "สนใจทริปนี้อยู่" : "คุณจะไปด้วย!")
+                    }
+                    .font(.system(size: 13, weight: .black))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(participant.status == "interested" ? Color.yellow : Color.rainbowGradient)
+                    .cornerRadius(10)
+                    .shadow(color: (participant.status == "interested" ? Color.yellow : Color.appPrimary).opacity(0.5), radius: 8)
+                    .padding(.top, 4)
+                }
             }
             .padding(.horizontal, 22)
             .padding(.bottom, 25)
@@ -599,19 +616,18 @@ struct TripDetailView: View {
                         
                         VStack(spacing: 0) {
                             HStack(spacing: 12) {
-                                // Avatar with colored ring for current user
+                                // Avatar with colored ring for status
                                 UserAvatarView(user: p.user, size: 40)
                                 .overlay(
                                     Group {
                                         if p.status == "going" {
-                                            Circle().stroke(
-                                                LinearGradient(colors: [.appPrimary, .appAccent],
-                                                               startPoint: .topLeading, endPoint: .bottomTrailing),
-                                                lineWidth: 2
-                                            ).frame(width: 44, height: 44)
+                                            Circle()
+                                                .stroke(Color.rainbowGradient, lineWidth: 2.5)
+                                                .frame(width: 46, height: 46)
                                         } else if p.status == "interested" {
-                                            Circle().stroke(Color.yellow, lineWidth: 2)
-                                                .frame(width: 44, height: 44)
+                                            Circle()
+                                                .stroke(Color.yellow, lineWidth: 2.5)
+                                                .frame(width: 46, height: 46)
                                         }
                                     }
                                 )
@@ -637,12 +653,13 @@ struct TripDetailView: View {
                                     
                                     if let status = p.status {
                                         Text(status == "interested" ? "สนใจ" : "จะไปด้วย")
-                                            .font(.system(size: 10, weight: .bold))
-                                            .foregroundColor(status == "interested" ? .yellow : .green)
-                                            .padding(.horizontal, 6)
-                                            .padding(.vertical, 2)
-                                            .background((status == "interested" ? Color.yellow : Color.green).opacity(0.1))
-                                            .cornerRadius(4)
+                                            .font(.system(size: 10, weight: .black))
+                                            .foregroundColor(.white)
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 3)
+                                            .background(status == "interested" ? Color.yellow : Color.appPrimary)
+                                            .cornerRadius(6)
+                                            .shadow(color: (status == "interested" ? Color.yellow : Color.appPrimary).opacity(0.3), radius: 4, x: 0, y: 2)
                                     }
                                 }
                                 
@@ -787,12 +804,9 @@ struct TripDetailView: View {
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 16)
-                            .background(
-                                LinearGradient(colors: [Color.appPrimary, Color.appSecondary],
-                                               startPoint: .leading, endPoint: .trailing)
-                            )
+                            .background(Color.rainbowGradient)
                             .cornerRadius(14)
-                            .shadow(color: Color.appPrimary.opacity(0.25), radius: 10, x: 0, y: 4)
+                            .shadow(color: Color.appAccent.opacity(0.4), radius: 15, x: 0, y: 5)
                         }
                     }
                 } else {
