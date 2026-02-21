@@ -184,20 +184,6 @@ struct TripDetailView: View {
                 .frame(height: 300)
             }
             
-            // Rainbow Frame (Border) if joined/interested
-            if let userId = viewModel.currentUserId,
-               let participant = trip.participants?.first(where: { $0.userId == userId }) {
-                RoundedRectangle(cornerRadius: 0)
-                    .stroke(participant.status == "interested" ? AnyShapeStyle(Color.yellow) : AnyShapeStyle(Color.rainbowGradient), lineWidth: 10)
-                    .frame(height: 300)
-                    .blur(radius: 3)
-                    .opacity(0.4)
-                
-                RoundedRectangle(cornerRadius: 0)
-                    .stroke(participant.status == "interested" ? AnyShapeStyle(Color.yellow) : AnyShapeStyle(Color.rainbowGradient), lineWidth: 4)
-                    .frame(height: 300)
-            }
-            
             // Gradient scrim
             LinearGradient(colors: [.clear, .black.opacity(0.8)],
                            startPoint: .center, endPoint: .bottom)
@@ -642,11 +628,11 @@ struct TripDetailView: View {
                                 ZStack {
                                     UserAvatarView(user: p.user, size: 42)
                                     
-                                    // ✅ RAINBOW RING (Prominent)
+                                    // ✅ STATUS RING
                                     let currentStatus = p.status ?? "going"
                                     if currentStatus == "going" {
                                         Circle()
-                                            .stroke(Color.rainbowGradient, lineWidth: 3.5)
+                                            .stroke(Color.appPrimary, lineWidth: 3.5)
                                             .frame(width: 48, height: 48)
                                     } else if currentStatus == "interested" {
                                         Circle()
@@ -687,7 +673,7 @@ struct TripDetailView: View {
                                     .padding(.horizontal, 10)
                                     .padding(.vertical, 5)
                                     .background(
-                                        displayStatus == "interested" ? AnyView(Color.yellow) : AnyView(Color.rainbowGradient)
+                                        displayStatus == "interested" ? AnyView(Color.yellow) : AnyView(Color.appPrimary)
                                     )
                                     .cornerRadius(8)
                                     .shadow(color: (displayStatus == "interested" ? Color.yellow : Color.appPrimary).opacity(0.4), radius: 5, x: 0, y: 2)
