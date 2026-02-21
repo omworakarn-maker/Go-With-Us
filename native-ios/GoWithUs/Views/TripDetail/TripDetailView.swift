@@ -184,6 +184,20 @@ struct TripDetailView: View {
                 .frame(height: 300)
             }
             
+            // Rainbow Frame (Border) if joined/interested
+            if let userId = viewModel.currentUserId,
+               let participant = trip.participants?.first(where: { $0.userId == userId }) {
+                RoundedRectangle(cornerRadius: 0)
+                    .stroke(participant.status == "interested" ? AnyShapeStyle(Color.yellow) : AnyShapeStyle(Color.rainbowGradient), lineWidth: 10)
+                    .frame(height: 300)
+                    .blur(radius: 3)
+                    .opacity(0.6)
+                
+                RoundedRectangle(cornerRadius: 0)
+                    .stroke(participant.status == "interested" ? AnyShapeStyle(Color.yellow) : AnyShapeStyle(Color.rainbowGradient), lineWidth: 5)
+                    .frame(height: 300)
+            }
+            
             // Gradient scrim
             LinearGradient(colors: [.clear, .black.opacity(0.8)],
                            startPoint: .center, endPoint: .bottom)
@@ -630,12 +644,12 @@ struct TripDetailView: View {
                                     Group {
                                         if p.status == "going" {
                                             Circle()
-                                                .stroke(Color.rainbowGradient, lineWidth: 2.5)
-                                                .frame(width: 46, height: 46)
+                                                .stroke(Color.rainbowGradient, lineWidth: 5) // THICKER RAINBOW FRAME
+                                                .frame(width: 48, height: 48)
                                         } else if p.status == "interested" {
                                             Circle()
-                                                .stroke(Color.yellow, lineWidth: 2.5)
-                                                .frame(width: 46, height: 46)
+                                                .stroke(Color.yellow, lineWidth: 4)
+                                                .frame(width: 48, height: 48)
                                         }
                                     }
                                 )
@@ -737,7 +751,7 @@ struct TripDetailView: View {
                 .frame(height: 24).allowsHitTesting(false)
             
             VStack(spacing: 12) {
-                if let userId = viewModel.currentUserId, 
+                if let userId = viewModel.currentUserId,
                    let participant = trip.participants?.first(where: { $0.userId == userId }) {
                     // USER ALREADY JOINED
                     VStack(spacing: 10) {
@@ -792,14 +806,24 @@ struct TripDetailView: View {
                         Button {
                             Task { await viewModel.joinTrip(interests: [], status: "interested") }
                         } label: {
-                            Text("สนใจ")
-                                .font(.system(size: 15, weight: .bold))
-                                .foregroundColor(.appPrimary)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 16)
-                                .background(Color.appPrimary.opacity(0.08))
-                                .cornerRadius(14)
+                            HStack {
+                                if viewModel.isJoining {
+                                    ProgressView().tint(.yellow).scaleEffect(0.8)
+                                }
+                                Text(viewModel.isJoining ? "กำลังจด..." : "สนใจ")
+                            }
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(.adaptiveText)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(Color.adaptiveBackground)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .stroke(Color.yellow, lineWidth: 3) // Yellow Frame for Interested
+                            )
+                            .cornerRadius(14)
                         }
+                        .disabled(viewModel.isJoining)
 
                         // "Will Go" triggers the join flow (with interests)
                         Button { viewModel.showJoinSheet = true } label: {
@@ -807,14 +831,18 @@ struct TripDetailView: View {
                                 Image(systemName: "person.crop.circle.badge.plus")
                                     .font(.system(size: 14, weight: .bold))
                                 Text("จะไปด้วย")
-                                    .font(.system(size: 15, weight: .bold))
                             }
-                            .foregroundColor(.white)
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(.adaptiveText)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 16)
-                            .background(Color.rainbowGradient)
+                            .background(Color.adaptiveBackground)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .stroke(Color.rainbowGradient, lineWidth: 3) // RAINBOW FRAME!
+                            )
                             .cornerRadius(14)
-                            .shadow(color: Color.appAccent.opacity(0.4), radius: 15, x: 0, y: 5)
+                            .shadow(color: Color.appAccent.opacity(0.2), radius: 10, x: 0, y: 4)
                         }
                     }
                 } else {
