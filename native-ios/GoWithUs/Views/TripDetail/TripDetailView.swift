@@ -184,6 +184,20 @@ struct TripDetailView: View {
                 .frame(height: 300)
             }
             
+            // Rainbow Frame (Border) if joined/interested
+            if let userId = viewModel.currentUserId,
+               let participant = trip.participants?.first(where: { $0.userId == userId }) {
+                RoundedRectangle(cornerRadius: 0)
+                    .stroke(participant.status == "interested" ? AnyShapeStyle(Color.yellow) : AnyShapeStyle(Color.rainbowGradient), lineWidth: 10)
+                    .frame(height: 300)
+                    .blur(radius: 3)
+                    .opacity(0.4)
+                
+                RoundedRectangle(cornerRadius: 0)
+                    .stroke(participant.status == "interested" ? AnyShapeStyle(Color.yellow) : AnyShapeStyle(Color.rainbowGradient), lineWidth: 4)
+                    .frame(height: 300)
+            }
+            
             // Gradient scrim
             LinearGradient(colors: [.clear, .black.opacity(0.8)],
                            startPoint: .center, endPoint: .bottom)
@@ -628,16 +642,16 @@ struct TripDetailView: View {
                                 ZStack {
                                     UserAvatarView(user: p.user, size: 42)
                                     
-                                    // Colored ring ONLY if status is set
-                                    if p.status == "going" {
+                                    // ✅ RAINBOW RING (Prominent)
+                                    let currentStatus = p.status ?? "going"
+                                    if currentStatus == "going" {
                                         Circle()
-                                            .stroke(Color.rainbowGradient, lineWidth: 2.5) // Tighter & Thinner
-                                            .frame(width: 47, height: 47)
-                                    } else if p.status == "interested" {
-                                        // No rainbow for interested, maybe a subtle yellow or nothing
+                                            .stroke(Color.rainbowGradient, lineWidth: 3.5)
+                                            .frame(width: 48, height: 48)
+                                    } else if currentStatus == "interested" {
                                         Circle()
-                                            .stroke(Color.yellow.opacity(0.6), lineWidth: 1.5)
-                                            .frame(width: 47, height: 47)
+                                            .stroke(Color.yellow, lineWidth: 2)
+                                            .frame(width: 48, height: 48)
                                     }
                                 }
                                 .frame(width: 50, height: 50)
@@ -661,32 +675,22 @@ struct TripDetailView: View {
                                         }
                                     }
                                     
-                                    // ✅ STATUS DISPLAY
-                                    let displayStatus = p.status ?? "interested" // Fallback to interested if not sure
+                                    // ✅ STATUS DISPLAY (RAINBOW BACK!)
+                                    let displayStatus = p.status ?? "going"
                                     HStack(spacing: 5) {
                                         Image(systemName: displayStatus == "interested" ? "star.fill" : "checkmark.seal.fill")
-                                            .font(.system(size: 8, weight: .bold))
-                                        Text(displayStatus == "interested" ? "สนใจทริปนี้" : "จะไปด้วยแน่นอน!")
-                                            .font(.system(size: 10, weight: .bold))
+                                            .font(.system(size: 9, weight: .black))
+                                        Text(displayStatus == "interested" ? "สนใจทริปนี้อยู่" : "จะไปด้วยแน่นอน!")
+                                            .font(.system(size: 11, weight: .black))
                                     }
-                                    .foregroundColor(displayStatus == "interested" ? .black : .white)
+                                    .foregroundColor(.white)
                                     .padding(.horizontal, 10)
-                                    .padding(.vertical, 4)
+                                    .padding(.vertical, 5)
                                     .background(
-                                        Group {
-                                            if displayStatus == "going" {
-                                                Color.black.opacity(0.85) // Dark background for contrast
-                                            } else {
-                                                Color.yellow
-                                            }
-                                        }
-                                    )
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .stroke(displayStatus == "going" ? AnyShapeStyle(Color.rainbowGradient) : AnyShapeStyle(Color.clear), lineWidth: 2)
+                                        displayStatus == "interested" ? AnyView(Color.yellow) : AnyView(Color.rainbowGradient)
                                     )
                                     .cornerRadius(8)
-                                    .shadow(color: .black.opacity(0.1), radius: 3)
+                                    .shadow(color: (displayStatus == "interested" ? Color.yellow : Color.appPrimary).opacity(0.4), radius: 5, x: 0, y: 2)
                                 }
                                 
                                 Spacer()
@@ -778,12 +782,13 @@ struct TripDetailView: View {
                             
                             // Switch Status Button
                             Button {
-                                let currentStatus = participant.status ?? "interested" // Use actual status or assume interested
+                                let currentStatus = participant.status ?? "interested"
                                 let newStatus = (currentStatus == "interested") ? "going" : "interested"
                                 Task {
                                     if await viewModel.joinTrip(interests: participant.interests ?? [], status: newStatus) {
-                                        // RELOAD TRIP DATA TO ENSURE STATUS UPDATE
-                                        await viewModel.loadTrip() 
+                                        // RELOAD IMMEDIATELY
+                                        try? await Task.sleep(nanoseconds: 300_000_000) // Small delay for backend sync
+                                        await viewModel.loadTrip()
                                     }
                                 }
                             } label: {
