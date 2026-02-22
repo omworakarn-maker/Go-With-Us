@@ -82,14 +82,21 @@ struct HomeGridView: View {
                     
                     HStack(spacing: 12) {
                         Image(systemName: "magnifyingglass").foregroundColor(.gray)
-                        TextField("ค้นหาทริป...", text: $viewModel.searchText).foregroundColor(.adaptiveText)
+                        TextField(LanguageManager.shared.localizedString(for: "search_trips"), text: $viewModel.searchText).foregroundColor(.adaptiveText)
                     }
                     .padding().background(Color.gray.opacity(0.05))
                     .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.gray.opacity(0.2), lineWidth: 1))
                     .cornerRadius(12).padding(.horizontal)
                     
-                    SegmentedControl(options: ["แนะนำ", "มาใหม่", "ยอดนิยม"], selected: $viewModel.activeTab)
-                        .padding(.horizontal)
+                    SegmentedControl(
+                        options: [
+                            LanguageManager.shared.localizedString(for: "tab_recommended"),
+                            LanguageManager.shared.localizedString(for: "tab_new"),
+                            LanguageManager.shared.localizedString(for: "tab_popular")
+                        ],
+                        selected: $viewModel.activeTab
+                    )
+                    .padding(.horizontal)
                 }
                 .padding(.bottom, 8)
                 
@@ -101,7 +108,7 @@ struct HomeGridView: View {
                             ProgressView()
                                 .scaleEffect(1.5)
                                 .tint(.appPrimary)
-                            Text("กำลังโหลดทริป...")
+                            Text(LanguageManager.shared.localizedString(for: "loading_trips"))
                                 .font(.system(size: 14))
                                 .foregroundColor(.gray)
                                 .padding(.top, 8)
@@ -111,7 +118,7 @@ struct HomeGridView: View {
                     } else if viewModel.trips.isEmpty {
                         VStack {
                             Spacer()
-                            Text("ไม่พบทริป")
+                            Text(LanguageManager.shared.localizedString(for: "no_trips_found"))
                                 .font(.system(size: 16, weight: .bold))
                                 .foregroundColor(.gray)
                             Spacer()

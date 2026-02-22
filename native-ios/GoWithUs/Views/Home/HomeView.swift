@@ -91,7 +91,7 @@ struct HomeView: View {
                             Image(systemName: "magnifyingglass")
                                 .foregroundColor(.gray)
                             
-                            TextField("ค้นหาทริป...", text: $viewModel.searchText)
+                            TextField(LanguageManager.shared.localizedString(for: "search_placeholder"), text: $viewModel.searchText)
                                 .foregroundColor(.adaptiveText)
                         }
                         .padding()
@@ -105,7 +105,11 @@ struct HomeView: View {
                         
                         // New Segmented Control (Tabs)
                         SegmentedControl(
-                            options: ["แนะนำ", "มาใหม่", "ยอดนิยม"],
+                            options: [
+                                LanguageManager.shared.localizedString(for: "tab_recommended"),
+                                LanguageManager.shared.localizedString(for: "tab_new"),
+                                LanguageManager.shared.localizedString(for: "tab_popular")
+                            ],
                             selected: $viewModel.activeTab
                         )
                         .padding(.horizontal)
@@ -119,7 +123,7 @@ struct HomeView: View {
                             ProgressView()
                                 .scaleEffect(1.5)
                                 .tint(.appPrimary)
-                            Text("กำลังโหลดทริป...")
+                            Text(LanguageManager.shared.localizedString(for: "loading_trips"))
                                 .font(.system(size: 14))
                                 .foregroundColor(.gray)
                         }
@@ -166,11 +170,11 @@ struct HomeView: View {
                                         .foregroundColor(.gray.opacity(0.3))
                                 )
                             
-                            Text("ไม่พบทริป")
+                            Text(LanguageManager.shared.localizedString(for: "no_trips_found"))
                                 .font(.system(size: 18, weight: .bold))
                                 .foregroundColor(.adaptiveText)
                             
-                            Text("ลองค้นหาด้วยคำอื่นหรือสร้างทริปใหม่")
+                            Text(LanguageManager.shared.localizedString(for: "try_another_search"))
                                 .font(.system(size: 14))
                                 .foregroundColor(.gray)
                                 .multilineTextAlignment(.center)

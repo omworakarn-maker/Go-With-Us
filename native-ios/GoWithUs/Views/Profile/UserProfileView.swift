@@ -16,6 +16,8 @@ struct UserProfileView: View {
     @State private var reportReason = ""
     @State private var actionMessage = ""
     @State private var showingActionMessage = false
+    @State private var showingWarnAlert = false
+    @State private var warningMessage = ""
     
     var displayUser: User {
         fullUser ?? user
@@ -300,14 +302,28 @@ struct UserProfileView: View {
                 .cancel(Text("ยกเลิก"))
             ]
             
-            // If current user is Admin, they can Ban
+            // If current user is Admin, they can Ban or Warn
             if authViewModel.currentUser?.role == .admin {
                 buttons.insert(.destructive(Text("แบนผู้ใช้ (Ban)")) {
                     Task { await banUser() }
                 }, at: 0)
+                buttons.insert(.default(Text("ตักเตือนผู้ใช้ (Warn)")) {
+                    showingWarnAlert = true
+                }, at: 1)
             }
             
             return ActionSheet(title: Text("จัดการผู้ใช้"), message: nil, buttons: buttons)
+        }
+        .alert("ตักเตือนผู้ใช้นี้", isPresented: $showingWarnAlert) {
+            TextField("ระบุข้อความตักเตือน", text: $warningMessage)
+            Button("ยกเลิก", role: .cancel) {
+                warningMessage = ""
+            }
+            Button("ส่งคำเตือน") {
+                Task { await warnUser() }
+            }
+        } message: {
+            Text("ข้อความนี้จะถูกส่งไปยังผู้ใช้ในรูปแบบการแจ้งเตือนจากระบบ")
         }
         .alert("รายงานผู้ใช้นี้", isPresented: $showingReportAlert) {
             TextField("ระบุเหตุผล (เช่น สแปม, ก้าวร้าว)", text: $reportReason)
@@ -407,6 +423,19 @@ struct UserProfileView: View {
             showingActionMessage = true
         } catch {
             actionMessage = "เกิดข้อผิดพลาดในการแบนผู้ใช้"
+            showingActionMessage = true
+        }
+    }
+    
+    private func warnUser() async {
+        guard !warningMessage.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+        do {
+            try await AuthService.shared.warnUser(userId: user.id, message: warningMessage)
+            actionMessage = "ส่งคำเตือนไปยังผู้ใช้เรียบร้อยแล้ว"
+            showingActionMessage = true
+            warningMessage = ""
+        } catch {
+            actionMessage = "เกิดข้อผิดพลาดในการส่งคำเตือน"
             showingActionMessage = true
         }
     }

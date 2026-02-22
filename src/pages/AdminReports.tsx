@@ -28,6 +28,9 @@ const AdminReports: React.FC = () => {
     const { user, isLoading: authLoading } = useAuth();
     const [reports, setReports] = useState<Report[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [showWarnModal, setShowWarnModal] = useState(false);
+    const [warningMsg, setWarningMsg] = useState("");
+    const [targetUserId, setTargetUserId] = useState("");
 
     useEffect(() => {
         if (!authLoading && user?.role !== 'admin') {
@@ -62,6 +65,20 @@ const AdminReports: React.FC = () => {
         } catch (error) {
             console.error('Error banning user:', error);
             alert('เกิดข้อผิดพลาดในการทำรายการ');
+        }
+    };
+
+    const handleWarnUser = async () => {
+        if (!warningMsg.trim() || !targetUserId) return;
+        try {
+            await userAPI.warnUser(targetUserId, warningMsg);
+            alert("ส่งคำเตือนไปยังผู้ใช้เรียบร้อยแล้ว");
+            setShowWarnModal(false);
+            setWarningMsg("");
+            setTargetUserId("");
+        } catch (err) {
+            console.error('Error warning user:', err);
+            alert("เกิดข้อผิดพลาดในการส่งคำเตือน");
         }
     };
 
@@ -127,7 +144,7 @@ const AdminReports: React.FC = () => {
                                         </div>
 
                                         {/* Action Button */}
-                                        <div>
+                                        <div className="flex gap-2">
                                             {report.reported.isBanned ? (
                                                 <button
                                                     onClick={() => handleBanUser(report.reported.id, false)}
@@ -136,12 +153,23 @@ const AdminReports: React.FC = () => {
                                                     ปลดแบน
                                                 </button>
                                             ) : (
-                                                <button
-                                                    onClick={() => handleBanUser(report.reported.id, true)}
-                                                    className="px-4 py-2 bg-black text-white text-xs font-bold rounded-lg hover:bg-red-600 transition-all shadow-md"
-                                                >
-                                                    แบนผู้ใช้
-                                                </button>
+                                                <>
+                                                    <button
+                                                        onClick={() => {
+                                                            setTargetUserId(report.reported.id);
+                                                            setShowWarnModal(true);
+                                                        }}
+                                                        className="px-4 py-2 bg-blue-50 text-blue-600 text-xs font-bold rounded-lg hover:bg-blue-100 transition-all border border-blue-100"
+                                                    >
+                                                        ตักเตือน
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleBanUser(report.reported.id, true)}
+                                                        className="px-4 py-2 bg-black text-white text-xs font-bold rounded-lg hover:bg-red-600 transition-all shadow-md"
+                                                    >
+                                                        แบนผู้ใช้
+                                                    </button>
+                                                </>
                                             )}
                                         </div>
                                     </div>
@@ -155,6 +183,39 @@ const AdminReports: React.FC = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Warn Modal */}
+            {showWarnModal && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in">
+                    <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl">
+                        <h3 className="text-xl font-bold mb-2 text-gray-900">ตักเตือนผู้ใช้</h3>
+                        <p className="text-sm text-gray-500 mb-6">ข้อความนี้จะถูกส่งไปยังผู้ใช้ที่ถูกรายงานเพื่อเตือนพฤติกรรม</p>
+
+                        <textarea
+                            value={warningMsg}
+                            onChange={(e) => setWarningMsg(e.target.value)}
+                            placeholder="ระบุข้อความตักเตือน..."
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 text-sm focus:outline-none focus:ring-2 focus:ring-black mb-6 min-h-[100px]"
+                        ></textarea>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => { setShowWarnModal(false); setWarningMsg(""); setTargetUserId(""); }}
+                                className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-colors"
+                            >
+                                ยกเลิก
+                            </button>
+                            <button
+                                onClick={handleWarnUser}
+                                disabled={!warningMsg.trim()}
+                                className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors disabled:opacity-50"
+                            >
+                                ส่งคำเตือน
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

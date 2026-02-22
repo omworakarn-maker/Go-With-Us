@@ -143,3 +143,105 @@ export const matchTrips = async (req, res) => {
         res.status(500).json({ error: 'Internal Server Error' });
     }
 };
+
+// Like or Dislike a User
+export const likeUser = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const { targetId, status } = req.body; // status: "like" or "dislike"
+
+        if (!targetId || !['like', 'dislike'].includes(status)) {
+            return res.status(400).json({ error: 'Invalid request' });
+        }
+
+        // Check if mutual like exists
+        let isMutual = false;
+        if (status === 'like') {
+            const oppositeLike = await prisma.userMatch.findFirst({
+                where: {
+                    likerId: targetId,
+                    likedId: userId,
+                    status: 'like'
+                }
+            });
+
+            if (oppositeLike) {
+                isMutual = true;
+                // Update opposite to mutual
+                await prisma.userMatch.update({
+                    where: { id: oppositeLike.id },
+                    data: { isMutual: true }
+                });
+
+                // Also create a notification for the other user
+                await prisma.notification.create({
+                    data: {
+                        userId: targetId,
+                        title: "It's a Match! 🎉",
+                        message: "คุณมีเพื่อนใหม่ที่แมตช์กันแล้ว เข้าไปทำความรู้จักกันเลย!",
+                        type: "alert"
+                    }
+                });
+            }
+        }
+
+        // Create or update match
+        const match = await prisma.userMatch.upsert({
+            where: {
+                likerId_likedId: {
+                    likerId: userId,
+                    likedId: targetId
+                }
+            },
+            update: { status, isMutual },
+            create: {
+                likerId: userId,
+                likedId: targetId,
+                status,
+                isMutual
+            }
+        });
+
+        res.json({ success: true, isMutual, match });
+
+    } catch (error) {
+        console.error('Like User Error:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+};
+
+// Get Mutual Matches (People you can chat with)
+export const getMutualMatches = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+
+        const matches = await prisma.userMatch.findMany({
+            where: {
+                OR: [
+                    { likerId: userId, isMutual: true },
+                    { likedId: userId, isMutual: true }
+                ]
+            }
+        });
+
+        const otherUserIds = matches.map(m => m.likerId === userId ? m.likedId : m.likerId);
+
+        const users = await prisma.user.findMany({
+            where: { id: { in: otherUserIds } },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                profileImage: true,
+                interests: true,
+                isVerified: true
+            }
+        });
+
+        res.json({ matches: users });
+
+    } catch (error) {
+        console.error('Get Mutual Matches Error:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+};

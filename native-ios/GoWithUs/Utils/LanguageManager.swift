@@ -32,6 +32,7 @@ class LanguageManager: ObservableObject {
     func localizedString(for key: String) -> String {
         // Implement basic mapping for the most used text
         let map: [String: [AppLanguage: String]] = [
+            // Menu / Tabs
             "home": [.thai: "หน้าแรก", .english: "Home"],
             "explore": [.thai: "ที่ปรึกษา", .english: "Explore"],
             "find_friend": [.thai: "หาเพื่อน", .english: "Find Buddy"],
@@ -41,7 +42,47 @@ class LanguageManager: ObservableObject {
             "profile": [.thai: "โปรไฟล์", .english: "Profile"],
             "settings": [.thai: "ตั้งค่า", .english: "Settings"],
             "language": [.thai: "ภาษา", .english: "Language"],
-            "logout": [.thai: "ออกจากระบบ", .english: "Logout"]
+            "logout": [.thai: "ออกจากระบบ", .english: "Logout"],
+            "ai_chat": [.thai: "คุยกับ AI", .english: "AI Consultant"],
+            
+            // Home / Search
+            "search_placeholder": [.thai: "ค้นหาทริป...", .english: "Search trips..."],
+            "tab_recommended": [.thai: "แนะนำ", .english: "Recommended"],
+            "tab_new": [.thai: "มาใหม่", .english: "New"],
+            "tab_popular": [.thai: "ยอดนิยม", .english: "Popular"],
+            "loading_trips": [.thai: "กำลังโหลดทริป...", .english: "Loading trips..."],
+            "no_trips_found": [.thai: "ไม่พบทริป", .english: "No trips found"],
+            "try_another_search": [.thai: "ลองค้นหาด้วยคำอื่นหรือสร้างทริปใหม่", .english: "Try searching something else or create a new trip"],
+            
+            // AI Chat
+            "ai_header": [.thai: "ที่ปรึกษา", .english: "AI Consultant"],
+            "ai_input_placeholder": [.thai: "พิมพ์ข้อความ...", .english: "Type a message..."],
+            "ai_welcome_message": [.thai: "สวัสดีครับ! ผมคือที่ปรึกษาการท่องเที่ยว มีอะไรให้ผมช่วยแนะนำหรือวางแผนทริปไหมครับ? 🌍\n\n💡 ลองบอกผมว่า:\n• อยากไปเที่ยวที่ไหน\n• งบประมาณเท่าไหร่\n• หรือพิมพ์ \"ร่างทริป\" เพื่อให้ผมสร้างแผนทริปให้", .english: "Hello! I am your travel consultant. How can I help you plan your trip? 🌍\n\n💡 Try telling me:\n• Where you want to go\n• Your budget\n• Or type \"Draft trip\" so I can create a plan for you"],
+            "ai_draft_ready": [.thai: "🎉 ร่างทริปพร้อมแล้ว!", .english: "🎉 Trip draft is ready!"],
+            "ai_create_now": [.thai: "สร้างเลย", .english: "Create Now"],
+            "ai_edit_before": [.thai: "ดูและแก้ไข", .english: "Review & Edit"],
+            
+            // Profile
+            "edit": [.thai: "แก้ไข", .english: "Edit"],
+            "save": [.thai: "บันทึก", .english: "Save"],
+            "cancel": [.thai: "ยกเลิก", .english: "Cancel"],
+            "gender": [.thai: "เพศ", .english: "Gender"],
+            "age": [.thai: "อายุ", .english: "Age"],
+            "bio": [.thai: "ประวัติส่วนตัว", .english: "Bio"],
+            "interests": [.thai: "ความสนใจ", .english: "Interests"],
+            "travel_style": [.thai: "สไตล์การเดินทาง", .english: "Travel Style"],
+            "not_verified": [.thai: "ยังไม่ยืนยันตัวตน", .english: "Not Verified"],
+            "verified": [.thai: "ยืนยันตัวตนแล้ว", .english: "Verified"],
+            
+            // Alerts
+            "logout_confirm": [.thai: "คุณต้องการออกจากระบบใช่หรือไม่?", .english: "Are you sure you want to logout?"],
+            "language_change_title": [.thai: "เปลี่ยนภาษาสำเร็จ", .english: "Language Changed"],
+            "language_change_message": [.thai: "กรุณาปิดแอพและเปิดใหม่เพื่อให้การเปลี่ยนแปลงมีผลสมบูรณ์", .english: "Please close and restart the app for the changes to take full effect."],
+            "ok": [.thai: "ตกลง", .english: "OK"],
+            "refresh": [.thai: "รีเฟรช", .english: "Refresh"],
+            "loading_buddies": [.thai: "กำลังค้นหาเพื่อนใหม่...", .english: "Finding new buddies..."],
+            "try_again": [.thai: "ลองใหม่", .english: "Try Again"],
+            "close": [.thai: "ปิด", .english: "Close"]
         ]
         
         return map[key]?[currentLanguage] ?? key

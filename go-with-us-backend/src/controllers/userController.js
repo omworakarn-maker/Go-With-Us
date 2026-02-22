@@ -429,6 +429,41 @@ export const banUser = async (req, res) => {
     }
 };
 
+// Warn a user (Admin only)
+export const warnUser = async (req, res) => {
+    try {
+        const { userId: adminId } = req.user;
+        const { targetId } = req.params;
+        const { message } = req.body;
+
+        if (!message) {
+            return res.status(400).json({ error: 'Warning message is required' });
+        }
+
+        // Verify admin
+        const admin = await prisma.user.findUnique({ where: { id: adminId } });
+        if (!admin || admin.role !== 'admin') {
+            return res.status(403).json({ error: 'Admin access required' });
+        }
+
+        // Create warning notification
+        await prisma.notification.create({
+            data: {
+                title: 'คำเตือนจากผู้ดูแลระบบ',
+                message,
+                type: 'system',
+                userId: targetId,
+                targetId: 'admin_warning'
+            }
+        });
+
+        res.status(200).json({ message: 'Warning sent successfully' });
+    } catch (error) {
+        console.error('Error warning user:', error);
+        res.status(500).json({ error: 'Server error while warning user' });
+    }
+};
+
 // Get all reports (Admin only)
 export const getAllReports = async (req, res) => {
     try {

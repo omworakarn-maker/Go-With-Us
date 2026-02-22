@@ -67,7 +67,7 @@ class TripListViewModel: ObservableObject {
             )
             
             // Local Filtering for End Date (Range)
-            if let endDate = selectedDate, let rangeEnd = selectedDate, let userSelectionEnd = selectedEndDate {
+            if let userSelectionEnd = selectedEndDate {
                  // Logic: selectedDate is Start. selectedEndDate is End.
                  // API returns trips starting >= selectedDate.
                  // We want trips starting <= selectedEndDate also?

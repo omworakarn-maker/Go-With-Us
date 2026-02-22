@@ -99,7 +99,7 @@ struct ProfileView: View {
                                         HStack(spacing: 4) {
                                             Image(systemName: "trash")
                                                 .font(.system(size: 11))
-                                            Text("ลบรูป")
+                                            Text(LanguageManager.shared.currentLanguage == .thai ? "ลบรูป" : "Delete")
                                                 .font(.system(size: 12, weight: .bold))
                                         }
                                         .foregroundColor(.red)
@@ -146,7 +146,7 @@ struct ProfileView: View {
                                 HStack(spacing: 5) {
                                     Image(systemName: "checkmark.seal.fill")
                                         .foregroundColor(.green)
-                                    Text("ยืนยันตัวตนแล้ว")
+                                    Text(LanguageManager.shared.localizedString(for: "verified"))
                                         .font(.system(size: 13, weight: .bold))
                                         .foregroundColor(.green)
                                 }
@@ -158,7 +158,7 @@ struct ProfileView: View {
                                 HStack(spacing: 5) {
                                     Image(systemName: "clock.fill")
                                         .foregroundColor(.orange)
-                                    Text("รอตรวจสอบข้อมูล")
+                                    Text(LanguageManager.shared.currentLanguage == .thai ? "รอตรวจสอบข้อมูล" : "Pending")
                                         .font(.system(size: 13, weight: .bold))
                                         .foregroundColor(.orange)
                                 }
@@ -180,7 +180,7 @@ struct ProfileView: View {
                                 Link(destination: verificationURL) {
                                     HStack(spacing: 5) {
                                         Image(systemName: "exclamationmark.shield.fill")
-                                        Text("ยังไม่ยืนยันตัวตน (คลิกเพื่อยืนยัน)")
+                                        Text(LanguageManager.shared.localizedString(for: "not_verified") + (LanguageManager.shared.currentLanguage == .thai ? " (คลิกเพื่อยืนยัน)" : " (Click to verify)"))
                                             .font(.system(size: 13, weight: .bold))
                                     }
                                     .foregroundColor(.white)
@@ -199,13 +199,13 @@ struct ProfileView: View {
                                     HStack(spacing: 12) {
                                         if let gender = user.gender {
                                             VStack(alignment: .leading, spacing: 6) {
-                                                Text("เพศ")
+                                                Text(LanguageManager.shared.localizedString(for: "gender"))
                                                     .font(.system(size: 11, weight: .bold))
                                                     .foregroundColor(.adaptiveSecondaryText)
                                                     .textCase(.uppercase)
                                                     .tracking(1)
                                                 
-                                                Text(gender == "male" ? "ชาย" : gender == "female" ? "หญิง" : "อื่นๆ")
+                                                Text(gender == "male" ? (LanguageManager.shared.currentLanguage == .thai ? "ชาย" : "Male") : gender == "female" ? (LanguageManager.shared.currentLanguage == .thai ? "หญิง" : "Female") : (LanguageManager.shared.currentLanguage == .thai ? "อื่นๆ" : "Other"))
                                                     .font(.system(size: 14, weight: .semibold))
                                                     .foregroundColor(.adaptiveText)
                                             }
@@ -217,13 +217,13 @@ struct ProfileView: View {
                                         
                                         if let age = user.age {
                                             VStack(alignment: .leading, spacing: 6) {
-                                                Text("อายุ")
+                                                Text(LanguageManager.shared.localizedString(for: "age"))
                                                     .font(.system(size: 11, weight: .bold))
                                                     .foregroundColor(.adaptiveSecondaryText)
                                                     .textCase(.uppercase)
                                                     .tracking(1)
                                                 
-                                                Text("\(age) ปี")
+                                                Text("\(age) \(LanguageManager.shared.currentLanguage == .thai ? "ปี" : "Years")")
                                                     .font(.system(size: 14, weight: .semibold))
                                                     .foregroundColor(.adaptiveText)
                                             }
@@ -238,7 +238,7 @@ struct ProfileView: View {
                                 // Bio Section
                                 if let bio = user.bio, !bio.trimmingCharacters(in: .whitespaces).isEmpty {
                                     VStack(alignment: .leading, spacing: 12) {
-                                        Text("ประวัติส่วนตัว")
+                                        Text(LanguageManager.shared.localizedString(for: "bio"))
                                             .font(.system(size: 11, weight: .bold))
                                             .foregroundColor(.adaptiveSecondaryText)
                                             .textCase(.uppercase)
@@ -261,7 +261,7 @@ struct ProfileView: View {
                                 
                                 if let style = user.travelStyle {
                                     VStack(alignment: .leading, spacing: 12) {
-                                        Text("สไตล์การเดินทาง")
+                                        Text(LanguageManager.shared.localizedString(for: "travel_style"))
                                             .font(.system(size: 11, weight: .bold))
                                             .foregroundColor(.adaptiveSecondaryText)
                                             .textCase(.uppercase)
@@ -302,7 +302,7 @@ struct ProfileView: View {
                                 
                                 if let interests = user.interests, !interests.isEmpty {
                                     VStack(alignment: .leading, spacing: 12) {
-                                        Text("ความสนใจ")
+                                        Text(LanguageManager.shared.localizedString(for: "interests"))
                                             .font(.system(size: 11, weight: .bold))
                                             .foregroundColor(.adaptiveSecondaryText)
                                             .textCase(.uppercase)
@@ -351,7 +351,7 @@ struct ProfileView: View {
                             Button(action: { showLogoutAlert = true }) {
                                 HStack(spacing: 8) {
                                     Image(systemName: "arrow.right.square")
-                                    Text("ออกจากระบบ")
+                                    Text(LanguageManager.shared.localizedString(for: "logout"))
                                         .font(.system(size: 15, weight: .bold))
                                 }
                                 .foregroundColor(.adaptiveText)
@@ -374,16 +374,16 @@ struct ProfileView: View {
                     VStack(spacing: 16) {
                         ProgressView()
                             .tint(.adaptiveText)
-                        Text("กำลังโหลด...")
+                        Text(LanguageManager.shared.currentLanguage == .thai ? "กำลังโหลด..." : "Loading...")
                             .foregroundColor(.adaptiveSecondaryText)
                     }
                 }
             }
-            .navigationTitle("โปรไฟล์")
+            .navigationTitle(LanguageManager.shared.localizedString(for: "profile"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("แก้ไข") {
+                    Button(LanguageManager.shared.localizedString(for: "edit")) {
                         showEditProfile = true
                     }
                     .foregroundColor(.appAccent)
@@ -409,13 +409,13 @@ struct ProfileView: View {
                 }
             }
         }
-        .alert("ออกจากระบบ", isPresented: $showLogoutAlert) {
-            Button("ยกเลิก", role: .cancel) {}
-            Button("ออกจากระบบ", role: .destructive) {
+        .alert(LanguageManager.shared.localizedString(for: "logout"), isPresented: $showLogoutAlert) {
+            Button(LanguageManager.shared.localizedString(for: "cancel"), role: .cancel) {}
+            Button(LanguageManager.shared.localizedString(for: "logout"), role: .destructive) {
                 authViewModel.logout()
             }
         } message: {
-            Text("คุณต้องการออกจากระบบใช่หรือไม่?")
+            Text(LanguageManager.shared.localizedString(for: "logout_confirm"))
         }
     }
     

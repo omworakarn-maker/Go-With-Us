@@ -26,4 +26,24 @@ class MatchService {
             method: .get
         )
     }
+    
+    func likeUser(targetId: String, status: String) async throws -> LikeResponse {
+        return try await APIService.shared.request(
+            endpoint: "/match/buddy/like",
+            method: .post,
+            body: ["targetId": targetId, "status": status]
+        )
+    }
+    
+    func getMutualMatches() async throws -> MatchResponse {
+        return try await APIService.shared.request(
+            endpoint: "/match/buddy/mutual",
+            method: .get
+        )
+    }
+}
+
+struct LikeResponse: Codable {
+    let success: Bool
+    let isMutual: Bool
 }

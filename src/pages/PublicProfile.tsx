@@ -33,6 +33,8 @@ const PublicProfile: React.FC = () => {
     const [showReportModal, setShowReportModal] = useState(false);
     const [reportReason, setReportReason] = useState("");
     const [actionMsg, setActionMsg] = useState("");
+    const [showWarnModal, setShowWarnModal] = useState(false);
+    const [warningMsg, setWarningMsg] = useState("");
 
     useEffect(() => {
         fetchPublicProfile();
@@ -89,6 +91,18 @@ const PublicProfile: React.FC = () => {
             setActionMsg("ทำการแบนผู้ใช้ท่านนี้เรียบร้อยแล้ว");
         } catch (err) {
             setActionMsg("เกิดข้อผิดพลาดในการแบนผู้ใช้");
+        }
+    };
+
+    const handleWarn = async () => {
+        if (!warningMsg.trim() || !userId) return;
+        try {
+            await userAPI.warnUser(userId, warningMsg);
+            setActionMsg("ส่งคำเตือนไปยังผู้ใช้เรียบร้อยแล้ว");
+            setShowWarnModal(false);
+            setWarningMsg("");
+        } catch (err) {
+            setActionMsg("เกิดข้อผิดพลาดในการส่งคำเตือน");
         }
     };
 
@@ -159,12 +173,20 @@ const PublicProfile: React.FC = () => {
                                             รายงานผู้ใช้ (Report)
                                         </button>
                                         {currentUser.role === 'admin' && (
-                                            <button
-                                                onClick={() => { setShowMenu(false); handleBan(); }}
-                                                className="w-full px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 border-t border-gray-50 transition-colors text-left"
-                                            >
-                                                แบนผู้ใช้ (Ban)
-                                            </button>
+                                            <>
+                                                <button
+                                                    onClick={() => { setShowMenu(false); handleBan(); }}
+                                                    className="w-full px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 border-t border-gray-100 transition-colors text-left"
+                                                >
+                                                    แบนผู้ใช้ (Ban)
+                                                </button>
+                                                <button
+                                                    onClick={() => { setShowMenu(false); setShowWarnModal(true); }}
+                                                    className="w-full px-4 py-3 text-sm font-medium text-blue-600 hover:bg-blue-50 border-t border-gray-100 transition-colors text-left"
+                                                >
+                                                    ตักเตือนผู้ใช้ (Warn)
+                                                </button>
+                                            </>
                                         )}
                                     </div>
                                 )}
@@ -273,6 +295,39 @@ const PublicProfile: React.FC = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Warn Modal */}
+            {showWarnModal && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in">
+                    <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl">
+                        <h3 className="text-xl font-bold mb-2">ตักเตือนผู้ใช้นี้</h3>
+                        <p className="text-sm text-gray-500 mb-6">ข้อความนี้จะถูกส่งไปยังผู้ใช้ในรูปแบบการแจ้งเตือนจากระบบ</p>
+
+                        <textarea
+                            value={warningMsg}
+                            onChange={(e) => setWarningMsg(e.target.value)}
+                            placeholder="ระบุข้อความตักเตือน"
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 text-sm focus:outline-none focus:ring-2 focus:ring-black mb-6 min-h-[100px]"
+                        ></textarea>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => { setShowWarnModal(false); setWarningMsg(""); }}
+                                className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-colors"
+                            >
+                                ยกเลิก
+                            </button>
+                            <button
+                                onClick={handleWarn}
+                                disabled={!warningMsg.trim()}
+                                className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors disabled:opacity-50"
+                            >
+                                ส่งคำเตือน
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Action Message Toast */}
             {actionMsg && (

@@ -25,7 +25,7 @@ struct AIChatView: View {
                     Spacer()
                     
                     VStack(spacing: 4) {
-                        Text("ที่ปรึกษา")
+                        Text(LanguageManager.shared.localizedString(for: "ai_header"))
                             .font(.system(size: 22, weight: .bold))
                             .foregroundColor(.adaptiveText)
                     }
@@ -81,7 +81,7 @@ struct AIChatView: View {
                     VStack(spacing: 12) {
                         HStack {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("🎉 ร่างทริปพร้อมแล้ว!")
+                                Text(LanguageManager.shared.localizedString(for: "ai_draft_ready"))
                                     .font(.headline)
                                     .foregroundColor(.adaptiveText)
                                 Text(draft.title)
@@ -102,7 +102,7 @@ struct AIChatView: View {
                         VStack(spacing: 8) {
                             HStack(spacing: 16) {
                                 DraftInfoPill(icon: "mappin", text: draft.destination, color: .appAccent)
-                                DraftInfoPill(icon: "calendar", text: "\(draft.startDate) → \(draft.endDate)", color: .appPrimary)
+                                DraftInfoPill(icon: "calendar", text: draft.endDate != nil ? "\(draft.startDate) → \(draft.endDate!)" : draft.startDate, color: .appPrimary)
                             }
                             HStack(spacing: 16) {
                                 DraftInfoPill(icon: "banknote", text: "\(draft.budget) ฿", color: Color(hex: "#2ECC71"))
@@ -124,7 +124,7 @@ struct AIChatView: View {
                                         Image(systemName: "bolt.fill")
                                             .font(.system(size: 12))
                                     }
-                                    Text("สร้างเลย")
+                                    Text(LanguageManager.shared.localizedString(for: "ai_create_now"))
                                         .font(.system(size: 14, weight: .bold))
                                 }
                                 .foregroundColor(.white)
@@ -148,7 +148,7 @@ struct AIChatView: View {
                                 HStack(spacing: 4) {
                                     Image(systemName: "pencil")
                                         .font(.system(size: 12))
-                                    Text("ดูและแก้ไข")
+                                    Text(LanguageManager.shared.localizedString(for: "ai_edit_before"))
                                         .font(.system(size: 14, weight: .bold))
                                 }
                                 .foregroundColor(.adaptiveText)
@@ -172,7 +172,7 @@ struct AIChatView: View {
                 VStack(spacing: 0) {
                     Divider()
                     HStack(spacing: 12) {
-                        TextField("พิมพ์ข้อความ...", text: $viewModel.inputText)
+                        TextField(LanguageManager.shared.localizedString(for: "ai_input_placeholder"), text: $viewModel.inputText)
                             .padding(12)
                             .background(Color.gray.opacity(0.1))
                             .cornerRadius(24)
@@ -218,7 +218,7 @@ struct AIChatView: View {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
         let start = formatter.date(from: draft.startDate) ?? Date()
-        let end = formatter.date(from: draft.endDate) ?? Date().addingTimeInterval(86400)
+        let end = draft.endDate.flatMap { formatter.date(from: $0) }
         
         // Append tags as hashtags to description
         let tagsString = (draft.tags ?? []).isEmpty ? "" : "\n" + (draft.tags ?? []).map { "#\($0)" }.joined(separator: " ")
@@ -330,14 +330,14 @@ class AIChatViewModel: ObservableObject {
     @Published var isLoading = false
     
     init() {
-        self.messages = [ChatMessage(id: UUID(), content: "สวัสดีครับ! ผมคือที่ปรึกษาการท่องเที่ยว มีอะไรให้ผมช่วยแนะนำหรือวางแผนทริปไหมครับ? 🌍\n\n💡 ลองบอกผมว่า:\n• อยากไปเที่ยวที่ไหน\n• งบประมาณเท่าไหร่\n• หรือพิมพ์ \"ร่างทริป\" เพื่อให้ผมสร้างแผนทริปให้", isUser: false, timestamp: Date())]
+        self.messages = [ChatMessage(id: UUID(), content: LanguageManager.shared.localizedString(for: "ai_welcome_message"), isUser: false, timestamp: Date())]
     }
     
     @Published var tripDraft: TripDraft?
     @Published var showDraftAlert = false
     
     func clearChat() {
-        messages = [ChatMessage(id: UUID(), content: "สวัสดีครับ! ผมคือที่ปรึกษาการท่องเที่ยว มีอะไรให้ผมช่วยแนะนำหรือวางแผนทริปไหมครับ? 🌍\n\n💡 ลองบอกผมว่า:\n• อยากไปเที่ยวที่ไหน\n• งบประมาณเท่าไหร่\n• หรือพิมพ์ \"ร่างทริป\" เพื่อให้ผมสร้างแผนทริปให้", isUser: false, timestamp: Date())]
+        messages = [ChatMessage(id: UUID(), content: LanguageManager.shared.localizedString(for: "ai_welcome_message"), isUser: false, timestamp: Date())]
         tripDraft = nil
         showDraftAlert = false
         inputText = ""

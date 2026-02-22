@@ -6,6 +6,7 @@ struct SideMenuView: View {
     @Binding var transition: AnyTransition
     @EnvironmentObject var authViewModel: AuthViewModel
     @State private var showLogoutAlert = false
+    @State private var showLanguageAlert = false
     
     var body: some View {
         ZStack(alignment: .leading) {
@@ -57,7 +58,7 @@ struct SideMenuView: View {
                     MenuButton(icon: "house", text: LanguageManager.shared.localizedString(for: "home"), targetScreen: .home, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
                     MenuButton(icon: "arrow.triangle.2.circlepath", text: LanguageManager.shared.localizedString(for: "match"), targetScreen: .matchTrip, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
                     MenuButton(icon: "suitcase", text: LanguageManager.shared.localizedString(for: "my_trips"), targetScreen: .myTrips, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
-                    MenuButton(icon: "bubble.left.and.text.bubble.right", text: LanguageManager.shared.currentLanguage == .thai ? "คุยกับ AI" : "AI Agent", targetScreen: .aiChat, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
+                    MenuButton(icon: "bubble.left.and.text.bubble.right", text: LanguageManager.shared.localizedString(for: "ai_chat"), targetScreen: .aiChat, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
                     MenuButton(icon: "person.crop.circle", text: LanguageManager.shared.localizedString(for: "profile"), targetScreen: .profile, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
                 }
                 .padding(.horizontal)
@@ -66,7 +67,7 @@ struct SideMenuView: View {
                 
                 // Settings Header
                 VStack(alignment: .leading, spacing: 16) {
-                    Text("การตั้งค่า")
+                    Text(LanguageManager.shared.localizedString(for: "settings"))
                         .font(.headline)
                         .foregroundColor(.gray)
                         .padding(.horizontal, 24)
@@ -77,7 +78,7 @@ struct SideMenuView: View {
                             .foregroundColor(.adaptiveText)
                             .frame(width: 24)
                         
-                        Text("ภาษา (Language)")
+                        Text("\(LanguageManager.shared.localizedString(for: "language")) (Language)")
                             .font(.system(size: 16, weight: .bold))
                             .foregroundColor(.adaptiveText)
                         
@@ -86,9 +87,11 @@ struct SideMenuView: View {
                         Menu {
                             Button(AppLanguage.thai.displayName) {
                                 LanguageManager.shared.currentLanguage = .thai
+                                showLanguageAlert = true
                             }
                             Button(AppLanguage.english.displayName) {
                                 LanguageManager.shared.currentLanguage = .english
+                                showLanguageAlert = true
                             }
                         } label: {
                             HStack {
@@ -114,7 +117,7 @@ struct SideMenuView: View {
                         HStack(spacing: 16) {
                             Image(systemName: "arrow.right.square")
                                 .font(.system(size: 20))
-                            Text("ออกจากระบบ")
+                            Text(LanguageManager.shared.localizedString(for: "logout"))
                                 .font(.headline)
                         }
                         .foregroundColor(.red)
@@ -128,16 +131,21 @@ struct SideMenuView: View {
             .background(Color.adaptiveBackground)
         }
         .ignoresSafeArea(.container, edges: .top) // Keep top ignored for full height feel, but respect bottom
-        .alert("ออกจากระบบ", isPresented: $showLogoutAlert) {
-            Button("ยกเลิก", role: .cancel) {}
-            Button("ออกจากระบบ", role: .destructive) {
+        .alert(LanguageManager.shared.localizedString(for: "logout"), isPresented: $showLogoutAlert) {
+            Button(LanguageManager.shared.localizedString(for: "cancel"), role: .cancel) {}
+            Button(LanguageManager.shared.localizedString(for: "logout"), role: .destructive) {
                 withAnimation(.easeInOut(duration: 0.3)) {
                     isShowing = false
                 }
                 authViewModel.logout()
             }
         } message: {
-            Text("คุณต้องการออกจากระบบใช่หรือไม่?")
+            Text(LanguageManager.shared.localizedString(for: "logout_confirm"))
+        }
+        .alert(LanguageManager.shared.localizedString(for: "language_change_title"), isPresented: $showLanguageAlert) {
+            Button(LanguageManager.shared.localizedString(for: "ok"), role: .cancel) {}
+        } message: {
+            Text(LanguageManager.shared.localizedString(for: "language_change_message"))
         }
         .tint(.black)
     }

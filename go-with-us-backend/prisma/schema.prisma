@@ -164,3 +164,16 @@ model Report {
 
   @@map("user_reports")
 }
+
+// User-to-User Match system (Tinder-style)
+model UserMatch {
+  id        String   @id @default(uuid())
+  likerId   String   @map("liker_id")
+  likedId   String   @map("liked_id")
+  status    String   @default("like") // "like", "dislike"
+  isMutual  Boolean  @default(false) @map("is_mutual")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([likerId, likedId])
+  @@map("user_matches")
+}

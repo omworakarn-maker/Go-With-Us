@@ -271,4 +271,17 @@ class AuthService {
             body: request
         )
     }
+
+    func warnUser(userId: String, message: String) async throws {
+        struct WarnRequest: Encodable {
+            let message: String
+        }
+        
+        let request = WarnRequest(message: message)
+        let _: MessageResponse = try await APIService.shared.request(
+            endpoint: "/users/\(userId)/warn",
+            method: .post,
+            body: request
+        )
+    }
 }

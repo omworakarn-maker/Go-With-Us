@@ -209,7 +209,7 @@ struct ContentView: View {
         if isChildViewHidingTabBar { return false }
         
         switch currentScreen {
-        case .home, .findBuddy, .chat, .profile:
+        case .home, .homeGrid, .findBuddy, .chat, .profile:
             return true
         default:
             return false
