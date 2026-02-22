@@ -16,7 +16,7 @@ struct EditProfileView: View {
     @State private var usernameStatus: UsernameStatus = .idle
     @State private var checkTask: Task<Void, Never>?
     
-    enum UsernameStatus {
+    enum UsernameStatus: Equatable {
         case idle
         case checking
         case available
@@ -178,17 +178,15 @@ struct EditProfileView: View {
                                     }
                             }
                             
-                            if usernameStatus != .idle {
-                                switch usernameStatus {
-                                case .checking:
-                                    ProgressView().scaleEffect(0.7)
-                                case .available:
-                                    Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
-                                case .taken, .invalid:
-                                    Image(systemName: "xmark.circle.fill").foregroundColor(.red)
-                                default:
-                                    EmptyView()
-                                }
+                            switch usernameStatus {
+                            case .checking:
+                                ProgressView().scaleEffect(0.7)
+                            case .available:
+                                Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
+                            case .taken, .invalid:
+                                Image(systemName: "xmark.circle.fill").foregroundColor(.red)
+                            default:
+                                EmptyView()
                             }
                         }
                         
