@@ -93,27 +93,32 @@ struct MatchTripView: View {
                             // Tinder Swipe Area
                             ZStack {
                                 let matchCount = viewModel.matches.count
-                                ForEach(0..<matchCount, id: \.self) { i in
-                                    let index = matchCount - 1 - i
-                                    let distance = CGFloat(i)
-                                    let scale = 1.0 - (distance * 0.05)
-                                    let yOffset = distance * 10
+                                // Only show top 3-4 cards for performance
+                                let displayCount = min(matchCount, 4)
+                                
+                                ForEach(0..<displayCount, id: \.self) { i in
+                                    // Index 0 is the TOP card, Index (count-1) is the BOTTOM card
+                                    // But ZStack renders last-item-on-top.
+                                    // So we render from BOTTOM (back) to TOP (front).
+                                    let index = displayCount - 1 - i
+                                    let trip = viewModel.matches[index]
                                     
                                     TinderSwipeCardView(
-                                        trip: viewModel.matches[index],
+                                        trip: trip,
                                         onRemove: {
                                             withAnimation(.spring()) {
-                                                let tripIdToRemove = viewModel.matches[index].id
-                                                viewModel.matches.removeAll { $0.id == tripIdToRemove }
+                                                viewModel.matches.removeAll { $0.id == trip.id }
                                             }
                                         }
                                     )
                                     .padding(.horizontal, 16)
                                     .padding(.bottom, 40)
-                                    // Scale down back cards slightly for depth
-                                    .scaleEffect(scale)
-                                    .offset(y: yOffset)
-                                    .allowsHitTesting(index == matchCount - 1)
+                                    // Scale and dynamic depth
+                                    .scaleEffect(1.0 - (CGFloat(index) * 0.05))
+                                    .offset(y: CGFloat(index) * 12)
+                                    .opacity(index <= 3 ? 1.0 : 0)
+                                    .zIndex(Double(displayCount - index))
+                                    .allowsHitTesting(index == 0) // Only the top card interacts
                                 }
                             }
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -145,22 +150,6 @@ struct TinderSwipeCardView: View {
                 .background(Color.adaptiveCardBackground)
                 .cornerRadius(24)
                 .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
-            
-            // Interaction overlay (Match Score, Tap, Swipe effects)
-            ZStack(alignment: .topTrailing) {
-                Color.clear
-                
-                if let score = trip.matchScore {
-                    Text("\(score)% Match")
-                        .font(.system(size: 12, weight: .black))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(Color.black)
-                        .cornerRadius(20)
-                        .padding(16)
-                }
-            }
             
             // Swipe feedback colors
             if offset.width > 0 {

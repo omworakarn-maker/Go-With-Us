@@ -4,6 +4,7 @@ import { generateEmbedding } from '../utils/gemini.js';
 // Get all trips with filters
 export const getAllTrips = async (req, res, next) => {
     try {
+        /*
         // --- AUTO CLEANUP LOGIC ---
         // Delete trips ended more than 1 day ago
         const cleanupDate = new Date();
@@ -17,6 +18,7 @@ export const getAllTrips = async (req, res, next) => {
             }
         });
         // --------------------------
+        */
 
         const { destination, category, startDate, endDate, type, limit } = req.query;
         const userId = req.user?.userId; // Optional, might be available if using verifyToken optionally or passed
@@ -52,7 +54,10 @@ export const getAllTrips = async (req, res, next) => {
                 });
 
                 if (user?.interests?.length > 0) {
-                    where.category = { in: user.interests };
+                    where.OR = [
+                        { category: { in: user.interests } },
+                        { creatorId: userId }
+                    ];
                 }
             } catch (err) {
                 console.log('Error fetching user for recommendation:', err);

@@ -8,8 +8,8 @@ class APIService {
     // private let baseURL = "https://go-with-us.vercel.app/api"
     // private let baseURL = "http://192.168.1.88:3000/api" // Local backup
     
-    // Development (Localhost)
-    private let baseURL = "http://localhost:3000/api"
+    // Base URL - Production (Vercel)
+    private let baseURL = "https://go-with-us.vercel.app/api"
     
     private init() {}
     
@@ -81,7 +81,32 @@ class APIService {
             }
             
             let decoder = JSONDecoder()
-            decoder.dateDecodingStrategy = .iso8601
+            let formatter = DateFormatter()
+            formatter.calendar = Calendar(identifier: .iso8601)
+            formatter.locale = Locale(identifier: "en_US_POSIX")
+            formatter.timeZone = TimeZone(secondsFromGMT: 0)
+            
+            decoder.dateDecodingStrategy = .custom { decoder in
+                let container = try decoder.singleValueContainer()
+                let dateString = try container.decode(String.self)
+                
+                // Try multiple formats
+                let formats = [
+                    "yyyy-MM-dd'T'HH:mm:ss.SSSZZZZZ",
+                    "yyyy-MM-dd'T'HH:mm:ssZZZZZ",
+                    "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+                    "yyyy-MM-dd'T'HH:mm:ss'Z'"
+                ]
+                
+                for format in formats {
+                    formatter.dateFormat = format
+                    if let date = formatter.date(from: dateString) {
+                        return date
+                    }
+                }
+                
+                throw DecodingError.dataCorruptedError(in: container, debugDescription: "Cannot decode date string \(dateString)")
+            }
             
             do {
                 let decoded = try decoder.decode(T.self, from: data)
