@@ -205,6 +205,8 @@ struct EditProfileView: View {
                                 } else {
                                     Text("Username ต้องไม่ซ้ำกับผู้อื่น").foregroundColor(.gray)
                                 }
+                            default:
+                                EmptyView()
                             }
                         }
                         .font(.system(size: 10, weight: .bold))
