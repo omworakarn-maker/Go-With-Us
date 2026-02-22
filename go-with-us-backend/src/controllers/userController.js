@@ -182,7 +182,9 @@ export const updateProfile = async (req, res) => {
                 showAge: true,
                 showBio: true,
                 showInterests: true,
-                showEmail: true
+                showEmail: true,
+                username: true,
+                usernameUpdatedAt: true
             }
         });
 
@@ -219,6 +221,7 @@ export const getPublicProfile = async (req, res) => {
                 showEmail: true,
                 email: true,
                 username: true,
+                usernameUpdatedAt: true,
                 trips: {
                     where: { isPublic: true },
                     orderBy: { startDate: 'desc' },
