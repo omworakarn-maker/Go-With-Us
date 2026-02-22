@@ -62,7 +62,7 @@ class TripService {
         destination: String,
         description: String,
         startDate: Date,
-        endDate: Date,
+        endDate: Date?,
         budget: Int,
         maxParticipants: Int,
         category: String,
@@ -76,7 +76,7 @@ class TripService {
             let destination: String
             let description: String
             let startDate: Date
-            let endDate: Date
+            let endDate: Date?
             let budget: Int
             let maxParticipants: Int
             let category: String
@@ -122,7 +122,7 @@ class TripService {
         destination: String,
         description: String,
         startDate: Date,
-        endDate: Date,
+        endDate: Date?,
         budget: Int,
         maxParticipants: Int,
         category: String,
@@ -136,7 +136,7 @@ class TripService {
             let destination: String
             let description: String
             let startDate: Date
-            let endDate: Date
+            let endDate: Date?
             let budget: Int
             let maxParticipants: Int
             let category: String

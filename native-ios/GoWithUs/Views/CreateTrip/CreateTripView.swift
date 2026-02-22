@@ -7,7 +7,7 @@ struct CreateTripView: View {
     @State private var destination = ""
     @State private var description = ""
     @State private var startDate = Date()
-    @State private var endDate = Date().addingTimeInterval(86400)
+    @State private var endDate: Date? = nil
     @State private var budget = ""
     @State private var maxParticipants = "10"
     @State private var selectedCategoryRaw: String = TripCategory.adventure.rawValue
@@ -48,7 +48,7 @@ struct CreateTripView: View {
             if let start = formatter.date(from: draft.startDate) {
                 _startDate = State(initialValue: start)
             }
-            if let end = formatter.date(from: draft.endDate) {
+            if let endString = draft.endDate, let end = formatter.date(from: endString) {
                 _endDate = State(initialValue: end)
             }
             
@@ -71,7 +71,7 @@ struct CreateTripView: View {
         _destination = State(initialValue: trip.destination)
         _description = State(initialValue: trip.description ?? "")
         _startDate = State(initialValue: trip.startDate)
-        _endDate = State(initialValue: trip.endDate ?? trip.startDate)
+        _endDate = State(initialValue: trip.endDate)
         _budget = State(initialValue: String(trip.budget))
         _maxParticipants = State(initialValue: String(trip.maxParticipants))
         _selectedCategoryRaw = State(initialValue: trip.category.rawValue)
@@ -455,7 +455,7 @@ struct CreateTripView: View {
             return
         }
         
-        guard endDate >= startDate else {
+        if let end = endDate, end < startDate {
             errorMessage = "วันสิ้นสุดต้องมากกว่าหรือเท่ากับวันเริ่ม"
             return
         }
@@ -545,8 +545,13 @@ struct CreateTripView: View {
         // Ensure budget is valid integer for JSON
         let budgetValue = Int(budget) ?? 0
         
-        let days = Calendar.current.dateComponents([.day], from: startDate, to: endDate).day ?? 0
-        let totalDays = max(1, days + 1)
+        let totalDays: Int = {
+            if let end = endDate {
+                let d = Calendar.current.dateComponents([.day], from: startDate, to: end).day ?? 0
+                return max(1, d + 1)
+            }
+            return 1
+        }()
         
         let prompt = """
         ช่วยร่างทริปสำหรับ \(destination.isEmpty ? title : destination)
@@ -875,7 +880,7 @@ struct TripMultiImagePickerView: View {
 
 struct TripDateInputView: View {
     @Binding var startDate: Date
-    @Binding var endDate: Date
+    @Binding var endDate: Date?
     @State private var isShowingPicker = false
     
     var body: some View {
@@ -890,7 +895,7 @@ struct TripDateInputView: View {
                 
                 Button(action: { isShowingPicker = true }) {
                     Text(startDate, formatter: itemFormatter)
-                        .foregroundColor(.black)
+                        .foregroundColor(.adaptiveText)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding()
                         .background(Color.gray.opacity(0.05))
@@ -904,23 +909,44 @@ struct TripDateInputView: View {
             
             // End Date Button
             VStack(alignment: .leading, spacing: 8) {
-                Text("วันสิ้นสุด")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundColor(.gray)
-                    .textCase(.uppercase)
-                    .tracking(1)
+                HStack {
+                    Text("วันสิ้นสุด")
+                    Spacer()
+                    if endDate != nil {
+                        Button(action: { withAnimation { endDate = nil } }) {
+                            Text("ลบออก")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundColor(.red)
+                        }
+                    }
+                }
+                .font(.system(size: 11, weight: .bold))
+                .foregroundColor(.gray)
+                .textCase(.uppercase)
+                .tracking(1)
                 
                 Button(action: { isShowingPicker = true }) {
-                    Text(endDate, formatter: itemFormatter)
-                        .foregroundColor(.black)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding()
-                        .background(Color.gray.opacity(0.05))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                        )
-                        .cornerRadius(12)
+                    HStack {
+                        if let end = endDate {
+                            Text(end, formatter: itemFormatter)
+                                .foregroundColor(.adaptiveText)
+                        } else {
+                            Text("วันเดียว (ไม่มีวันกลับ)")
+                                .foregroundColor(.gray.opacity(0.6))
+                        }
+                        Spacer()
+                        Image(systemName: "calendar")
+                            .font(.system(size: 12))
+                            .foregroundColor(.gray)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding()
+                    .background(Color.gray.opacity(0.05))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                    )
+                    .cornerRadius(12)
                 }
             }
         }
@@ -932,10 +958,7 @@ struct TripDateInputView: View {
                             get: { startDate },
                             set: { if let newDate = $0 { startDate = newDate } }
                         ),
-                        endDate: Binding(
-                            get: { endDate },
-                            set: { if let newDate = $0 { endDate = newDate } }
-                        )
+                        endDate: $endDate
                     )
                     .padding(.top, 24)
                     
@@ -947,7 +970,7 @@ struct TripDateInputView: View {
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(Color.black)
+                            .background(Color.adaptiveText)
                             .cornerRadius(14)
                     }
                     .padding(.horizontal)
@@ -958,7 +981,7 @@ struct TripDateInputView: View {
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
                         Button("ปิด") { isShowingPicker = false }
-                            .foregroundColor(.black)
+                            .foregroundColor(.adaptiveText)
                     }
                 }
             }
