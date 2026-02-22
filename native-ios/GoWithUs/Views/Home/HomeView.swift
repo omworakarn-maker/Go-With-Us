@@ -25,6 +25,7 @@ struct HomeView: View {
                             HStack {
                                 // Left actions
                                 Button(action: {
+                                    HapticManager.shared.impact(style: .light)
                                     withAnimation {
                                         showSideMenu.toggle()
                                     }
@@ -40,6 +41,7 @@ struct HomeView: View {
                                 HStack(spacing: 8) {
                                     // Layout Switcher
                                     Button(action: {
+                                        HapticManager.shared.selection()
                                         withAnimation {
                                             currentScreen = .homeGrid
                                         }
@@ -186,8 +188,9 @@ struct HomeView: View {
                                 ForEach(viewModel.trips) { trip in
                                     NavigationLink(destination: TripDetailView(tripId: trip.id)) {
                                         TripCardView(trip: trip)
+                                            .staggeredAppear(index: viewModel.trips.firstIndex(where: { $0.id == trip.id }) ?? 0)
                                     }
-                                    .buttonStyle(PlainButtonStyle())
+                                    .buttonStyle(ScaledButtonStyle())
                                 }
                             }
                             .padding()

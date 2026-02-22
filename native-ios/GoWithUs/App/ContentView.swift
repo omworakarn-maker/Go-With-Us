@@ -189,17 +189,19 @@ struct ContentView: View {
                 }
             },
             set: { newTab in
-                // Taps on Tab Bar should have NO animation
-                activeTransition = .identity
-                currentScreen = {
-                    switch newTab {
-                    case .home: return .home
-                    case .buddy: return .findBuddy
-                    case .chat: return .chat
-                    case .profile: return .profile
-                    case .create: return currentScreen // Handled by sheet
-                    }
-                }()
+                // Taps on Tab Bar should have a subtle cross-fade animation
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                    activeTransition = .opacity.combined(with: .scale(scale: 0.98))
+                    currentScreen = {
+                        switch newTab {
+                        case .home: return .home
+                        case .buddy: return .findBuddy
+                        case .chat: return .chat
+                        case .profile: return .profile
+                        case .create: return currentScreen
+                        }
+                    }()
+                }
             }
         )
     }

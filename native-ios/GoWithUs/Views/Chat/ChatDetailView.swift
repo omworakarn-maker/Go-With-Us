@@ -136,13 +136,18 @@ struct ChatDetailView: View {
             
             // Input Bar
             VStack(spacing: 0) {
-                Divider()
-                HStack(spacing: 12) {
-                    TextField("พิมพ์ข้อความ...", text: $messageText)
-                        .foregroundColor(.black)
-                        .padding(12)
-                        .background(Color.gray.opacity(0.08))
-                        .cornerRadius(24)
+                HStack(alignment: .bottom, spacing: 12) {
+                    TextField("พิมพ์ข้อความ...", text: $messageText, axis: .vertical)
+                        .lineLimit(1...5)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(Color.adaptiveCardBackground)
+                        .foregroundColor(.adaptiveText)
+                        .cornerRadius(22)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 22)
+                                .stroke(Color.gray.opacity(0.1), lineWidth: 1)
+                        )
 
                     Button(action: {
                         let content = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -150,24 +155,23 @@ struct ChatDetailView: View {
                         messageText = ""
                         Task { await sendMessageWithContent(content) }
                     }) {
-                        Circle()
-                            .fill(messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 
-                                  AnyShapeStyle(Color.gray.opacity(0.3)) : 
-                                  AnyShapeStyle(Color.black))
+                        Image(systemName: "paperplane.fill")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundColor(.white)
                             .frame(width: 44, height: 44)
-                            .shadow(color: messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? .clear : Color.appAccent.opacity(0.4), radius: 6, x: 0, y: 3)
-                            .overlay(
-                                Image(systemName: "paperplane.fill")
-                                    .font(.system(size: 18))
-                                    .foregroundColor(.white)
-                                    .offset(x: -2, y: 2)
-                            )
+                            .background(messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 
+                                        Color.gray.opacity(0.3) : Color.appPrimary) // Use appPrimary instead of black
+                            .clipShape(Circle())
+                            .shadow(color: messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? .clear : Color.appPrimary.opacity(0.3), radius: 4, x: 0, y: 2)
                     }
                     .disabled(messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .padding(.bottom, 2)
                 }
-                .padding(12)
-                .padding(.bottom, getSafeAreaBottom()) // Move up text field off indicator
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .padding(.bottom, getSafeAreaBottom() > 0 ? 0 : 8) // Adjust for non-notch devices
                 .background(Color.adaptiveBackground)
+                .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: -5)
             }
             .background(Color.adaptiveBackground)
         }

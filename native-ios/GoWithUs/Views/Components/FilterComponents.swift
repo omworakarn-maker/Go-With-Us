@@ -8,7 +8,10 @@ struct FilterButton: View {
     let action: () -> Void
     
     var body: some View {
-        Button(action: action) {
+        Button(action: {
+            HapticManager.shared.selection()
+            action()
+        }) {
             HStack(spacing: 4) {
                 Image(systemName: icon)
                     .font(.system(size: 12))
@@ -113,6 +116,7 @@ struct DatePickerSheet: View {
                 // Bottom Actions
                 VStack(spacing: 12) {
                     Button(action: {
+                        HapticManager.shared.notification(type: .success)
                         selectedDate = startDate
                         selectedEndDate = endDate
                         dismiss()
@@ -188,6 +192,6 @@ struct CategoryPicker: View {
                 }
             }
         }
-        .presentationDetents([.medium])
+        .presentationDetents([.medium, .large])
     }
 }

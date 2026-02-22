@@ -51,10 +51,10 @@ struct LoginView: View {
                             TextField("", text: $viewModel.email)
                                 .placeholder(when: viewModel.email.isEmpty) {
                                     Text("your@email.com")
-                                        .foregroundColor(.gray.opacity(0.5))
+                                        .foregroundColor(.gray.opacity(0.1))
                                 }
                                 .foregroundColor(.adaptiveText)
-                                .tint(.adaptiveText)
+                                .tint(.black)
                                 .textInputAutocapitalization(.never)
                                 .keyboardType(.emailAddress)
                                 .padding()
@@ -77,10 +77,10 @@ struct LoginView: View {
                             SecureField("", text: $viewModel.password)
                                 .placeholder(when: viewModel.password.isEmpty) {
                                     Text("••••••••")
-                                        .foregroundColor(.gray.opacity(0.5))
+                                        .foregroundColor(.gray.opacity(0.1))
                                 }
                                 .foregroundColor(.adaptiveText)
-                                .tint(.adaptiveText)
+                                .tint(.black)
                                 .padding()
                                 .background(Color.gray.opacity(0.05))
                                 .overlay(

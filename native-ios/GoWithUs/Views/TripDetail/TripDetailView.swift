@@ -10,7 +10,8 @@ struct TripDetailView: View {
     
     struct ImageViewerItem: Identifiable {
         let id = UUID()
-        let url: String
+        let urls: [String]
+        let initialIndex: Int
     }
     
     init(tripId: String) {
@@ -36,7 +37,7 @@ struct TripDetailView: View {
         ZStack {
             Color.adaptiveBackground.ignoresSafeArea()
             
-            if viewModel.isLoading {
+            if viewModel.isLoading && viewModel.trip == nil {
                 VStack(spacing: 12) {
                     ProgressView().tint(.appPrimary).scaleEffect(1.2)
                     Text("กำลังโหลด…")
@@ -80,6 +81,9 @@ struct TripDetailView: View {
                         .padding(.bottom, 200)
                     }
                 }
+                .refreshable {
+                    await viewModel.loadTrip()
+                }
                 
                 // ══════════════════════════════════════════════
                 // ▸ FLOATING ACTION BAR
@@ -88,6 +92,7 @@ struct TripDetailView: View {
                     Spacer()
                     actionBar(trip: trip)
                 }
+                .ignoresSafeArea(edges: .bottom)
             }
             
             // ══════════════════════════════════════════════
@@ -134,7 +139,7 @@ struct TripDetailView: View {
                     }
                 }
                 .padding(.horizontal, 18)
-                .padding(.top, 8)
+                .padding(.top, 10)
                 
                 Spacer()
             }
@@ -155,7 +160,7 @@ struct TripDetailView: View {
         .sheet(isPresented: $viewModel.showLeaveSheet) { LeaveTripSheet(viewModel: viewModel) }
         .sheet(isPresented: $viewModel.showJoinSheet) { JoinTripSheet(viewModel: viewModel) }
         .fullScreenCover(item: $selectedImage) { item in
-            ImageViewerView(url: item.url) {
+            ImageViewerView(urls: item.urls, initialIndex: item.initialIndex) {
                 selectedImage = nil
             }
         }
@@ -178,10 +183,12 @@ struct TripDetailView: View {
                     .frame(maxWidth: .infinity).frame(height: 300).clipped()
             } else {
                 TabView {
-                    ForEach(allImages, id: \.self) { url in
+                    ForEach(Array(allImages.enumerated()), id: \.offset) { index, url in
                         CustomAsyncImage(url: url, contentMode: .fill)
                             .frame(maxWidth: .infinity).frame(height: 300).clipped()
-                            .onTapGesture { selectedImage = ImageViewerItem(url: url) }
+                            .onTapGesture { 
+                                selectedImage = ImageViewerItem(urls: allImages, initialIndex: index) 
+                            }
                     }
                 }
                 .tabViewStyle(.page)
@@ -570,13 +577,24 @@ struct TripDetailView: View {
                 }
                 
                 ScrollView(.horizontal, showsIndicators: false) {
+                    let allImgs: [String] = {
+                        var imgs = [String]()
+                        if let m = trip.imageUrl, !m.isEmpty { imgs.append(m) }
+                        if let g = trip.gallery { for i in g where !imgs.contains(i) { imgs.append(i) } }
+                        return imgs
+                    }()
+                    
                     HStack(spacing: 12) {
-                        ForEach(gallery, id: \.self) { url in
+                        ForEach(Array((trip.gallery ?? []).enumerated()), id: \.offset) { index, url in
                             CustomAsyncImage(url: url)
                                 .frame(width: 200, height: 150)
                                 .cornerRadius(14).clipped()
                                 .shadow(color: .black.opacity(0.06), radius: 6, x: 0, y: 3)
-                                .onTapGesture { selectedImage = ImageViewerItem(url: url) }
+                                .onTapGesture { 
+                                    // Find index in overall list
+                                    let globalIndex = allImgs.firstIndex(of: url) ?? 0
+                                    selectedImage = ImageViewerItem(urls: allImgs, initialIndex: globalIndex) 
+                                }
                         }
                     }
                 }
@@ -747,7 +765,7 @@ struct TripDetailView: View {
                                     if viewModel.isJoining {
                                         ProgressView().scaleEffect(0.7)
                                     }
-                                    Text(participant.status == "interested" ? "เปลี่ยนเป็นจะไปด้วย" : "เปลี่ยนเป็นสนใจแทน")
+                                    Text(participant.status == "interested" ? "เปลี่ยนเป็นจะไปด้วย" : "เปลี่ยนเป็นสนใจ")
                                 }
                                 .font(.system(size: 14, weight: .bold))
                                 .foregroundColor(participant.status == "interested" ? .white : .black)
@@ -782,7 +800,7 @@ struct TripDetailView: View {
                                 if viewModel.isJoining {
                                     ProgressView().tint(.yellow).scaleEffect(0.8)
                                 }
-                                Text(viewModel.isJoining ? "กำลังจด..." : "สนใจ")
+                                Text(viewModel.isJoining ? "กำลังเข้า..." : "สนใจ")
                             }
                             .font(.system(size: 15, weight: .bold))
                             .foregroundColor(.adaptiveText)
@@ -827,37 +845,13 @@ struct TripDetailView: View {
                         .cornerRadius(14)
                 }
                 
-                if viewModel.isCreator || viewModel.isAdmin {
-                    HStack(spacing: 12) {
-                        Button { showEditSheet = true } label: {
-                            HStack(spacing: 6) {
-                                Image(systemName: "pencil")
-                                Text("แก้ไข")
-                            }
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
-                            .background(Color.adaptiveText)
-                            .cornerRadius(12)
-                        }
-                        
-                        Button { showDeleteAlert = true } label: {
-                            Image(systemName: "trash")
-                                .font(.system(size: 14))
-                                .foregroundColor(Color(hex: "#DC2626"))
-                                .frame(width: 50).padding(.vertical, 14)
-                                .background(Color(hex: "#FEE2E2"))
-                                .cornerRadius(12)
-                        }
-                    }
-                }
+                // Removed Edit/Delete from bottom as requested, keep top buttons instead
             }
-            .padding(.horizontal, 18)
-            .padding(.top, 10)
-            .padding(.bottom, 12)
-            .background(Color.adaptiveBackground.ignoresSafeArea(edges: .bottom))
-            .shadow(color: .black.opacity(0.06), radius: 12, x: 0, y: -5)
+            .padding(.horizontal, 24)
+            .padding(.top, 20)
+            .padding(.bottom, 32)
+            .background(Color.adaptiveBackground)
+            .shadow(color: .black.opacity(0.1), radius: 20, x: 0, y: -5)
         }
     }
     
@@ -871,31 +865,50 @@ struct TripDetailView: View {
     }
 }
 
-// MARK: - ImageViewerView to fix full screen dismiss
+// MARK: - ImageViewerView with Paging Support
 struct ImageViewerView: View {
-    let url: String
+    let urls: [String]
+    let initialIndex: Int
     let onDismiss: () -> Void
     @Environment(\.dismiss) var dismiss
+    @State private var currentIndex: Int
+    
+    init(urls: [String], initialIndex: Int, onDismiss: @escaping () -> Void) {
+        self.urls = urls
+        self.initialIndex = initialIndex
+        self.onDismiss = onDismiss
+        _currentIndex = State(initialValue: initialIndex)
+    }
 
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
-            CustomAsyncImage(url: url).scaledToFit()
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            
+            TabView(selection: $currentIndex) {
+                ForEach(Array(urls.enumerated()), id: \.offset) { index, url in
+                    CustomAsyncImage(url: url).scaledToFit()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .tag(index)
+                }
+            }
+            .tabViewStyle(.page(indexDisplayMode: .always))
+            .ignoresSafeArea()
+            
             VStack {
-                HStack { Spacer()
+                HStack {
+                    Spacer()
                     Button {
                         onDismiss()
                         dismiss()
                     } label: {
-                        Image(systemName: "xmark") // Minimal
-                            .font(.system(size: 24, weight: .regular))
+                        Image(systemName: "xmark")
+                            .font(.system(size: 20, weight: .bold))
                             .foregroundColor(.white)
-                            .padding(20)
-                            .background(Color.black.opacity(0.3))
+                            .padding(12)
+                            .background(.ultraThinMaterial)
                             .clipShape(Circle())
                     }
-                    .padding(.top, 40) // Status bar clearance
+                    .padding(.top, 60)
                     .padding(.trailing, 20)
                 }
                 Spacer()

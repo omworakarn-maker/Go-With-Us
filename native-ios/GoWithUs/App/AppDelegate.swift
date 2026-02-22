@@ -33,6 +33,9 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         // Start message polling to keep chat badges up-to-date
         MessagePoller.shared.startPolling()
         
+        // Initialize Haptic Settings
+        HapticManager.setupInitial()
+        
         return true
     }
 

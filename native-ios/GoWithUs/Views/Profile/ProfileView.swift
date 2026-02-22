@@ -347,6 +347,35 @@ struct ProfileView: View {
                                 }
                             }
                             
+                            // Settings Section
+                            VStack(alignment: .leading, spacing: 16) {
+                                Text(LanguageManager.shared.currentLanguage == .thai ? "การตั้งค่า" : "Settings")
+                                    .font(.system(size: 11, weight: .bold))
+                                    .foregroundColor(.adaptiveSecondaryText)
+                                    .textCase(.uppercase)
+                                    .tracking(1)
+                                
+                                Toggle(isOn: Binding(
+                                    get: { HapticManager.shared.isEnabled },
+                                    set: { HapticManager.shared.isEnabled = $0 }
+                                )) {
+                                    HStack(spacing: 12) {
+                                        Image(systemName: "iphone.radiowaves.left.and.right")
+                                            .foregroundColor(.appAccent)
+                                        Text(LanguageManager.shared.currentLanguage == .thai ? "ระบบสั่นตอบสนอง" : "Haptic Feedback")
+                                            .font(.system(size: 15, weight: .medium))
+                                            .foregroundColor(.adaptiveText)
+                                    }
+                                }
+                                .padding()
+                                .background(Color.adaptiveCardBackground)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .stroke(Color.adaptiveBorder, lineWidth: 1)
+                                )
+                                .cornerRadius(16)
+                            }
+
                             // Logout Button
                             Button(action: { showLogoutAlert = true }) {
                                 HStack(spacing: 8) {
@@ -409,13 +438,9 @@ struct ProfileView: View {
                 }
             }
         }
-        .alert(LanguageManager.shared.localizedString(for: "logout"), isPresented: $showLogoutAlert) {
-            Button(LanguageManager.shared.localizedString(for: "cancel"), role: .cancel) {}
-            Button(LanguageManager.shared.localizedString(for: "logout"), role: .destructive) {
-                authViewModel.logout()
-            }
-        } message: {
-            Text(LanguageManager.shared.localizedString(for: "logout_confirm"))
+        .sheet(isPresented: $showLogoutAlert) {
+            LogoutSheet(onLogout: { authViewModel.logout() })
+                .presentationDetents([.height(280)])
         }
     }
     
@@ -459,6 +484,7 @@ struct InfoCard: View {
         .cornerRadius(16)
     }
 }
+
 
 
 

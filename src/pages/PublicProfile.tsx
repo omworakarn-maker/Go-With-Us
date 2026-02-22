@@ -313,7 +313,7 @@ const PublicProfile: React.FC = () => {
                         <div className="flex gap-3">
                             <button
                                 onClick={() => { setShowWarnModal(false); setWarningMsg(""); }}
-                                className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-colors"
+                                className="flex-1 py-3 bg-black text-white rounded-xl font-bold hover:bg-gray-800 transition-colors"
                             >
                                 ยกเลิก
                             </button>
@@ -354,7 +354,7 @@ const PublicProfile: React.FC = () => {
                         <div className="flex gap-3">
                             <button
                                 onClick={() => { setShowReportModal(false); setReportReason(""); }}
-                                className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-colors"
+                                className="flex-1 py-3 bg-black text-white rounded-xl font-bold hover:bg-gray-800 transition-colors"
                             >
                                 ยกเลิก
                             </button>

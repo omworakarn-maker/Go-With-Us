@@ -82,7 +82,6 @@ struct MyTripsView: View {
                             }
                         }
                     }
-                    .padding(.bottom, 80) // Added for TabBar
                 }
             }
         }

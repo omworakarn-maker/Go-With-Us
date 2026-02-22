@@ -294,47 +294,34 @@ struct UserProfileView: View {
         .task {
             await loadProfile()
         }
-        .actionSheet(isPresented: $showingActionSheet) {
-            var buttons: [ActionSheet.Button] = [
-                .destructive(Text("รายงานผู้ใช้ (Report)")) {
-                    showingReportAlert = true
-                },
-                .cancel(Text("ยกเลิก"))
-            ]
-            
-            // If current user is Admin, they can Ban or Warn
-            if authViewModel.currentUser?.role == .admin {
-                buttons.insert(.destructive(Text("แบนผู้ใช้ (Ban)")) {
+        .sheet(isPresented: $showingActionSheet) {
+            UserActionSheet(
+                isAdmin: authViewModel.currentUser?.role == .admin,
+                onWarn: { showingWarnAlert = true },
+                onReport: { showingReportAlert = true },
+                onBan: {
                     Task { await banUser() }
-                }, at: 0)
-                buttons.insert(.default(Text("ตักเตือนผู้ใช้ (Warn)")) {
-                    showingWarnAlert = true
-                }, at: 1)
-            }
-            
-            return ActionSheet(title: Text("จัดการผู้ใช้"), message: nil, buttons: buttons)
+                }
+            )
+            .presentationDetents([.medium])
         }
-        .alert("ตักเตือนผู้ใช้นี้", isPresented: $showingWarnAlert) {
-            TextField("ระบุข้อความตักเตือน", text: $warningMessage)
-            Button("ยกเลิก", role: .cancel) {
-                warningMessage = ""
+        .sheet(isPresented: $showingWarnAlert) {
+            WarnUserSheet(user: displayUser) { msg in
+                Task {
+                    warningMessage = msg
+                    await warnUser()
+                }
             }
-            Button("ส่งคำเตือน") {
-                Task { await warnUser() }
-            }
-        } message: {
-            Text("ข้อความนี้จะถูกส่งไปยังผู้ใช้ในรูปแบบการแจ้งเตือนจากระบบ")
+            .presentationDetents([.height(340)])
         }
-        .alert("รายงานผู้ใช้นี้", isPresented: $showingReportAlert) {
-            TextField("ระบุเหตุผล (เช่น สแปม, ก้าวร้าว)", text: $reportReason)
-            Button("ยกเลิก", role: .cancel) {
-                reportReason = ""
+        .sheet(isPresented: $showingReportAlert) {
+            ReportUserSheet(user: displayUser) { reason in
+                Task {
+                    reportReason = reason
+                    await reportUser()
+                }
             }
-            Button("ส่งรายงาน") {
-                Task { await reportUser() }
-            }
-        } message: {
-            Text("โปรดระบุเหตุผลที่คุณต้องการรายงานผู้ใช้คนนี้ ข้อมูลจะถูกส่งไปยังแอดมินเพื่อตรวจสอบ")
+            .presentationDetents([.height(340)])
         }
         .tint(.black)
         .alert(actionMessage, isPresented: $showingActionMessage) {
@@ -439,5 +426,186 @@ struct UserProfileView: View {
             showingActionMessage = true
         }
     }
+}
+
+// MARK: - Moderation Sheets
+
+struct WarnUserSheet: View {
+    let user: User
+    let onSend: (String) -> Void
+    @Environment(\.dismiss) var dismiss
+    @State private var message = ""
     
+    var body: some View {
+        VStack(spacing: 20) {
+            Text("ตักเตือน \(user.name)")
+                .font(.system(size: 18, weight: .bold))
+                .padding(.top, 24)
+            
+            TextField("ระบุข้อความตักเตือน...", text: $message, axis: .vertical)
+                .lineLimit(3...5)
+                .padding()
+                .background(Color.gray.opacity(0.1))
+                .cornerRadius(12)
+                .padding(.horizontal, 24)
+            
+            HStack(spacing: 12) {
+                Button(action: { dismiss() }) {
+                    Text("ยกเลิก")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(Color.black)
+                        .cornerRadius(12)
+                }
+                
+                Button(action: {
+                    onSend(message)
+                    dismiss()
+                }) {
+                    Text("ส่งคำเตือน")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(Color.appPrimary)
+                        .cornerRadius(12)
+                }
+                .disabled(message.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 24)
+        }
+    }
+}
+
+struct ReportUserSheet: View {
+    let user: User
+    let onSend: (String) -> Void
+    @Environment(\.dismiss) var dismiss
+    @State private var reason = ""
+    
+    var body: some View {
+        VStack(spacing: 20) {
+            Text("รายงาน \(user.name)")
+                .font(.system(size: 18, weight: .bold))
+                .padding(.top, 24)
+            
+            TextField("ระบุเหตุผล (เช่น สแปม, ก้าวร้าว)...", text: $reason, axis: .vertical)
+                .lineLimit(3...5)
+                .padding()
+                .background(Color.gray.opacity(0.1))
+                .cornerRadius(12)
+                .padding(.horizontal, 24)
+            
+            HStack(spacing: 12) {
+                Button(action: { dismiss() }) {
+                    Text("ยกเลิก")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(Color.black)
+                        .cornerRadius(12)
+                }
+                
+                Button(action: {
+                    onSend(reason)
+                    dismiss()
+                }) {
+                    Text("ส่งรายงาน")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(Color.red)
+                        .cornerRadius(12)
+                }
+                .disabled(reason.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 24)
+        }
+    }
+}
+
+struct UserActionSheet: View {
+    @Environment(\.dismiss) var dismiss
+    let isAdmin: Bool
+    let onWarn: () -> Void
+    let onReport: () -> Void
+    let onBan: (() -> Void)?
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            Capsule()
+                .fill(Color.gray.opacity(0.3))
+                .frame(width: 40, height: 6)
+                .padding(.top, 12)
+                .padding(.bottom, 20)
+            
+            Text("จัดการผู้ใช้")
+                .font(.headline)
+                .foregroundColor(.gray)
+                .padding(.bottom, 24)
+            
+            VStack(spacing: 12) {
+                if isAdmin {
+                    Button(action: {
+                        dismiss()
+                        onBan?()
+                    }) {
+                        Text("แบนผู้ใช้ (Ban)")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(Color.red)
+                            .cornerRadius(12)
+                    }
+                    
+                    Button(action: {
+                        dismiss()
+                        onWarn()
+                    }) {
+                        Text("ตักเตือนผู้ใช้ (Warn)")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(.adaptiveText)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(Color.gray.opacity(0.1))
+                            .cornerRadius(12)
+                    }
+                }
+                
+                Button(action: {
+                    dismiss()
+                    onReport()
+                }) {
+                    Text("รายงานผู้ใช้ (Report)")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(.red)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(Color.red.opacity(0.05))
+                        .cornerRadius(12)
+                }
+                
+                Button(action: { dismiss() }) {
+                    Text("ยกเลิก")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(Color.black)
+                        .cornerRadius(12)
+                }
+                .padding(.top, 8)
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 32)
+        }
+        .background(Color.adaptiveBackground.ignoresSafeArea())
+    }
 }

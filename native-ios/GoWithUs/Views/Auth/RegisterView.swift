@@ -50,7 +50,7 @@ struct RegisterView: View {
                                 TextField("", text: $viewModel.name)
                                     .placeholder(when: viewModel.name.isEmpty) {
                                         Text("ชื่อของคุณ")
-                                            .foregroundColor(.gray.opacity(0.5))
+                                            .foregroundColor(.gray.opacity(0.1))
                                     }
                                     .foregroundColor(.adaptiveText)
                                     .tint(.adaptiveText)
@@ -74,7 +74,7 @@ struct RegisterView: View {
                                 TextField("", text: $viewModel.email)
                                     .placeholder(when: viewModel.email.isEmpty) {
                                         Text("your@email.com")
-                                            .foregroundColor(.gray.opacity(0.5))
+                                            .foregroundColor(.gray.opacity(0.1))
                                     }
                                     .foregroundColor(.adaptiveText)
                                     .tint(.adaptiveText)
@@ -100,7 +100,7 @@ struct RegisterView: View {
                                 SecureField("", text: $viewModel.password)
                                     .placeholder(when: viewModel.password.isEmpty) {
                                         Text("อย่างน้อย 6 ตัวอักษร")
-                                            .foregroundColor(.gray.opacity(0.5))
+                                            .foregroundColor(.gray.opacity(0.1))
                                     }
                                     .foregroundColor(.adaptiveText)
                                     .tint(.adaptiveText)

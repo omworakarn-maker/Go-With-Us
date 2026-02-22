@@ -88,6 +88,7 @@ struct CreateTripView: View {
             ZStack {
                 Color.adaptiveBackground
                     .ignoresSafeArea()
+                    .tint(.black)
                 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 24) {
@@ -330,6 +331,9 @@ struct CreateTripView: View {
                                     .keyboardType(.numberPad)
                             }
                             
+                            // Itinerary Section
+                            ItineraryEditorView(itinerary: $itinerary)
+                            
                             // Error Message
                             if let error = errorMessage {
                                 Text(error)
@@ -375,6 +379,7 @@ struct CreateTripView: View {
                 }
             }
         }
+        .tint(.black)
         .onAppear { loadExtraCategories() }
         .sheet(isPresented: $showAddCategory) {
             NavigationView {
@@ -1030,4 +1035,188 @@ struct FormField: View {
 
 #Preview {
     CreateTripView()
+}
+
+// MARK: - Itinerary Editor Subviews
+
+struct ItineraryEditorView: View {
+    @Binding var itinerary: [DayPlan]?
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text("แผนการเดินทางแต่ละวัน")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(.gray)
+                    .textCase(.uppercase)
+                    .tracking(1)
+                
+                Spacer()
+                
+                if itinerary != nil {
+                    Button(action: addDay) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "plus.circle.fill")
+                            Text("เพิ่มวัน")
+                        }
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(.appPrimary)
+                    }
+                }
+            }
+            
+            if let itin = itinerary, !itin.isEmpty {
+                VStack(spacing: 20) {
+                    ForEach(itin.indices, id: \.self) { idx in
+                        DayEditorView(dayPlan: Binding(
+                            get: { itin[idx] },
+                            set: { if var ni = itinerary { ni[idx] = $0; itinerary = ni } }
+                        ), onRemove: {
+                            removeDay(at: idx)
+                        })
+                    }
+                }
+            } else {
+                Button(action: {
+                    itinerary = [DayPlan(day: 1, activities: [])]
+                }) {
+                    HStack {
+                        Image(systemName: "calendar.badge.plus")
+                        Text("เริ่มสร้างแผนท่องเที่ยว")
+                    }
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(.appPrimary)
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .background(Color.appPrimary.opacity(0.1))
+                    .cornerRadius(12)
+                }
+            }
+        }
+    }
+    
+    private func addDay() {
+        let nextDay = (itinerary?.map { $0.day }.max() ?? 0) + 1
+        if itinerary == nil {
+            itinerary = [DayPlan(day: nextDay, activities: [])]
+        } else {
+            itinerary?.append(DayPlan(day: nextDay, activities: []))
+        }
+    }
+    
+    private func removeDay(at index: Int) {
+        itinerary?.remove(at: index)
+        // Re-index days
+        if let count = itinerary?.count {
+            for i in 0..<count {
+                itinerary?[i].day = i + 1
+            }
+        }
+    }
+}
+
+struct DayEditorView: View {
+    @Binding var dayPlan: DayPlan
+    var onRemove: () -> Void
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("วันที่ \(dayPlan.day)")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(.appPrimary)
+                
+                Spacer()
+                
+                Button(action: onRemove) {
+                    Image(systemName: "trash")
+                        .font(.system(size: 12))
+                        .foregroundColor(.red.opacity(0.7))
+                }
+            }
+            .padding(.horizontal, 10).padding(.vertical, 6)
+            .background(Color.appPrimary.opacity(0.1))
+            .cornerRadius(8)
+            
+            VStack(spacing: 12) {
+                ForEach(dayPlan.activities.indices, id: \.self) { actIdx in
+                    ActivityEditorView(activity: Binding(
+                        get: { dayPlan.activities[actIdx] },
+                        set: { dayPlan.activities[actIdx] = $0 }
+                    ), onRemove: {
+                        dayPlan.activities.remove(at: actIdx)
+                    })
+                }
+                
+                Button(action: {
+                    dayPlan.activities.append(Activity(time: "09:00", name: "", location: "", description: ""))
+                }) {
+                    HStack {
+                        Image(systemName: "plus.circle")
+                        Text("เพิ่มกิจกรรม")
+                    }
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.gray)
+                    .padding(.vertical, 8)
+                    .frame(maxWidth: .infinity)
+                    .background(Color.gray.opacity(0.05))
+                    .cornerRadius(8)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color.gray.opacity(0.2), style: StrokeStyle(lineWidth: 1, dash: [4]))
+                    )
+                }
+            }
+            .padding(.leading, 8)
+        }
+    }
+}
+
+struct ActivityEditorView: View {
+    @Binding var activity: Activity
+    var onRemove: () -> Void
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                TextField("09:00", text: $activity.time)
+                    .font(.system(size: 12, weight: .bold))
+                    .frame(width: 50)
+                    .padding(6)
+                    .background(Color.gray.opacity(0.1))
+                    .cornerRadius(6)
+                
+                TextField("ชื่อกิจกรรม", text: $activity.name)
+                    .font(.system(size: 14, weight: .bold))
+                
+                Spacer()
+                
+                Button(action: onRemove) {
+                    Image(systemName: "minus.circle.fill")
+                        .foregroundColor(.red.opacity(0.5))
+                }
+            }
+            
+            HStack(spacing: 6) {
+                Image(systemName: "mappin.circle.fill")
+                    .foregroundColor(.red)
+                    .font(.system(size: 12))
+                TextField("สถานที่ (ถ้ามี)", text: $activity.location)
+                    .font(.system(size: 12))
+            }
+            .padding(.leading, 4)
+            
+            TextField("รายละเอียดเพิ่มเติม", text: $activity.description)
+                .font(.system(size: 13))
+                .foregroundColor(.gray)
+                .padding(.leading, 4)
+        }
+        .padding(12)
+        .background(Color.adaptiveBackground)
+        .cornerRadius(12)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.gray.opacity(0.1), lineWidth: 1)
+        )
+    }
 }

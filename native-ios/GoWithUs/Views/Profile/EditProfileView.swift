@@ -216,16 +216,15 @@ struct EditProfileView: View {
                         )
                         .labelsHidden()
                     }
-                    
-                    // Bio Input
-                    Section(header: Text("ประวัติส่วนตัว")) {
-                        TextEditor(text: $bio)
+                }
+                
+                Section(header: Text("ประวัติส่วนตัว")) {
+                    TextEditor(text: $bio)
                             .frame(height: 100)
                             .font(.system(size: 16, weight: .regular))
                         Text("\(bio.count) / 500")
                             .font(.system(size: 12, weight: .medium))
                             .foregroundColor(.adaptiveSecondaryText)
-                    }
                 }
                 
                 Section(header: Text("Lifestyle & Travel Style")) {
@@ -369,6 +368,7 @@ struct EditProfileView: View {
                     .disabled(authViewModel.isLoading || name.trimmingCharacters(in: .whitespaces).isEmpty || isUsernameInvalid)
                 }
             }
+            .tint(.black)
             .onAppear {
                 if let user = authViewModel.currentUser {
                     name = user.name

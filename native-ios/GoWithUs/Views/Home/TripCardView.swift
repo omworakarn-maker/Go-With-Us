@@ -78,14 +78,14 @@ struct TripCardView: View {
                     .lineLimit(2)
                 
                 // Destination
-                HStack(spacing: 6) {
-                    Circle()
-                        .fill(Color.appAccent)
-                        .frame(width: 4, height: 4)
+                HStack(spacing: 5) {
+                    Image(systemName: "mappin.circle.fill")
+                        .font(.system(size: 11))
+                        .foregroundColor(.red)
                     
                     Text(trip.destination)
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.gray)
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(.adaptiveSecondaryText)
                 }
                 
                 // Date Range

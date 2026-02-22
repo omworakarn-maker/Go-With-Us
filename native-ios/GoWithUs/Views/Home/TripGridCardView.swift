@@ -67,8 +67,12 @@ struct TripGridCardView: View {
             .padding(10)
         }
         .background(Color.adaptiveCardBackground)
-        .cornerRadius(16)
-        .shadow(color: Color.black.opacity(0.04), radius: 5, x: 0, y: 2)
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(Color.gray.opacity(0.1), lineWidth: 1)
+        )
+        .cornerRadius(20)
+        .shadow(color: Color.black.opacity(0.03), radius: 8, x: 0, y: 2)
     }
 }
 

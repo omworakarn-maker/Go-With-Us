@@ -170,8 +170,8 @@ struct AIAnalysis: Codable {
 // MARK: - Itinerary
 struct DayPlan: Codable, Identifiable {
     var id = UUID()
-    let day: Int
-    let activities: [Activity]
+    var day: Int
+    var activities: [Activity]
     
     enum CodingKeys: String, CodingKey {
         case day, activities
@@ -180,10 +180,10 @@ struct DayPlan: Codable, Identifiable {
 
 struct Activity: Codable, Identifiable {
     var id = UUID()
-    let time: String
-    let name: String
-    let location: String
-    let description: String
+    var time: String
+    var name: String
+    var location: String
+    var description: String
     
     enum CodingKeys: String, CodingKey {
         case time, name, location, description

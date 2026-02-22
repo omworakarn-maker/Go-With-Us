@@ -131,16 +131,12 @@ struct SideMenuView: View {
             .background(Color.adaptiveBackground)
         }
         .ignoresSafeArea(.container, edges: .top) // Keep top ignored for full height feel, but respect bottom
-        .alert(LanguageManager.shared.localizedString(for: "logout"), isPresented: $showLogoutAlert) {
-            Button(LanguageManager.shared.localizedString(for: "cancel"), role: .cancel) {}
-            Button(LanguageManager.shared.localizedString(for: "logout"), role: .destructive) {
-                withAnimation(.easeInOut(duration: 0.3)) {
+        .sheet(isPresented: $showLogoutAlert) {
+            LogoutSheet {
+                withAnimation {
                     isShowing = false
                 }
-                authViewModel.logout()
             }
-        } message: {
-            Text(LanguageManager.shared.localizedString(for: "logout_confirm"))
         }
         .alert(LanguageManager.shared.localizedString(for: "language_change_title"), isPresented: $showLanguageAlert) {
             Button(LanguageManager.shared.localizedString(for: "ok"), role: .cancel) {}
@@ -194,5 +190,66 @@ struct MenuButton: View {
             )
         }
         .padding(.horizontal, 8)
+    }
+}
+
+struct LogoutSheet: View {
+    @EnvironmentObject var authViewModel: AuthViewModel
+    @Environment(\.dismiss) private var dismiss
+    var onLogout: () -> Void
+    
+    var body: some View {
+        VStack(spacing: 24) {
+            Image(systemName: "rectangle.portrait.and.arrow.right")
+                .font(.system(size: 60))
+                .foregroundColor(.red)
+                .padding(.top, 32)
+            
+            VStack(spacing: 8) {
+                Text(LanguageManager.shared.localizedString(for: "logout"))
+                    .font(.system(size: 22, weight: .black))
+                    .foregroundColor(.adaptiveText)
+                
+                Text(LanguageManager.shared.localizedString(for: "logout_confirm"))
+                    .font(.system(size: 15))
+                    .foregroundColor(.adaptiveSecondaryText)
+                    .multilineTextAlignment(.center)
+            }
+            .padding(.horizontal, 24)
+            
+            HStack(spacing: 16) {
+                Button(action: {
+                    dismiss()
+                }) {
+                    Text(LanguageManager.shared.localizedString(for: "cancel"))
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(Color.black)
+                        .cornerRadius(14)
+                }
+                
+                Button(action: {
+                    onLogout()
+                    dismiss()
+                    authViewModel.logout()
+                }) {
+                    Text(LanguageManager.shared.localizedString(for: "logout"))
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(Color.red)
+                        .cornerRadius(14)
+                        .shadow(color: .red.opacity(0.2), radius: 8, x: 0, y: 4)
+                }
+            }
+            .padding(.horizontal, 24)
+            .padding(.top, 10)
+            
+            Spacer()
+        }
+        .presentationDetents([.height(300)])
     }
 }
