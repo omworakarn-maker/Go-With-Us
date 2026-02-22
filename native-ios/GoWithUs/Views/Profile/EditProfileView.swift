@@ -5,6 +5,12 @@ struct EditProfileView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @Environment(\.dismiss) var dismiss
     
+    let targetUser: User?
+    
+    init(targetUser: User? = nil) {
+        self.targetUser = targetUser
+    }
+    
     @State private var name: String = ""
     @State private var username: String = ""
     @State private var usernameStatus: UsernameStatus = .idle
@@ -24,6 +30,12 @@ struct EditProfileView: View {
         let cleaned = value.trimmingCharacters(in: .whitespacesAndNewlines)
         if cleaned.isEmpty {
             usernameStatus = .idle
+            return
+        }
+        
+        // If it's the current username, it's available (no change)
+        if cleaned == authViewModel.currentUser?.username {
+            usernameStatus = .available
             return
         }
         
@@ -48,16 +60,7 @@ struct EditProfileView: View {
                     if result.available {
                         usernameStatus = .available
                     } else {
-                        // Allow save even if checking username if the username isn't being changed
-                        let originalUsername = authViewModel.currentUser?.username ?? ""
-                        
-                        // If the username is taken, but it's the user's current username,
-                        // and the user hasn't changed it, then it's still considered valid for saving.
-                        if cleaned == originalUsername {
-                            usernameStatus = .available // Treat as available if it's their own existing username
-                        } else {
-                            usernameStatus = .taken(result.message)
-                        }
+                        usernameStatus = .taken(result.message)
                     }
                 }
             } catch {
@@ -147,16 +150,26 @@ struct EditProfileView: View {
                             Text("@")
                                 .foregroundColor(.adaptiveSecondaryText)
                                 .font(.system(size: 16, weight: .medium))
-                            if let originalUsername = authViewModel.currentUser?.username, !originalUsername.isEmpty {
-                                Text(originalUsername)
+                            
+                            if let user = authViewModel.currentUser, 
+                               let updatedAt = user.usernameUpdatedAt,
+                               let thirtyDaysLater = Calendar.current.date(byAdding: .day, value: 30, to: updatedAt),
+                               thirtyDaysLater > Date() {
+                                
+                                // Can't change yet
+                                Text(username)
                                     .font(.system(size: 16, weight: .medium))
                                     .foregroundColor(.gray)
-                               Spacer()
-                                Text("ตั้งแล้วเปลี่ยนไม่ได้")
-                                    .font(.caption)
-                                    .foregroundColor(.red)
+                                Spacer()
+                                VStack(alignment: .trailing, spacing: 2) {
+                                    Text("เปลี่ยนได้อีกครั้ง:")
+                                        .font(.system(size: 10))
+                                    Text(thirtyDaysLater, style: .date)
+                                        .font(.system(size: 10, weight: .bold))
+                                }
+                                .foregroundColor(.red)
                             } else {
-                                TextField("ตั้งได้ครั้งเดียวเท่านั้น", text: $username)
+                                TextField(authViewModel.currentUser?.username == nil ? "ตั้งได้ครั้งเดียว (เปลี่ยนได้ทุก 30 วัน)" : "เปลี่ยน username", text: $username)
                                     .font(.system(size: 16, weight: .medium))
                                     .textInputAutocapitalization(.never)
                                     .autocorrectionDisabled(true)
@@ -165,16 +178,17 @@ struct EditProfileView: View {
                                     }
                             }
                             
-                            // Status Icon
-                            switch usernameStatus {
-                            case .checking:
-                                ProgressView().scaleEffect(0.7)
-                            case .available:
-                                Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
-                            case .taken, .invalid:
-                                Image(systemName: "xmark.circle.fill").foregroundColor(.red)
-                            case .idle:
-                                EmptyView()
+                            if usernameStatus != .idle {
+                                switch usernameStatus {
+                                case .checking:
+                                    ProgressView().scaleEffect(0.7)
+                                case .available:
+                                    Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
+                                case .taken, .invalid:
+                                    Image(systemName: "xmark.circle.fill").foregroundColor(.red)
+                                default:
+                                    EmptyView()
+                                }
                             }
                         }
                         
@@ -187,8 +201,12 @@ struct EditProfileView: View {
                                 Text(msg).foregroundColor(.red)
                             case .available:
                                 Text("Username นี้ใช้ได้").foregroundColor(.green)
-                            default:
-                                EmptyView()
+                            case .idle:
+                                if authViewModel.currentUser?.username != nil {
+                                    Text("สามารถเปลี่ยนได้ทุก 30 วัน").foregroundColor(.gray)
+                                } else {
+                                    Text("Username ต้องไม่ซ้ำกับผู้อื่น").foregroundColor(.gray)
+                                }
                             }
                         }
                         .font(.system(size: 10, weight: .bold))
@@ -328,17 +346,34 @@ struct EditProfileView: View {
                             let calendar = Calendar.current
                             let ageInt = calendar.dateComponents([.year], from: birthDate, to: Date()).year
                             
-                            await authViewModel.updateProfile(
-                                name: name,
-                                username: username.isEmpty ? nil : username,
-                                interests: Array(selectedInterests),
-                                gender: gender,
-                                age: ageInt,
-                                bio: bio,
-                                birthDate: birthDate,
-                                travelStyle: authViewModel.currentUser?.travelStyle,
-                                profileImage: profileImageBase64
-                            )
+                            if let target = targetUser {
+                                // Admin editing another user
+                                try? await authViewModel.adminUpdateProfile(
+                                    userId: target.id,
+                                    name: name,
+                                    username: username.isEmpty ? nil : username,
+                                    interests: Array(selectedInterests),
+                                    gender: gender,
+                                    age: ageInt,
+                                    bio: bio,
+                                    birthDate: birthDate,
+                                    travelStyle: target.travelStyle, // Keep their style or use what's in VM
+                                    profileImage: profileImageBase64
+                                )
+                            } else {
+                                // Default self-update
+                                await authViewModel.updateProfile(
+                                    name: name,
+                                    username: username.isEmpty ? nil : username,
+                                    interests: Array(selectedInterests),
+                                    gender: gender,
+                                    age: ageInt,
+                                    bio: bio,
+                                    birthDate: birthDate,
+                                    travelStyle: authViewModel.currentUser?.travelStyle,
+                                    profileImage: profileImageBase64
+                                )
+                            }
                             
                             // Save privacy settings
                             try? await AuthService.shared.updatePrivacySettings(
@@ -370,7 +405,8 @@ struct EditProfileView: View {
             }
             .tint(.black)
             .onAppear {
-                if let user = authViewModel.currentUser {
+                let userToEdit = targetUser ?? authViewModel.currentUser
+                if let user = userToEdit {
                     name = user.name
                     username = user.username ?? ""
                     selectedInterests = Set(user.interests ?? [])
@@ -388,11 +424,13 @@ struct EditProfileView: View {
                     self.showInterests = user.showInterests ?? true
                     self.showEmail = user.showEmail ?? false
                 }
+                
                 // Load saved image (local cache first, then backend)
-                if let data = UserDefaults.standard.data(forKey: "local_profile_image"),
+                if targetUser == nil,
+                   let data = UserDefaults.standard.data(forKey: "local_profile_image"),
                    let image = UIImage(data: data) {
                     profileImage = image
-                } else if let profileImageStr = authViewModel.currentUser?.profileImage,
+                } else if let profileImageStr = userToEdit?.profileImage,
                           !profileImageStr.isEmpty,
                           let image = ProfileView.decodeBase64Image(profileImageStr) {
                     profileImage = image

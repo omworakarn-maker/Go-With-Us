@@ -116,11 +116,11 @@ struct CustomTabBar: View {
     
     func getThaiTitle(for tab: Tab) -> String {
         switch tab {
-        case .home: return LanguageManager.shared.localizedString(for: "home")
-        case .buddy: return LanguageManager.shared.localizedString(for: "find_friend")
-        case .create: return LanguageManager.shared.localizedString(for: "create")
-        case .chat: return LanguageManager.shared.currentLanguage == .thai ? "แชท" : "Chat"
-        case .profile: return LanguageManager.shared.localizedString(for: "profile")
+        case .home: return SettingsManager.shared.localizedString(for: "home")
+        case .buddy: return SettingsManager.shared.localizedString(for: "find_friend")
+        case .create: return SettingsManager.shared.localizedString(for: "create")
+        case .chat: return SettingsManager.shared.currentLanguage == .thai ? "แชท" : "Chat"
+        case .profile: return SettingsManager.shared.localizedString(for: "profile")
         }
     }
 }

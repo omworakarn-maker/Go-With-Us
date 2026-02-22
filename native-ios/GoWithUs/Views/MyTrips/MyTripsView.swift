@@ -25,7 +25,7 @@ struct MyTripsView: View {
                         
                         Spacer()
                         
-                        Text(LanguageManager.shared.localizedString(for: "my_trips"))
+                        Text(SettingsManager.shared.localizedString(for: "my_trips"))
                             .font(.system(size: 22, weight: .bold))
                             .foregroundColor(.adaptiveText)
                         
@@ -50,11 +50,11 @@ struct MyTripsView: View {
                                 Image(systemName: "airplane.departure")
                                     .font(.system(size: 60))
                                     .foregroundColor(.gray.opacity(0.3))
-                                Text(LanguageManager.shared.currentLanguage == .thai ? "คุณยังไม่มีทริปที่สร้างไว้" : "You haven't created any trips yet")
+                                Text(SettingsManager.shared.currentLanguage == .thai ? "คุณยังไม่มีทริปที่สร้างไว้" : "You haven't created any trips yet")
                                     .font(.headline)
                                 
                                 NavigationLink(destination: CreateTripView()) {
-                                     Text(LanguageManager.shared.localizedString(for: "create"))
+                                     Text(SettingsManager.shared.localizedString(for: "create"))
                                         .font(.headline)
                                         .foregroundColor(.white)
                                         .padding()
@@ -111,7 +111,7 @@ class MyTripsViewModel: ObservableObject {
             }
         } catch {
             await MainActor.run {
-                self.errorMessage = LanguageManager.shared.currentLanguage == .thai ? "โหลดข้อมูลล้มเหลว" : "Failed to load data"
+                self.errorMessage = SettingsManager.shared.currentLanguage == .thai ? "โหลดข้อมูลล้มเหลว" : "Failed to load data"
                 self.isLoading = false
                 print("Error loading my trips: \(error)")
             }

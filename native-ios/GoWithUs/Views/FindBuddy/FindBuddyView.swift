@@ -10,7 +10,7 @@ struct FindBuddyView: View {
                 Color.adaptiveBackground.ignoresSafeArea()
                 
                 if viewModel.isLoading {
-                    ProgressView(LanguageManager.shared.localizedString(for: "loading_buddies"))
+                    ProgressView(SettingsManager.shared.localizedString(for: "loading_buddies"))
                         .tint(.appAccent)
                 } else if let error = viewModel.errorMessage {
                     VStack(spacing: 16) {
@@ -19,7 +19,7 @@ struct FindBuddyView: View {
                             .foregroundColor(.orange)
                         Text(error)
                             .foregroundColor(.gray)
-                        Button(LanguageManager.shared.localizedString(for: "try_again")) {
+                        Button(SettingsManager.shared.localizedString(for: "try_again")) {
                             Task { await viewModel.fetchMatches() }
                         }
                         .padding()
@@ -31,15 +31,15 @@ struct FindBuddyView: View {
                         Image(systemName: "person.2.slash.fill")
                             .font(.system(size: 80))
                             .foregroundColor(.gray.opacity(0.3))
-                        Text(LanguageManager.shared.currentLanguage == .thai ? "ยังไม่มีเพื่อนใหม่ใกล้ตัวคุณ" : "No new buddies near you")
+                        Text(SettingsManager.shared.currentLanguage == .thai ? "ยังไม่มีเพื่อนใหม่ใกล้ตัวคุณ" : "No new buddies near you")
                             .font(.headline)
-                        Text(LanguageManager.shared.currentLanguage == .thai ? "ลองปรับความสนใจในโปรไฟล์ของคุณ\nเพื่อให้ AI แนะนำเพื่อนที่ตรงใจมากขึ้น" : "Try updating your interests\nfor better AI recommendations")
+                        Text(SettingsManager.shared.currentLanguage == .thai ? "ลองปรับความสนใจในโปรไฟล์ของคุณ\nเพื่อให้ AI แนะนำเพื่อนที่ตรงใจมากขึ้น" : "Try updating your interests\nfor better AI recommendations")
                             .font(.subheadline)
                             .foregroundColor(.gray)
                             .multilineTextAlignment(.center)
                         
                         Button(action: { Task { await viewModel.fetchMatches() } }) {
-                            Text(LanguageManager.shared.localizedString(for: "refresh"))
+                            Text(SettingsManager.shared.localizedString(for: "refresh"))
                                 .font(.headline)
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 32)
@@ -77,7 +77,7 @@ struct FindBuddyView: View {
                     .zIndex(10)
                 }
             }
-            .navigationTitle(LanguageManager.shared.localizedString(for: "find_friend"))
+            .navigationTitle(SettingsManager.shared.localizedString(for: "find_friend"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -223,14 +223,14 @@ struct MatchCelebrationView: View {
                     .font(.system(size: 40, weight: .black))
                     .foregroundColor(.white)
                 
-                Text(LanguageManager.shared.currentLanguage == .thai ? "คุณและ \(name) อยากไปเที่ยวด้วยกัน!" : "You and \(name) want to travel together!")
+                Text(SettingsManager.shared.currentLanguage == .thai ? "คุณและ \(name) อยากไปเที่ยวด้วยกัน!" : "You and \(name) want to travel together!")
                     .font(.title3)
                     .foregroundColor(.white.opacity(0.8))
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
                 
                 Button(action: onDismiss) {
-                    Text(LanguageManager.shared.currentLanguage == .thai ? "ส่งข้อความหา \(name)" : "Send a message to \(name)")
+                    Text(SettingsManager.shared.currentLanguage == .thai ? "ส่งข้อความหา \(name)" : "Send a message to \(name)")
                         .font(.headline)
                         .foregroundColor(.black)
                         .padding(.horizontal, 40)
@@ -260,9 +260,9 @@ struct MutualMatchesView: View {
                         Image(systemName: "bubble.left.and.exclamationmark.bubble.right.fill")
                             .font(.system(size: 60))
                             .foregroundColor(.gray.opacity(0.3))
-                        Text(LanguageManager.shared.currentLanguage == .thai ? "ยังไม่มีคนแมตช์ด้วย" : "No matches yet")
+                        Text(SettingsManager.shared.currentLanguage == .thai ? "ยังไม่มีคนแมตช์ด้วย" : "No matches yet")
                             .font(.headline)
-                        Text(LanguageManager.shared.currentLanguage == .thai ? "ปัดขวาให้คนที่คุณสนใจ\nเพื่อเริ่มบทสนทนา!" : "Swipe right on people you like\nto start a conversation!")
+                        Text(SettingsManager.shared.currentLanguage == .thai ? "ปัดขวาให้คนที่คุณสนใจ\nเพื่อเริ่มบทสนทนา!" : "Swipe right on people you like\nto start a conversation!")
                             .font(.subheadline)
                             .foregroundColor(.gray)
                             .multilineTextAlignment(.center)
@@ -276,7 +276,7 @@ struct MutualMatchesView: View {
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(user.name)
                                         .font(.headline)
-                                    Text(LanguageManager.shared.currentLanguage == .thai ? "แตะเพื่อเริ่มคุย" : "Tap to chat")
+                                    Text(SettingsManager.shared.currentLanguage == .thai ? "แตะเพื่อเริ่มคุย" : "Tap to chat")
                                         .font(.caption)
                                         .foregroundColor(.appAccent)
                                 }
@@ -287,11 +287,11 @@ struct MutualMatchesView: View {
                     .listStyle(PlainListStyle())
                 }
             }
-            .navigationTitle(LanguageManager.shared.currentLanguage == .thai ? "เพื่อนใหม่" : "My Matches")
+            .navigationTitle(SettingsManager.shared.currentLanguage == .thai ? "เพื่อนใหม่" : "My Matches")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button(LanguageManager.shared.localizedString(for: "close")) { dismiss() }
+                    Button(SettingsManager.shared.localizedString(for: "close")) { dismiss() }
                 }
             }
             .task {

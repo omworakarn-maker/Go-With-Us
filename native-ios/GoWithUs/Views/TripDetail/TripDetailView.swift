@@ -112,7 +112,7 @@ struct TripDetailView: View {
                     
                     Spacer()
                     
-                    if viewModel.isCreator {
+                    if viewModel.isCreator || viewModel.isAdmin {
                         Button { showEditSheet = true } label: {
                             Image(systemName: "pencil")
                                 .font(.system(size: 15, weight: .bold))
@@ -667,7 +667,7 @@ struct TripDetailView: View {
                                     HStack(spacing: 5) {
                                         Image(systemName: displayStatus == "interested" ? "star.fill" : "checkmark.seal.fill")
                                             .font(.system(size: 8, weight: .bold))
-                                        Text(displayStatus == "interested" ? "สนใจทริปนี้" : "จะไปด้วยแน่นอน!")
+                                        Text(displayStatus == "interested" ? "สนใจทริปนี้" : "ไปแน่นอน!")
                                             .font(.system(size: 10, weight: .bold))
                                     }
                                     .foregroundColor(displayStatus == "interested" ? .black : .white)
@@ -765,7 +765,7 @@ struct TripDetailView: View {
                                     if viewModel.isJoining {
                                         ProgressView().scaleEffect(0.7)
                                     }
-                                    Text(participant.status == "interested" ? "เปลี่ยนเป็นจะไปด้วย" : "เปลี่ยนเป็นสนใจ")
+                                    Text(participant.status == "interested" ? "เปลี่ยนเป็นจะไปแน่นอน" : "เปลี่ยนเป็นสนใจ")
                                 }
                                 .font(.system(size: 14, weight: .bold))
                                 .foregroundColor(participant.status == "interested" ? .white : .black)

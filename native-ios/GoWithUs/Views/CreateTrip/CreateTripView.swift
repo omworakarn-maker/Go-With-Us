@@ -23,6 +23,8 @@ struct CreateTripView: View {
     @State private var tags: [String] = []
     @State private var tagInput: String = ""
     @State private var itinerary: [DayPlan]?
+    @State private var showDeleteAlert = false
+    @State private var specificLocation = ""
     
 
     
@@ -79,8 +81,20 @@ struct CreateTripView: View {
         _isPublic = State(initialValue: trip.isPublic)
         _itinerary = State(initialValue: trip.itinerary)
         
-        // Note: For now, we don't load current gallery URLs back into the picker (selectedImages),
-        // but we handle them in saveTrip to ensure they aren't deleted.
+        // Parse province and specific location from destination
+        let dest = trip.destination
+        if let range = dest.range(of: " (") {
+            _destination = State(initialValue: String(dest[..<range.lowerBound]))
+            var spec = String(dest[range.lowerBound...])
+            spec = spec.replacingOccurrences(of: " (", with: "").replacingOccurrences(of: ")", with: "")
+            _specificLocation = State(initialValue: spec)
+        } else {
+            _destination = State(initialValue: dest)
+            _specificLocation = State(initialValue: "")
+        }
+        
+        let desc = trip.description ?? ""
+        _description = State(initialValue: desc.isEmpty ? "-" : desc)
     }
     
     var body: some View {
@@ -123,7 +137,138 @@ struct CreateTripView: View {
                                 }()
                             )
                             .padding(.bottom, 8)
-                            // Tags / Keywords (Moved Up)
+                            // Destination Selection & Specific Place
+                            VStack(alignment: .leading, spacing: 12) {
+                                // Province Selection
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("จังหวัด")
+                                        .font(.system(size: 11, weight: .bold))
+                                        .foregroundColor(.gray)
+                                        .textCase(.uppercase)
+                                        .tracking(1)
+                                    
+                                    Menu {
+                                        ForEach(thaiProvinces, id: \.self) { province in
+                                            Button(province) {
+                                                destination = province
+                                            }
+                                        }
+                                    } label: {
+                                        HStack {
+                                            Text(destination.isEmpty ? "เลือกจังหวัด" : destination)
+                                                .foregroundColor(destination.isEmpty ? .gray : .adaptiveText)
+                                            Spacer()
+                                            Image(systemName: "chevron.down")
+                                                .foregroundColor(.gray)
+                                        }
+                                        .padding()
+                                        .background(Color.gray.opacity(0.05))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                                        )
+                                        .cornerRadius(12)
+                                    }
+                                }
+                                
+                                // Specific Location
+                                FormField(label: "ระบุสถานที่เจาะจง (ไม่จำเป็น)", placeholder: "เช่น ชื่อดอย, ชื่อชายหาด, ชื่อร้านค้า", text: $specificLocation)
+                            }
+
+                            // Category
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("หมวดหมู่")
+                                    .font(.system(size: 11, weight: .bold))
+                                    .foregroundColor(.gray)
+                                    .textCase(.uppercase)
+                                    .tracking(1)
+                                
+                                Menu {
+                                    ForEach(TripCategory.allCases, id: \.self) { category in
+                                        Button(category.rawValue) {
+                                            selectedCategoryRaw = category.rawValue
+                                        }
+                                    }
+                                    // Extra user categories
+                                    ForEach(extraCategories, id: \.self) { cat in
+                                        Button(cat) { selectedCategoryRaw = cat }
+                                    }
+
+                                    Divider()
+                                    Button("เพิ่มหมวดหมู่...") {
+                                        showAddCategory = true
+                                    }
+                                } label: {
+                                    HStack {
+                                        Text(selectedCategoryRaw)
+                                            .foregroundColor(.adaptiveText)
+                                        Spacer()
+                                        Image(systemName: "chevron.down")
+                                            .foregroundColor(.gray)
+                                    }
+                                    .padding()
+                                    .background(Color.gray.opacity(0.05))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                                    )
+                                    .cornerRadius(12)
+                                }
+                            }
+
+                            // Description
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack {
+                                    Text("รายละเอียด")
+                                        .font(.system(size: 11, weight: .bold))
+                                        .foregroundColor(.gray)
+                                        .textCase(.uppercase)
+                                        .tracking(1)
+                                    Spacer()
+                                    Button(action: generateAITrip) {
+                                        HStack(spacing: 4) {
+                                            if isGeneratingAI {
+                                                ProgressView().scaleEffect(0.6).tint(.white)
+                                            } else {
+                                                Image(systemName: "sparkles")
+                                            }
+                                            Text(isGeneratingAI ? "กำลังจัดทริป..." : "AI ช่วยจัดทริป")
+                                        }
+                                        .font(.system(size: 11, weight: .bold))
+                                        .foregroundColor(.white)
+                                        .padding(.horizontal, 10).padding(.vertical, 6)
+                                        .background(Color.black)
+                                        .cornerRadius(12)
+                                    }
+                                    .disabled(isGeneratingAI)
+                                }
+                                
+                                TextEditor(text: $description)
+                                    .foregroundColor(.adaptiveText)
+                                    .tint(.adaptiveText)
+                                    .frame(minHeight: 120)
+                                    .padding(8)
+                                    .scrollContentBackground(.hidden) // Remove white background
+                                    .background(Color.clear)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                                    )
+                                    .cornerRadius(12)
+                                    .onChange(of: description) { old, new in
+                                        if old == "-" && new.count > 1 {
+                                            // Extract the character the user just typed
+                                            description = String(new.suffix(1))
+                                        }
+                                    }
+                                    .onTapGesture {
+                                        if description == "-" {
+                                            description = ""
+                                        }
+                                    }
+                            }
+
+                            // Tags / Keywords
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("แท็ก / คีย์เวิร์ด")
                                     .font(.system(size: 11, weight: .bold))
@@ -179,125 +324,6 @@ struct CreateTripView: View {
                                         .stroke(Color.gray.opacity(0.2), lineWidth: 1)
                                 )
                                 .cornerRadius(12)
-                            }
-                            
-                            // Destination Selection & Specific Place
-                            VStack(alignment: .leading, spacing: 12) {
-                                // Province Selection
-                                VStack(alignment: .leading, spacing: 8) {
-                                    Text("จังหวัด")
-                                        .font(.system(size: 11, weight: .bold))
-                                        .foregroundColor(.gray)
-                                        .textCase(.uppercase)
-                                        .tracking(1)
-                                    
-                                    Menu {
-                                        ForEach(thaiProvinces, id: \.self) { province in
-                                            Button(province) {
-                                                destination = province
-                                            }
-                                        }
-                                    } label: {
-                                        HStack {
-                                            Text(destination.isEmpty ? "เลือกจังหวัด" : destination)
-                                                .foregroundColor(destination.isEmpty ? .gray : .adaptiveText)
-                                            Spacer()
-                                            Image(systemName: "chevron.down")
-                                                .foregroundColor(.gray)
-                                        }
-                                        .padding()
-                                        .background(Color.gray.opacity(0.05))
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 12)
-                                                .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                                        )
-                                        .cornerRadius(12)
-                                    }
-                                }
-                                
-                                // Optional specific place (could reuse title or add to description)
-                                // They said: "สถานที่ให้การสร้างทริปหรือแก้ไขให้เลือกจังหวัดเปลี่ยนเป็นเขียนว่าจังหวัดแล้วให้เลือกแล้วค่อยเพิ่มตัวเลือกสถานที่ว่าระบุอีกทีว่าที่ไหนในอันนี้ไม่จำเป็นต้องระบุก็ได้เพราะมีจังหวัดบอกแล้วและยังไงหัวข้อก็ต้องเป็นชื่อทริปที่ผู้ใช้เอามาตั้ง"
-                                // We will change destination to be the province, and title is the specific place.
-                            }
-                            // Description
-                            VStack(alignment: .leading, spacing: 8) {
-                                HStack {
-                                    Text("รายละเอียด")
-                                        .font(.system(size: 11, weight: .bold))
-                                        .foregroundColor(.gray)
-                                        .textCase(.uppercase)
-                                        .tracking(1)
-                                    Spacer()
-                                    Button(action: generateAITrip) {
-                                        HStack(spacing: 4) {
-                                            if isGeneratingAI {
-                                                ProgressView().scaleEffect(0.6).tint(.white)
-                                            } else {
-                                                Image(systemName: "sparkles")
-                                            }
-                                            Text(isGeneratingAI ? "กำลังจัดทริป..." : "AI ช่วยจัดทริป")
-                                        }
-                                        .font(.system(size: 11, weight: .bold))
-                                        .foregroundColor(.white)
-                                        .padding(.horizontal, 10).padding(.vertical, 6)
-                                        .background(Color.black)
-                                        .cornerRadius(12)
-                                    }
-                                    .disabled(isGeneratingAI)
-                                }
-                                
-                                TextEditor(text: $description)
-                                    .foregroundColor(.adaptiveText)
-                                    .tint(.adaptiveText)
-                                    .frame(height: 100)
-                                    .padding(8)
-                                    .background(Color.gray.opacity(0.05))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                                    )
-                                    .cornerRadius(12)
-                            }
-                            
-                            // Category (Restored)
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("หมวดหมู่")
-                                    .font(.system(size: 11, weight: .bold))
-                                    .foregroundColor(.gray)
-                                    .textCase(.uppercase)
-                                    .tracking(1)
-                                
-                                Menu {
-                                    ForEach(TripCategory.allCases, id: \.self) { category in
-                                        Button(category.rawValue) {
-                                            selectedCategoryRaw = category.rawValue
-                                        }
-                                    }
-                                    // Extra user categories
-                                    ForEach(extraCategories, id: \.self) { cat in
-                                        Button(cat) { selectedCategoryRaw = cat }
-                                    }
-
-                                    Divider()
-                                    Button("เพิ่มหมวดหมู่...") {
-                                        showAddCategory = true
-                                    }
-                                } label: {
-                                    HStack {
-                                        Text(selectedCategoryRaw)
-                                            .foregroundColor(.adaptiveText)
-                                        Spacer()
-                                        Image(systemName: "chevron.down")
-                                            .foregroundColor(.gray)
-                                    }
-                                    .padding()
-                                    .background(Color.gray.opacity(0.05))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                                    )
-                                    .cornerRadius(12)
-                                }
                             }
                             
                             // Visibility Toggle
@@ -377,10 +403,35 @@ struct CreateTripView: View {
                     }
                     .foregroundColor(.adaptiveText)
                 }
+                
+                if editingTrip != nil {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button(role: .destructive) {
+                            showDeleteAlert = true
+                        } label: {
+                            Image(systemName: "trash")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundColor(.red)
+                        }
+                    }
+                }
+            }
+            .alert("ยืนยันการลบทริป", isPresented: $showDeleteAlert) {
+                Button("ยกเลิก", role: .cancel) { }
+                Button("ลบ", role: .destructive) {
+                    deleteTrip()
+                }
+            } message: {
+                Text("คุณแน่ใจหรือไม่ว่าต้องการลบทริปนี้? การดำเนินการนี้ไม่สามารถย้อนกลับได้")
             }
         }
         .tint(.black)
-        .onAppear { loadExtraCategories() }
+        .onAppear { 
+            loadExtraCategories()
+            if description.isEmpty {
+                description = "-"
+            }
+        }
         .sheet(isPresented: $showAddCategory) {
             NavigationView {
                 VStack(spacing: 16) {
@@ -470,7 +521,10 @@ struct CreateTripView: View {
         
         // Append tags as hashtags to description
         let tagsString = tags.isEmpty ? "" : "\n" + tags.map { "#\($0)" }.joined(separator: " ")
-        let fullDescription = (description.isEmpty ? "ไม่มีรายละเอียด" : description) + tagsString
+        let cleanDescription = description == "-" ? "" : description
+        let fullDescription = (cleanDescription.isEmpty ? "" : cleanDescription) + tagsString
+        
+        let fullDestination = specificLocation.isEmpty ? destination : "\(destination) (\(specificLocation))"
         
         // Prepare images
         let base64Images = selectedImages.compactMap { img -> String? in
@@ -499,7 +553,7 @@ struct CreateTripView: View {
                     _ = try await TripService.shared.updateTrip(
                         id: trip.id,
                         title: title,
-                        destination: destination,
+                        destination: fullDestination,
                         description: fullDescription,
                         startDate: startDate,
                         endDate: endDate,
@@ -515,7 +569,7 @@ struct CreateTripView: View {
                     // Create
                     _ = try await TripService.shared.createTrip(
                         title: title,
-                        destination: destination,
+                        destination: fullDestination,
                         description: fullDescription,
                         startDate: startDate,
                         endDate: endDate,
@@ -537,6 +591,27 @@ struct CreateTripView: View {
             }
         }
     }
+    
+    private func deleteTrip() {
+        guard let tripId = editingTrip?.id else { return }
+        isLoading = true
+        
+        Task {
+            do {
+                try await TripService.shared.deleteTrip(id: tripId)
+                await MainActor.run {
+                    isLoading = false
+                    dismiss()
+                }
+            } catch {
+                await MainActor.run {
+                    isLoading = false
+                    errorMessage = "ไม่สามารถลบทริปได้: \(error.localizedDescription)"
+                }
+            }
+        }
+    }
+    
     // MARK: - AI Generate Trip
     private func generateAITrip() {
         guard !destination.isEmpty || !title.isEmpty else {
@@ -581,6 +656,7 @@ struct CreateTripView: View {
           ]
         }
         จัดตารางกิจกรรมให้ครบ \(totalDays) วัน
+        *คำเตือน*: ในส่วน "description" ให้เขียนอธิบายภาพรวม จุดเด่น และความน่าสนใจของทริปนี้ให้น่าดึงดูด โดยไม่ต้องระบุวันเดินทางหรือวันที่ (เช่น วันที่ 1, วันที่ 2) ในคำอธิบายนี้ เพราะรายละเอียดรายวันจะไปอยู่ในส่วน "itinerary" อยู่แล้ว
         """
         
         Task {

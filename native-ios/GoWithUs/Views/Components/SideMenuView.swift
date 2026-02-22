@@ -5,80 +5,181 @@ struct SideMenuView: View {
     @Binding var currentScreen: AppScreen
     @Binding var transition: AnyTransition
     @EnvironmentObject var authViewModel: AuthViewModel
+    @State private var showSettings = false
     @State private var showLogoutAlert = false
     @State private var showLanguageAlert = false
     
     var body: some View {
         ZStack(alignment: .leading) {
-            // Menu Content
-            VStack(alignment: .leading, spacing: 0) {
-                // Header
-                VStack(alignment: .leading, spacing: 12) {
-                    if let user = authViewModel.currentUser {
-                        UserAvatarView(user: user, size: 70)
-                            .shadow(color: .black.opacity(0.1), radius: 5, x: 0, y: 3)
-                        
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(user.name)
-                                .font(.title3)
-                                .fontWeight(.bold)
-                                .foregroundColor(.adaptiveText)
-                            
-                            if let handle = UserDefaults.standard.string(forKey: "user_handle"), !handle.isEmpty {
-                                Text("@\(handle)")
-                                    .font(.caption)
-                                    .foregroundColor(.adaptiveSecondaryText)
-                            } else if let email = user.email {
-                                Text(email)
-                                    .font(.caption)
-                                    .foregroundColor(.adaptiveSecondaryText)
-                            }
-                        }
-                    } else {
-                        Image(systemName: "person.circle.fill")
-                            .resizable()
-                            .frame(width: 70, height: 70)
-                            .foregroundColor(.adaptiveSecondaryText)
-                        Text("Guest")
+            // Background for the entire side menu area
+            Color.adaptiveBackground
+            
+            mainMenu
+                .disabled(showSettings)
+            
+            if showSettings {
+                settingsMenu
+                    .background(Color.adaptiveBackground)
+                    .transition(.move(edge: .leading))
+                    .zIndex(1)
+            }
+        }
+        .frame(width: UIScreen.main.bounds.width * 0.8)
+        .ignoresSafeArea(.container, edges: .top)
+        .sheet(isPresented: $showLogoutAlert) {
+            LogoutSheet {
+                withAnimation {
+                    isShowing = false
+                }
+            }
+        }
+        .alert(SettingsManager.shared.localizedString(for: "language_change_title"), isPresented: $showLanguageAlert) {
+            Button(SettingsManager.shared.localizedString(for: "ok"), role: .cancel) {}
+        } message: {
+            Text(SettingsManager.shared.localizedString(for: "language_change_message"))
+        }
+        .tint(.black)
+    }
+    
+    // MARK: - Main Menu
+    private var mainMenu: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Header
+            VStack(alignment: .leading, spacing: 12) {
+                if let user = authViewModel.currentUser {
+                    UserAvatarView(user: user, size: 70)
+                        .shadow(color: .black.opacity(0.1), radius: 5, x: 0, y: 3)
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(user.name)
                             .font(.title3)
                             .fontWeight(.bold)
                             .foregroundColor(.adaptiveText)
+                        
+                        if let username = user.username, !username.isEmpty {
+                            Text("@\(username)")
+                                .font(.caption)
+                                .foregroundColor(.adaptiveSecondaryText)
+                        } else if let email = user.email {
+                            Text(email)
+                                .font(.caption)
+                                .foregroundColor(.adaptiveSecondaryText)
+                        }
                     }
+                } else {
+                    Image(systemName: "person.circle.fill")
+                        .resizable()
+                        .frame(width: 70, height: 70)
+                        .foregroundColor(.adaptiveSecondaryText)
+                    Text("Guest")
+                        .font(.title3)
+                        .fontWeight(.bold)
+                        .foregroundColor(.adaptiveText)
                 }
-                .padding(.top, 70)
-                .padding(.horizontal, 24)
-                .padding(.bottom, 30)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.adaptiveBackground)
-                .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 5)
-                .padding(.bottom, 20)
-                
-                // Menu Items
-                VStack(alignment: .leading, spacing: 24) {
-                    MenuButton(icon: "house", text: LanguageManager.shared.localizedString(for: "home"), targetScreen: .home, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
-                    MenuButton(icon: "arrow.triangle.2.circlepath", text: LanguageManager.shared.localizedString(for: "match"), targetScreen: .matchTrip, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
-                    MenuButton(icon: "suitcase", text: LanguageManager.shared.localizedString(for: "my_trips"), targetScreen: .myTrips, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
-                    MenuButton(icon: "bubble.left.and.text.bubble.right", text: LanguageManager.shared.localizedString(for: "ai_chat"), targetScreen: .aiChat, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
-                    MenuButton(icon: "person.crop.circle", text: LanguageManager.shared.localizedString(for: "profile"), targetScreen: .profile, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
+            }
+            .padding(.top, 70)
+            .padding(.horizontal, 24)
+            .padding(.bottom, 30)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.adaptiveBackground)
+            .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 5)
+            .padding(.bottom, 20)
+            
+            // Menu Items
+            VStack(alignment: .leading, spacing: 24) {
+                MenuButton(icon: "house", text: SettingsManager.shared.localizedString(for: "home"), targetScreen: .home, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
+                MenuButton(icon: "arrow.triangle.2.circlepath", text: SettingsManager.shared.localizedString(for: "match"), targetScreen: .matchTrip, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
+                MenuButton(icon: "suitcase", text: SettingsManager.shared.localizedString(for: "my_trips"), targetScreen: .myTrips, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
+                MenuButton(icon: "bubble.left.and.text.bubble.right", text: SettingsManager.shared.localizedString(for: "ai_chat"), targetScreen: .aiChat, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
+                MenuButton(icon: "person.crop.circle", text: SettingsManager.shared.localizedString(for: "profile"), targetScreen: .profile, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
+            }
+            .padding(.horizontal)
+            
+            Divider().padding(.vertical, 16)
+            
+            // Settings Button
+            Button(action: {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    showSettings = true
                 }
-                .padding(.horizontal)
-                
-                Divider().padding(.vertical, 16)
-                
-                // Settings Header
-                VStack(alignment: .leading, spacing: 16) {
-                    Text(LanguageManager.shared.localizedString(for: "settings"))
-                        .font(.headline)
-                        .foregroundColor(.gray)
-                        .padding(.horizontal, 24)
+            }) {
+                HStack(spacing: 16) {
+                    Image(systemName: "gearshape")
+                        .font(.system(size: 20))
+                        .foregroundColor(.adaptiveText)
+                        .frame(width: 24)
                     
+                    Text(SettingsManager.shared.localizedString(for: "settings"))
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(.adaptiveText)
+                    
+                    Spacer()
+                    
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(.gray.opacity(0.5))
+                }
+                .padding(.vertical, 14)
+                .padding(.horizontal, 24)
+            }
+            
+            Spacer()
+            
+            if authViewModel.currentUser != nil {
+                Button(action: { showLogoutAlert = true }) {
                     HStack(spacing: 16) {
+                        Image(systemName: "arrow.right.square")
+                            .font(.system(size: 20))
+                        Text(SettingsManager.shared.localizedString(for: "logout"))
+                            .font(.headline)
+                    }
+                    .foregroundColor(.red)
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 12)
+                    .padding(.bottom, 60)
+                }
+            }
+        }
+    }
+    
+    // MARK: - Settings Menu
+    private var settingsMenu: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Header with Back Button
+            VStack(alignment: .leading, spacing: 12) {
+                Button(action: {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        showSettings = false
+                    }
+                }) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 18, weight: .bold))
+                        Text(SettingsManager.shared.localizedString(for: "settings"))
+                            .font(.title3)
+                            .fontWeight(.black)
+                    }
+                    .foregroundColor(.adaptiveText)
+                }
+            }
+            .padding(.top, 70)
+            .padding(.horizontal, 24)
+            .padding(.bottom, 30)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.adaptiveBackground)
+            .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 5)
+            .padding(.bottom, 20)
+            
+            VStack(alignment: .leading, spacing: 24) {
+                // Language Setting
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
                         Image(systemName: "globe")
                             .font(.system(size: 20))
                             .foregroundColor(.adaptiveText)
                             .frame(width: 24)
                         
-                        Text("\(LanguageManager.shared.localizedString(for: "language")) (Language)")
+                        Text("\(SettingsManager.shared.localizedString(for: "language"))")
                             .font(.system(size: 16, weight: .bold))
                             .foregroundColor(.adaptiveText)
                         
@@ -86,16 +187,16 @@ struct SideMenuView: View {
                         
                         Menu {
                             Button(AppLanguage.thai.displayName) {
-                                LanguageManager.shared.currentLanguage = .thai
+                                SettingsManager.shared.currentLanguage = .thai
                                 showLanguageAlert = true
                             }
                             Button(AppLanguage.english.displayName) {
-                                LanguageManager.shared.currentLanguage = .english
+                                SettingsManager.shared.currentLanguage = .english
                                 showLanguageAlert = true
                             }
                         } label: {
                             HStack {
-                                Text(LanguageManager.shared.currentLanguage.displayName)
+                                Text(SettingsManager.shared.currentLanguage.displayName)
                                     .font(.subheadline)
                                     .foregroundColor(.gray)
                                 Image(systemName: "chevron.up.chevron.down")
@@ -107,45 +208,39 @@ struct SideMenuView: View {
                             .cornerRadius(8)
                         }
                     }
-                    .padding(.horizontal, 24)
                 }
+                .padding(.horizontal, 24)
                 
-                Spacer()
-                
-                if authViewModel.currentUser != nil {
-                    Button(action: { showLogoutAlert = true }) {
-                        HStack(spacing: 16) {
-                            Image(systemName: "arrow.right.square")
-                                .font(.system(size: 20))
-                            Text(LanguageManager.shared.localizedString(for: "logout"))
-                                .font(.headline)
-                        }
-                        .foregroundColor(.red)
-                        .padding(.horizontal, 24)
-                        .padding(.vertical, 12)
-                        .padding(.bottom, 60)
+                // Vibration Setting
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Image(systemName: "waveform.path.ecg")
+                            .font(.system(size: 20))
+                            .foregroundColor(.adaptiveText)
+                            .frame(width: 24)
+                        
+                        Text(SettingsManager.shared.localizedString(for: "vibration"))
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(.adaptiveText)
+                        
+                        Spacer()
+                        
+                        Toggle("", isOn: Binding(
+                            get: { SettingsManager.shared.isHapticEnabled },
+                            set: { SettingsManager.shared.isHapticEnabled = $0 }
+                        ))
+                        .labelsHidden()
+                        .tint(.black)
                     }
                 }
+                .padding(.horizontal, 24)
             }
-            .frame(width: UIScreen.main.bounds.width * 0.8)
-            .background(Color.adaptiveBackground)
+            
+            Spacer()
         }
-        .ignoresSafeArea(.container, edges: .top) // Keep top ignored for full height feel, but respect bottom
-        .sheet(isPresented: $showLogoutAlert) {
-            LogoutSheet {
-                withAnimation {
-                    isShowing = false
-                }
-            }
-        }
-        .alert(LanguageManager.shared.localizedString(for: "language_change_title"), isPresented: $showLanguageAlert) {
-            Button(LanguageManager.shared.localizedString(for: "ok"), role: .cancel) {}
-        } message: {
-            Text(LanguageManager.shared.localizedString(for: "language_change_message"))
-        }
-        .tint(.black)
     }
 }
+
 
 struct MenuButton: View {
     let icon: String
@@ -206,11 +301,11 @@ struct LogoutSheet: View {
                 .padding(.top, 32)
             
             VStack(spacing: 8) {
-                Text(LanguageManager.shared.localizedString(for: "logout"))
+                Text(SettingsManager.shared.localizedString(for: "logout"))
                     .font(.system(size: 22, weight: .black))
                     .foregroundColor(.adaptiveText)
                 
-                Text(LanguageManager.shared.localizedString(for: "logout_confirm"))
+                Text(SettingsManager.shared.localizedString(for: "logout_confirm"))
                     .font(.system(size: 15))
                     .foregroundColor(.adaptiveSecondaryText)
                     .multilineTextAlignment(.center)
@@ -221,7 +316,7 @@ struct LogoutSheet: View {
                 Button(action: {
                     dismiss()
                 }) {
-                    Text(LanguageManager.shared.localizedString(for: "cancel"))
+                    Text(SettingsManager.shared.localizedString(for: "cancel"))
                         .font(.system(size: 15, weight: .bold))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
@@ -235,7 +330,7 @@ struct LogoutSheet: View {
                     dismiss()
                     authViewModel.logout()
                 }) {
-                    Text(LanguageManager.shared.localizedString(for: "logout"))
+                    Text(SettingsManager.shared.localizedString(for: "logout"))
                         .font(.system(size: 15, weight: .bold))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)

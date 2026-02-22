@@ -5,6 +5,7 @@ struct User: Codable, Identifiable {
     let id: String
     let name: String
     let username: String?
+    let usernameUpdatedAt: Date?
     let email: String?
     let role: UserRole
     let gender: String?
@@ -33,6 +34,7 @@ struct User: Codable, Identifiable {
         id: String,
         name: String,
         username: String? = nil,
+        usernameUpdatedAt: Date? = nil,
         email: String? = nil,
         role: UserRole = .user,
         gender: String? = nil,
@@ -56,6 +58,7 @@ struct User: Codable, Identifiable {
         self.id = id
         self.name = name
         self.username = username
+        self.usernameUpdatedAt = usernameUpdatedAt
         self.email = email
         self.role = role
         self.gender = gender

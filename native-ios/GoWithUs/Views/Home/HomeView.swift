@@ -41,7 +41,7 @@ struct HomeView: View {
                                 HStack(spacing: 8) {
                                     // Layout Switcher
                                     Button(action: {
-                                        HapticManager.shared.selection()
+                                        SettingsManager.shared.triggerSelection()
                                         withAnimation {
                                             currentScreen = .homeGrid
                                         }
@@ -93,7 +93,7 @@ struct HomeView: View {
                             Image(systemName: "magnifyingglass")
                                 .foregroundColor(.gray)
                             
-                            TextField(LanguageManager.shared.localizedString(for: "search_placeholder"), text: $viewModel.searchText)
+                            TextField(SettingsManager.shared.localizedString(for: "search_placeholder"), text: $viewModel.searchText)
                                 .foregroundColor(.adaptiveText)
                         }
                         .padding()
@@ -108,9 +108,9 @@ struct HomeView: View {
                         // New Segmented Control (Tabs)
                         SegmentedControl(
                             options: [
-                                LanguageManager.shared.localizedString(for: "tab_recommended"),
-                                LanguageManager.shared.localizedString(for: "tab_new"),
-                                LanguageManager.shared.localizedString(for: "tab_popular")
+                                SettingsManager.shared.localizedString(for: "tab_recommended"),
+                                SettingsManager.shared.localizedString(for: "tab_new"),
+                                SettingsManager.shared.localizedString(for: "tab_popular")
                             ],
                             selected: $viewModel.activeTab
                         )
@@ -125,7 +125,7 @@ struct HomeView: View {
                             ProgressView()
                                 .scaleEffect(1.5)
                                 .tint(.appPrimary)
-                            Text(LanguageManager.shared.localizedString(for: "loading_trips"))
+                            Text(SettingsManager.shared.localizedString(for: "loading_trips"))
                                 .font(.system(size: 14))
                                 .foregroundColor(.gray)
                         }
@@ -172,11 +172,11 @@ struct HomeView: View {
                                         .foregroundColor(.gray.opacity(0.3))
                                 )
                             
-                            Text(LanguageManager.shared.localizedString(for: "no_trips_found"))
+                            Text(SettingsManager.shared.localizedString(for: "no_trips_found"))
                                 .font(.system(size: 18, weight: .bold))
                                 .foregroundColor(.adaptiveText)
                             
-                            Text(LanguageManager.shared.localizedString(for: "try_another_search"))
+                            Text(SettingsManager.shared.localizedString(for: "try_another_search"))
                                 .font(.system(size: 14))
                                 .foregroundColor(.gray)
                                 .multilineTextAlignment(.center)

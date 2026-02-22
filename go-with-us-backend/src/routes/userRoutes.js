@@ -14,6 +14,7 @@ router.use(verifyToken);
 router.get('/', getAllUsers); // New route for searching users
 router.get('/profile', getProfile);
 router.put('/profile', updateProfile);
+router.put('/:targetId/profile', updateProfile); // Admin can use this to edit others
 router.put('/privacy-settings', updatePrivacySettings);
 router.post('/device-token', registerDeviceToken);
 

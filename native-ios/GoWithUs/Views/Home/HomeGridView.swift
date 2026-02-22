@@ -44,7 +44,7 @@ struct HomeGridView: View {
                                 HStack(spacing: 8) {
                                     // Layout Switcher (Back to List)
                                     Button(action: {
-                                        HapticManager.shared.selection()
+                                        SettingsManager.shared.triggerSelection()
                                         withAnimation { currentScreen = .home }
                                     }) {
                                          Image(systemName: "list.bullet")
@@ -91,7 +91,7 @@ struct HomeGridView: View {
                             Image(systemName: "magnifyingglass")
                                 .foregroundColor(.gray)
                             
-                            TextField(LanguageManager.shared.localizedString(for: "search_placeholder"), text: $viewModel.searchText)
+                            TextField(SettingsManager.shared.localizedString(for: "search_placeholder"), text: $viewModel.searchText)
                                 .foregroundColor(.adaptiveText)
                         }
                         .padding()
@@ -106,9 +106,9 @@ struct HomeGridView: View {
                         // Tabs
                         SegmentedControl(
                             options: [
-                                LanguageManager.shared.localizedString(for: "tab_recommended"),
-                                LanguageManager.shared.localizedString(for: "tab_new"),
-                                LanguageManager.shared.localizedString(for: "tab_popular")
+                                SettingsManager.shared.localizedString(for: "tab_recommended"),
+                                SettingsManager.shared.localizedString(for: "tab_new"),
+                                SettingsManager.shared.localizedString(for: "tab_popular")
                             ],
                             selected: $viewModel.activeTab
                         )
@@ -124,7 +124,7 @@ struct HomeGridView: View {
                                 ProgressView()
                                     .scaleEffect(1.5)
                                     .tint(.appPrimary)
-                                Text(LanguageManager.shared.localizedString(for: "loading_trips"))
+                                Text(SettingsManager.shared.localizedString(for: "loading_trips"))
                                     .font(.system(size: 14))
                                     .foregroundColor(.gray)
                                     .padding(.top, 8)
@@ -142,7 +142,7 @@ struct HomeGridView: View {
                                             .font(.system(size: 40, weight: .bold))
                                             .foregroundColor(.gray.opacity(0.3))
                                     )
-                                Text(LanguageManager.shared.localizedString(for: "no_trips_found"))
+                                Text(SettingsManager.shared.localizedString(for: "no_trips_found"))
                                     .font(.system(size: 18, weight: .bold))
                                     .foregroundColor(.gray)
                                 Spacer()

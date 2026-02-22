@@ -30,6 +30,8 @@ export const getProfile = async (req, res) => {
                 showEmail: true,
                 isVerified: true,
                 verificationStatus: true,
+                username: true,
+                usernameUpdatedAt: true,
                 trips: {
                     orderBy: { createdAt: 'desc' },
                     include: {
@@ -72,10 +74,59 @@ export const getProfile = async (req, res) => {
 // Update user profile
 export const updateProfile = async (req, res) => {
     try {
-        const userId = req.user.userId;
-        const { name, password, interests, travelStyle, gender, age, bio, birthDate, profileImage } = req.body;
+        let userId = req.user.userId;
+        const { targetId } = req.params;
+
+        // If targetId is provided, check if requester is admin
+        if (targetId && targetId !== userId) {
+            if (req.user.role !== 'admin') {
+                return res.status(403).json({ message: 'Access denied. Admin only.' });
+            }
+            userId = targetId;
+        }
+        const { name, username, password, interests, travelStyle, gender, age, bio, birthDate, profileImage } = req.body;
 
         const updateData = {};
+
+        // Username Logic: Allow setting once if null, or allow change if > 30 days
+        if (username !== undefined && username !== null && username !== "") {
+            const currentUser = await prisma.user.findUnique({
+                where: { id: userId },
+                select: { username: true, usernameUpdatedAt: true }
+            });
+
+            if (currentUser.username && currentUser.username !== username) {
+                // If they already have a username, check the 30-day limit
+                if (currentUser.usernameUpdatedAt) {
+                    const thirtyDaysAgo = new Date();
+                    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+                    if (currentUser.usernameUpdatedAt > thirtyDaysAgo) {
+                        return res.status(400).json({
+                            message: 'คุณสามารถเปลี่ยน username ได้ทุกๆ 30 วันเท่านั้น'
+                        });
+                    }
+                }
+
+                // Check uniqueness if changed
+                const existing = await prisma.user.findUnique({ where: { username } });
+                if (existing) {
+                    return res.status(400).json({ message: 'Username นี้มีผู้ใช้งานแล้ว' });
+                }
+
+                updateData.username = username;
+                updateData.usernameUpdatedAt = new Date();
+            } else if (!currentUser.username) {
+                // First time setting username
+                const existing = await prisma.user.findUnique({ where: { username } });
+                if (existing) {
+                    return res.status(400).json({ message: 'Username นี้มีผู้ใช้งานแล้ว' });
+                }
+                updateData.username = username;
+                updateData.usernameUpdatedAt = new Date();
+            }
+        }
+
         // iOS sends null for missing optionals — only update if a real value is present
         if (name !== undefined && name !== null) updateData.name = name;
         if (gender !== undefined && gender !== null) updateData.gender = gender === '' ? null : gender;
@@ -167,6 +218,7 @@ export const getPublicProfile = async (req, res) => {
                 showInterests: true,
                 showEmail: true,
                 email: true,
+                username: true,
                 trips: {
                     where: { isPublic: true },
                     orderBy: { startDate: 'desc' },
@@ -201,6 +253,7 @@ export const getPublicProfile = async (req, res) => {
         const publicProfile = {
             id: user.id,
             name: user.name,
+            username: user.username,
             role: user.role,
             profileImage: user.profileImage,
             createdAt: user.createdAt,
@@ -281,8 +334,9 @@ export const getAllUsers = async (req, res) => {
             select: {
                 id: true,
                 name: true,
+                username: true,
                 email: true, // Maybe don't expose email publicly? Keeping it for now as unique ID reference
-                // Avatar?
+                profileImage: true,
             },
             orderBy: { name: 'asc' }
         });
@@ -332,16 +386,14 @@ export const checkUsername = async (req, res) => {
             return res.status(400).json({ available: false, message: 'Username can only contain letters, numbers, and underscores' });
         }
 
-        // Check disabled: DB missing username column
-        /*
+        // Check uniqueness in DB
         const existing = await prisma.user.findUnique({ where: { username } });
 
         if (existing && existing.id !== excludeUserId) {
-            return res.json({ available: false, message: 'Username is already taken' });
+            return res.json({ available: false, message: 'username นี้ถูกใช้งานแล้ว' });
         }
-        */
 
-        res.json({ available: true, message: 'Username is available' });
+        res.json({ available: true, message: 'username นี้สามารถใช้งานได้' });
     } catch (error) {
         console.error('Check username error:', error);
         res.status(500).json({ available: false, message: 'Error checking username' });

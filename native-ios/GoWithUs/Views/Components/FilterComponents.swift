@@ -9,7 +9,7 @@ struct FilterButton: View {
     
     var body: some View {
         Button(action: {
-            HapticManager.shared.selection()
+            SettingsManager.shared.triggerSelection()
             action()
         }) {
             HStack(spacing: 4) {
@@ -116,7 +116,7 @@ struct DatePickerSheet: View {
                 // Bottom Actions
                 VStack(spacing: 12) {
                     Button(action: {
-                        HapticManager.shared.notification(type: .success)
+                        SettingsManager.shared.triggerNotification(type: .success)
                         selectedDate = startDate
                         selectedEndDate = endDate
                         dismiss()

@@ -18,6 +18,7 @@ struct UserProfileView: View {
     @State private var showingActionMessage = false
     @State private var showingWarnAlert = false
     @State private var warningMessage = ""
+    @State private var showingEditSheet = false
     
     var displayUser: User {
         fullUser ?? user
@@ -301,9 +302,15 @@ struct UserProfileView: View {
                 onReport: { showingReportAlert = true },
                 onBan: {
                     Task { await banUser() }
+                },
+                onEdit: {
+                    showingEditSheet = true
                 }
             )
             .presentationDetents([.medium])
+        }
+        .sheet(isPresented: $showingEditSheet) {
+            EditProfileView(targetUser: displayUser)
         }
         .sheet(isPresented: $showingWarnAlert) {
             WarnUserSheet(user: displayUser) { msg in
@@ -536,6 +543,7 @@ struct UserActionSheet: View {
     let onWarn: () -> Void
     let onReport: () -> Void
     let onBan: (() -> Void)?
+    let onEdit: (() -> Void)?
     
     var body: some View {
         VStack(spacing: 0) {
@@ -552,6 +560,19 @@ struct UserActionSheet: View {
             
             VStack(spacing: 12) {
                 if isAdmin {
+                    Button(action: {
+                        dismiss()
+                        onEdit?()
+                    }) {
+                        Text("แก้ไขโปรไฟล์ (Edit Profile)")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(Color.appPrimary)
+                            .cornerRadius(12)
+                    }
+                    
                     Button(action: {
                         dismiss()
                         onBan?()

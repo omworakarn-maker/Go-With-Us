@@ -438,9 +438,9 @@ export const deleteMessage = async (req, res, next) => {
             return res.status(404).json({ error: 'Message not found' });
         }
 
-        // Only the sender can delete their message
-        if (message.senderId !== currentUserId) {
-            return res.status(403).json({ error: 'You can only delete your own messages.' });
+        // Only the sender or an admin can delete a message
+        if (message.senderId !== currentUserId && req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'You do not have permission to delete this message.' });
         }
 
         await prisma.message.delete({

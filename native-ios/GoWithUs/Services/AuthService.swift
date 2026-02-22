@@ -76,6 +76,73 @@ class AuthService {
         return response.user
     }
     
+    // MARK: - Admin Update Profile
+    func adminUpdateProfile(
+        userId: String,
+        name: String,
+        interests: [String],
+        gender: String? = nil,
+        age: Int? = nil,
+        bio: String? = nil,
+        birthDate: Date? = nil,
+        travelStyle: TravelStyle? = nil,
+        profileImage: String? = nil,
+        username: String? = nil
+    ) async throws -> User {
+        struct AdminUpdateProfileRequest: Encodable {
+            let name: String
+            let username: String?
+            let interests: [String]
+            let gender: String?
+            let age: Int?
+            let bio: String?
+            let birthDate: Date?
+            let travelStyle: TravelStyle?
+            let profileImage: String?
+            
+            enum CodingKeys: String, CodingKey {
+                case name, username, interests, gender, age, bio, birthDate, travelStyle, profileImage
+            }
+            func encode(to encoder: Encoder) throws {
+                var c = encoder.container(keyedBy: CodingKeys.self)
+                try c.encode(name, forKey: .name)
+                try c.encode(interests, forKey: .interests)
+                try c.encodeIfPresent(username, forKey: .username)
+                try c.encodeIfPresent(gender, forKey: .gender)
+                try c.encodeIfPresent(age, forKey: .age)
+                try c.encodeIfPresent(bio, forKey: .bio)
+                try c.encodeIfPresent(birthDate, forKey: .birthDate)
+                try c.encodeIfPresent(travelStyle, forKey: .travelStyle)
+                try c.encodeIfPresent(profileImage, forKey: .profileImage)
+            }
+        }
+        
+        struct UpdateProfileResponse: Decodable {
+            let message: String
+            let user: User
+        }
+        
+        let request = AdminUpdateProfileRequest(
+            name: name,
+            username: username,
+            interests: interests,
+            gender: gender,
+            age: age,
+            bio: bio,
+            birthDate: birthDate,
+            travelStyle: travelStyle,
+            profileImage: profileImage
+        )
+        
+        let response: UpdateProfileResponse = try await APIService.shared.request(
+            endpoint: "/users/\(userId)/profile",
+            method: .put,
+            body: request
+        )
+        
+        return response.user
+    }
+
     // MARK: - Update Profile
     func updateProfile(
         name: String,

@@ -25,7 +25,7 @@ struct AIChatView: View {
                     Spacer()
                     
                     VStack(spacing: 4) {
-                        Text(LanguageManager.shared.localizedString(for: "ai_header"))
+                        Text(SettingsManager.shared.localizedString(for: "ai_header"))
                             .font(.system(size: 22, weight: .bold))
                             .foregroundColor(.adaptiveText)
                     }
@@ -81,7 +81,7 @@ struct AIChatView: View {
                     VStack(spacing: 12) {
                         HStack {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text(LanguageManager.shared.localizedString(for: "ai_draft_ready"))
+                                Text(SettingsManager.shared.localizedString(for: "ai_draft_ready"))
                                     .font(.headline)
                                     .foregroundColor(.adaptiveText)
                                 Text(draft.title)
@@ -124,7 +124,7 @@ struct AIChatView: View {
                                         Image(systemName: "bolt.fill")
                                             .font(.system(size: 12))
                                     }
-                                    Text(LanguageManager.shared.localizedString(for: "ai_create_now"))
+                                    Text(SettingsManager.shared.localizedString(for: "ai_create_now"))
                                         .font(.system(size: 14, weight: .bold))
                                 }
                                 .foregroundColor(.white)
@@ -148,7 +148,7 @@ struct AIChatView: View {
                                 HStack(spacing: 4) {
                                     Image(systemName: "pencil")
                                         .font(.system(size: 12))
-                                    Text(LanguageManager.shared.localizedString(for: "ai_edit_before"))
+                                    Text(SettingsManager.shared.localizedString(for: "ai_edit_before"))
                                         .font(.system(size: 14, weight: .bold))
                                 }
                                 .foregroundColor(.adaptiveText)
@@ -172,7 +172,7 @@ struct AIChatView: View {
                 VStack(spacing: 0) {
                     Divider()
                     HStack(spacing: 12) {
-                        TextField(LanguageManager.shared.localizedString(for: "ai_input_placeholder"), text: $viewModel.inputText)
+                        TextField(SettingsManager.shared.localizedString(for: "ai_input_placeholder"), text: $viewModel.inputText)
                             .padding(12)
                             .background(Color.gray.opacity(0.1))
                             .cornerRadius(24)
@@ -330,14 +330,14 @@ class AIChatViewModel: ObservableObject {
     @Published var isLoading = false
     
     init() {
-        self.messages = [ChatMessage(id: UUID(), content: LanguageManager.shared.localizedString(for: "ai_welcome_message"), isUser: false, timestamp: Date())]
+        self.messages = [ChatMessage(id: UUID(), content: SettingsManager.shared.localizedString(for: "ai_welcome_message"), isUser: false, timestamp: Date())]
     }
     
     @Published var tripDraft: TripDraft?
     @Published var showDraftAlert = false
     
     func clearChat() {
-        messages = [ChatMessage(id: UUID(), content: LanguageManager.shared.localizedString(for: "ai_welcome_message"), isUser: false, timestamp: Date())]
+        messages = [ChatMessage(id: UUID(), content: SettingsManager.shared.localizedString(for: "ai_welcome_message"), isUser: false, timestamp: Date())]
         tripDraft = nil
         showDraftAlert = false
         inputText = ""

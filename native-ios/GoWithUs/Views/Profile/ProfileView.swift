@@ -3,7 +3,6 @@ import PhotosUI
 
 struct ProfileView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
-    @State private var showLogoutAlert = false
     @State private var showEditProfile = false
     @State private var showAdminAlert = false
     @State private var showImagePicker = false
@@ -99,7 +98,7 @@ struct ProfileView: View {
                                         HStack(spacing: 4) {
                                             Image(systemName: "trash")
                                                 .font(.system(size: 11))
-                                            Text(LanguageManager.shared.currentLanguage == .thai ? "ลบรูป" : "Delete")
+                                            Text(SettingsManager.shared.currentLanguage == .thai ? "ลบรูป" : "Delete")
                                                 .font(.system(size: 12, weight: .bold))
                                         }
                                         .foregroundColor(.red)
@@ -146,7 +145,7 @@ struct ProfileView: View {
                                 HStack(spacing: 5) {
                                     Image(systemName: "checkmark.seal.fill")
                                         .foregroundColor(.green)
-                                    Text(LanguageManager.shared.localizedString(for: "verified"))
+                                    Text(SettingsManager.shared.localizedString(for: "verified"))
                                         .font(.system(size: 13, weight: .bold))
                                         .foregroundColor(.green)
                                 }
@@ -158,7 +157,7 @@ struct ProfileView: View {
                                 HStack(spacing: 5) {
                                     Image(systemName: "clock.fill")
                                         .foregroundColor(.orange)
-                                    Text(LanguageManager.shared.currentLanguage == .thai ? "รอตรวจสอบข้อมูล" : "Pending")
+                                    Text(SettingsManager.shared.currentLanguage == .thai ? "รอตรวจสอบข้อมูล" : "Pending")
                                         .font(.system(size: 13, weight: .bold))
                                         .foregroundColor(.orange)
                                 }
@@ -180,7 +179,7 @@ struct ProfileView: View {
                                 Link(destination: verificationURL) {
                                     HStack(spacing: 5) {
                                         Image(systemName: "exclamationmark.shield.fill")
-                                        Text(LanguageManager.shared.localizedString(for: "not_verified") + (LanguageManager.shared.currentLanguage == .thai ? " (คลิกเพื่อยืนยัน)" : " (Click to verify)"))
+                                        Text(SettingsManager.shared.localizedString(for: "not_verified") + (SettingsManager.shared.currentLanguage == .thai ? " (คลิกเพื่อยืนยัน)" : " (Click to verify)"))
                                             .font(.system(size: 13, weight: .bold))
                                     }
                                     .foregroundColor(.white)
@@ -199,13 +198,13 @@ struct ProfileView: View {
                                     HStack(spacing: 12) {
                                         if let gender = user.gender {
                                             VStack(alignment: .leading, spacing: 6) {
-                                                Text(LanguageManager.shared.localizedString(for: "gender"))
+                                                Text(SettingsManager.shared.localizedString(for: "gender"))
                                                     .font(.system(size: 11, weight: .bold))
                                                     .foregroundColor(.adaptiveSecondaryText)
                                                     .textCase(.uppercase)
                                                     .tracking(1)
                                                 
-                                                Text(gender == "male" ? (LanguageManager.shared.currentLanguage == .thai ? "ชาย" : "Male") : gender == "female" ? (LanguageManager.shared.currentLanguage == .thai ? "หญิง" : "Female") : (LanguageManager.shared.currentLanguage == .thai ? "อื่นๆ" : "Other"))
+                                                Text(gender == "male" ? (SettingsManager.shared.currentLanguage == .thai ? "ชาย" : "Male") : gender == "female" ? (SettingsManager.shared.currentLanguage == .thai ? "หญิง" : "Female") : (SettingsManager.shared.currentLanguage == .thai ? "อื่นๆ" : "Other"))
                                                     .font(.system(size: 14, weight: .semibold))
                                                     .foregroundColor(.adaptiveText)
                                             }
@@ -217,13 +216,13 @@ struct ProfileView: View {
                                         
                                         if let age = user.age {
                                             VStack(alignment: .leading, spacing: 6) {
-                                                Text(LanguageManager.shared.localizedString(for: "age"))
+                                                Text(SettingsManager.shared.localizedString(for: "age"))
                                                     .font(.system(size: 11, weight: .bold))
                                                     .foregroundColor(.adaptiveSecondaryText)
                                                     .textCase(.uppercase)
                                                     .tracking(1)
                                                 
-                                                Text("\(age) \(LanguageManager.shared.currentLanguage == .thai ? "ปี" : "Years")")
+                                                Text("\(age) \(SettingsManager.shared.currentLanguage == .thai ? "ปี" : "Years")")
                                                     .font(.system(size: 14, weight: .semibold))
                                                     .foregroundColor(.adaptiveText)
                                             }
@@ -238,7 +237,7 @@ struct ProfileView: View {
                                 // Bio Section
                                 if let bio = user.bio, !bio.trimmingCharacters(in: .whitespaces).isEmpty {
                                     VStack(alignment: .leading, spacing: 12) {
-                                        Text(LanguageManager.shared.localizedString(for: "bio"))
+                                        Text(SettingsManager.shared.localizedString(for: "bio"))
                                             .font(.system(size: 11, weight: .bold))
                                             .foregroundColor(.adaptiveSecondaryText)
                                             .textCase(.uppercase)
@@ -261,7 +260,7 @@ struct ProfileView: View {
                                 
                                 if let style = user.travelStyle {
                                     VStack(alignment: .leading, spacing: 12) {
-                                        Text(LanguageManager.shared.localizedString(for: "travel_style"))
+                                        Text(SettingsManager.shared.localizedString(for: "travel_style"))
                                             .font(.system(size: 11, weight: .bold))
                                             .foregroundColor(.adaptiveSecondaryText)
                                             .textCase(.uppercase)
@@ -302,7 +301,7 @@ struct ProfileView: View {
                                 
                                 if let interests = user.interests, !interests.isEmpty {
                                     VStack(alignment: .leading, spacing: 12) {
-                                        Text(LanguageManager.shared.localizedString(for: "interests"))
+                                        Text(SettingsManager.shared.localizedString(for: "interests"))
                                             .font(.system(size: 11, weight: .bold))
                                             .foregroundColor(.adaptiveSecondaryText)
                                             .textCase(.uppercase)
@@ -347,53 +346,6 @@ struct ProfileView: View {
                                 }
                             }
                             
-                            // Settings Section
-                            VStack(alignment: .leading, spacing: 16) {
-                                Text(LanguageManager.shared.currentLanguage == .thai ? "การตั้งค่า" : "Settings")
-                                    .font(.system(size: 11, weight: .bold))
-                                    .foregroundColor(.adaptiveSecondaryText)
-                                    .textCase(.uppercase)
-                                    .tracking(1)
-                                
-                                Toggle(isOn: Binding(
-                                    get: { HapticManager.shared.isEnabled },
-                                    set: { HapticManager.shared.isEnabled = $0 }
-                                )) {
-                                    HStack(spacing: 12) {
-                                        Image(systemName: "iphone.radiowaves.left.and.right")
-                                            .foregroundColor(.appAccent)
-                                        Text(LanguageManager.shared.currentLanguage == .thai ? "ระบบสั่นตอบสนอง" : "Haptic Feedback")
-                                            .font(.system(size: 15, weight: .medium))
-                                            .foregroundColor(.adaptiveText)
-                                    }
-                                }
-                                .padding()
-                                .background(Color.adaptiveCardBackground)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 16)
-                                        .stroke(Color.adaptiveBorder, lineWidth: 1)
-                                )
-                                .cornerRadius(16)
-                            }
-
-                            // Logout Button
-                            Button(action: { showLogoutAlert = true }) {
-                                HStack(spacing: 8) {
-                                    Image(systemName: "arrow.right.square")
-                                    Text(LanguageManager.shared.localizedString(for: "logout"))
-                                        .font(.system(size: 15, weight: .bold))
-                                }
-                                .foregroundColor(.adaptiveText)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 16)
-                                .background(Color.adaptiveCardBackground)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .stroke(Color.adaptiveText, lineWidth: 2)
-                                )
-                                .cornerRadius(12)
-                            }
-                            
                             Spacer()
                         }
                         .padding(24)
@@ -403,16 +355,16 @@ struct ProfileView: View {
                     VStack(spacing: 16) {
                         ProgressView()
                             .tint(.adaptiveText)
-                        Text(LanguageManager.shared.currentLanguage == .thai ? "กำลังโหลด..." : "Loading...")
+                        Text(SettingsManager.shared.currentLanguage == .thai ? "กำลังโหลด..." : "Loading...")
                             .foregroundColor(.adaptiveSecondaryText)
                     }
                 }
             }
-            .navigationTitle(LanguageManager.shared.localizedString(for: "profile"))
+            .navigationTitle(SettingsManager.shared.localizedString(for: "profile"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(LanguageManager.shared.localizedString(for: "edit")) {
+                    Button(SettingsManager.shared.localizedString(for: "edit")) {
                         showEditProfile = true
                     }
                     .foregroundColor(.appAccent)
@@ -437,10 +389,6 @@ struct ProfileView: View {
                     localProfileImage = nil
                 }
             }
-        }
-        .sheet(isPresented: $showLogoutAlert) {
-            LogoutSheet(onLogout: { authViewModel.logout() })
-                .presentationDetents([.height(280)])
         }
     }
     

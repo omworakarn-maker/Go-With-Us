@@ -102,6 +102,44 @@ class AuthViewModel: ObservableObject {
         name = ""
     }
     
+    // MARK: - Admin Update Profile
+    func adminUpdateProfile(
+        userId: String,
+        name: String,
+        username: String? = nil,
+        interests: [String],
+        gender: String? = nil,
+        age: Int? = nil,
+        bio: String? = nil,
+        birthDate: Date? = nil,
+        travelStyle: TravelStyle? = nil,
+        profileImage: String? = nil
+    ) async throws {
+        isLoading = true
+        errorMessage = nil
+        
+        do {
+            _ = try await AuthService.shared.adminUpdateProfile(
+                userId: userId,
+                name: name,
+                interests: interests,
+                gender: gender,
+                age: age,
+                bio: bio,
+                birthDate: birthDate,
+                travelStyle: travelStyle,
+                profileImage: profileImage,
+                username: username
+            )
+        } catch {
+            errorMessage = error.localizedDescription
+            isLoading = false
+            throw error
+        }
+        
+        isLoading = false
+    }
+
     // MARK: - Update Profile
     func updateProfile(
         name: String,

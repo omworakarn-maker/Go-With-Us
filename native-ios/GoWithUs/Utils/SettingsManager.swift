@@ -1,5 +1,5 @@
 import SwiftUI
-import Combine
+import UIKit
 
 enum AppLanguage: String, CaseIterable {
     case thai = "th"
@@ -13,24 +13,34 @@ enum AppLanguage: String, CaseIterable {
     }
 }
 
-class LanguageManager: ObservableObject {
-    static let shared = LanguageManager()
+class SettingsManager: ObservableObject {
+    static let shared = SettingsManager()
     
+    // MARK: - Haptic Settings
+    @Published var isHapticEnabled: Bool {
+        didSet {
+            UserDefaults.standard.set(isHapticEnabled, forKey: "haptic_enabled")
+        }
+    }
+    
+    // MARK: - Language Settings
     @Published var currentLanguage: AppLanguage {
         didSet {
             UserDefaults.standard.set(currentLanguage.rawValue, forKey: "AppLanguage")
-            // Normally you would change the Locale here or notify the app
         }
     }
     
     private init() {
+        // Load Haptics
+        self.isHapticEnabled = UserDefaults.standard.object(forKey: "haptic_enabled") as? Bool ?? true
+        
+        // Load Language
         let savedLang = UserDefaults.standard.string(forKey: "AppLanguage") ?? "th"
         self.currentLanguage = AppLanguage(rawValue: savedLang) ?? .thai
     }
     
-    // Helper translation string
+    // MARK: - Localized String Helper
     func localizedString(for key: String) -> String {
-        // Implement basic mapping for the most used text
         let map: [String: [AppLanguage: String]] = [
             // Menu / Tabs
             "home": [.thai: "หน้าแรก", .english: "Home"],
@@ -44,6 +54,7 @@ class LanguageManager: ObservableObject {
             "language": [.thai: "ภาษา", .english: "Language"],
             "logout": [.thai: "ออกจากระบบ", .english: "Logout"],
             "ai_chat": [.thai: "คุยกับ AI", .english: "AI Consultant"],
+            "vibration": [.thai: "การสั่น", .english: "Vibration"],
             
             // Home / Search
             "search_placeholder": [.thai: "ค้นหาทริป...", .english: "Search trips..."],
@@ -84,7 +95,28 @@ class LanguageManager: ObservableObject {
             "try_again": [.thai: "ลองใหม่", .english: "Try Again"],
             "close": [.thai: "ปิด", .english: "Close"]
         ]
-        
         return map[key]?[currentLanguage] ?? key
+    }
+    
+    // MARK: - Haptic Triggering
+    func triggerHaptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
+        guard isHapticEnabled else { return }
+        let generator = UIImpactFeedbackGenerator(style: style)
+        generator.prepare()
+        generator.impactOccurred()
+    }
+    
+    func triggerNotification(type: UINotificationFeedbackGenerator.FeedbackType) {
+        guard isHapticEnabled else { return }
+        let generator = UINotificationFeedbackGenerator()
+        generator.prepare()
+        generator.notificationOccurred(type)
+    }
+    
+    func triggerSelection() {
+        guard isHapticEnabled else { return }
+        let generator = UISelectionFeedbackGenerator()
+        generator.prepare()
+        generator.selectionChanged()
     }
 }
