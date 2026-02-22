@@ -52,6 +52,11 @@ struct TripDetailView: View {
                         heroImage(trip: trip)
                         
                         // ══════════════════════════════════════════════
+                        // ▸ TITLE + DESTINATION (below image)
+                        // ══════════════════════════════════════════════
+                        titleBelowImage(trip: trip)
+                        
+                        // ══════════════════════════════════════════════
                         // ▸ CONTENT
                         // ══════════════════════════════════════════════
                         VStack(alignment: .leading, spacing: 22) {
@@ -156,7 +161,7 @@ struct TripDetailView: View {
         }
     }
     
-    // MARK: - Hero Image
+    // MARK: - Hero Image (รูปอย่างเดียว ไม่มี overlay ชื่อ)
     @ViewBuilder
     private func heroImage(trip: Trip) -> some View {
         let allImages: [String] = {
@@ -184,55 +189,33 @@ struct TripDetailView: View {
                 .frame(height: 300)
             }
             
-            // Gradient scrim
-            LinearGradient(colors: [.clear, .black.opacity(0.8)],
+            // Gradient scrim (เบาลงเพราะไม่ต้องรองรับตัวอักษรแล้ว)
+            LinearGradient(colors: [.clear, .black.opacity(0.35)],
                            startPoint: .center, endPoint: .bottom)
-                .frame(height: 140)
-            
-            // Title Header Overlay
-            VStack(alignment: .leading, spacing: 6) {
-                Text(trip.title)
-                    .font(.system(size: 28, weight: .black))
-                    .foregroundColor(.white)
-                    .lineLimit(2)
-                    .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
-                
-                HStack(spacing: 4) {
-                    Image(systemName: "mappin.circle.fill")
-                    Text(trip.destination)
-                }
-                .font(.system(size: 15, weight: .bold))
-                .foregroundColor(.white.opacity(0.95))
-                
-                // Current User Status Badge (Top right of title)
-                if let userId = viewModel.currentUserId,
-                   let participant = trip.participants?.first(where: { $0.userId == userId }) {
-                    HStack(spacing: 4) {
-                        Image(systemName: participant.status == "interested" ? "star.fill" : "checkmark.seal.fill")
-                        Text(participant.status == "interested" ? "สนใจทริปนี้อยู่" : "คุณจะไปด้วย!")
-                    }
-                    .font(.system(size: 13, weight: .black))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(
-                        Group {
-                            if participant.status == "interested" {
-                                Color.yellow
-                            } else {
-                                Color.rainbowGradient
-                            }
-                        }
-                    )
-                    .cornerRadius(10)
-                    .shadow(color: (participant.status == "interested" ? Color.yellow : Color.appPrimary).opacity(0.5), radius: 8)
-                    .padding(.top, 4)
-                }
-            }
-            .padding(.horizontal, 22)
-            .padding(.bottom, 25)
-            .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(height: 80)
         }
+    }
+    
+    // MARK: - Title Below Image
+    @ViewBuilder
+    private func titleBelowImage(trip: Trip) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(trip.title)
+                .font(.system(size: 28, weight: .black))
+                .foregroundColor(.adaptiveText)
+                .lineLimit(2)
+            
+            HStack(spacing: 4) {
+                Image(systemName: "mappin.circle.fill")
+                    .foregroundColor(.red)
+                Text(trip.destination)
+            }
+            .font(.system(size: 15, weight: .bold))
+            .foregroundColor(.adaptiveSecondaryText)
+        }
+        .padding(.horizontal, 22)
+        .padding(.top, 18)
+        .padding(.bottom, 4)
     }
     
     // MARK: - Badges
@@ -808,7 +791,7 @@ struct TripDetailView: View {
                             .background(Color.adaptiveBackground)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 14)
-                                    .stroke(Color.yellow, lineWidth: 3) // Yellow Frame for Interested
+                                    .stroke(Color.yellow, lineWidth: 3)
                             )
                             .cornerRadius(14)
                         }
@@ -828,7 +811,7 @@ struct TripDetailView: View {
                             .background(Color.adaptiveBackground)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 14)
-                                    .stroke(Color.appPrimary, lineWidth: 3) // NO RAINBOW HERE!
+                                    .stroke(Color.appPrimary, lineWidth: 3)
                             )
                             .cornerRadius(14)
                             .shadow(color: Color.appAccent.opacity(0.2), radius: 10, x: 0, y: 4)

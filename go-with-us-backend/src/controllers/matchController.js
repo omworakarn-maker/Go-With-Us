@@ -35,10 +35,14 @@ export const findBuddy = async (req, res) => {
             select: {
                 id: true,
                 name: true,
-                // email: true, // Privacy?
+                email: true,
+                role: true,
+                profileImage: true,
                 interests: true,
                 embedding: true,
-                // avatar: true
+                bio: true,
+                gender: true,
+                age: true
             }
         });
 
@@ -81,8 +85,25 @@ export const matchTrips = async (req, res) => {
                 embedding: { not: null }
             },
             include: {
-                creator: { select: { id: true, name: true } },
-                participants: { select: { id: true } }
+                creator: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        role: true,
+                        profileImage: true,
+                    },
+                },
+                participants: {
+                    select: {
+                        id: true,
+                        userId: true,
+                        name: true,
+                        interests: true,
+                        joinedAt: true,
+                        status: true,
+                    },
+                },
             }
         });
 

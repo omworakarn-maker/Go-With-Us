@@ -5,7 +5,7 @@ dotenv.config();
 
 // Initialize Gemini
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "embedding-001" });
+const model = genAI.getGenerativeModel({ model: "gemini-embedding-001" });
 
 /**
  * Generate embedding vector from text using Gemini
@@ -14,10 +14,19 @@ const model = genAI.getGenerativeModel({ model: "embedding-001" });
  */
 export const generateEmbedding = async (text) => {
     try {
-        // If input is array (like interests), join them into a sentence
-        const prompt = Array.isArray(text)
-            ? `User interests are: ${text.join(', ')}. Create a profile vector for travel preferences.`
-            : text;
+        let prompt = "";
+        if (Array.isArray(text)) {
+            prompt = `User interests are: ${text.join(', ')}. Create a profile vector for travel preferences.`;
+        } else if (typeof text === 'object' && text !== null) {
+            const { interests, travelStyle } = text;
+            const interestsStr = Array.isArray(interests) ? interests.join(', ') : '';
+            const styleStr = Object.entries(travelStyle || {})
+                .map(([key, value]) => `${key}: ${value}`)
+                .join(', ');
+            prompt = `User interests: ${interestsStr}. Travel Style: ${styleStr}. Create a detailed vector for matching with similar trips.`;
+        } else {
+            prompt = text;
+        }
 
         const result = await model.embedContent(prompt);
         const embedding = result.embedding;

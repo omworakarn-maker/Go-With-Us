@@ -9,7 +9,7 @@ class APIService {
     // private let baseURL = "http://192.168.1.88:3000/api" // Local backup
     
     // Development (Localhost)
-    private let baseURL = "https://go-with-us.vercel.app/api"
+    private let baseURL = "http://localhost:3000/api"
     
     private init() {}
     

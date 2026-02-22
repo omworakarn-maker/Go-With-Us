@@ -5,7 +5,7 @@ export const chatWithGemini = async (req, res, next) => {
         const { contents } = req.body;
         // Check both common env var names
         const apiKey = process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
-        const model = "gemini-1.5-flash"; // More stable/standard model
+        const model = "gemini-flash-latest"; // Verified stable model for 2026
 
         console.log('--- Gemini Proxy Request ---');
         console.log('Model:', model);

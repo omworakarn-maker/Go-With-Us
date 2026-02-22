@@ -38,6 +38,7 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   interests String[] @default([])
+  travelStyle Json?    // Detailed travel preferences from quiz
   embedding Json?    // AI Vector for recommendation
   fcmToken  String?  // Firebase Cloud Messaging Token for Push Notifications
   // Verification System

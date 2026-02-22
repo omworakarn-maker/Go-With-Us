@@ -73,7 +73,7 @@ export const getProfile = async (req, res) => {
 export const updateProfile = async (req, res) => {
     try {
         const userId = req.user.userId;
-        const { name, password, interests, gender, age, bio, birthDate, profileImage } = req.body;
+        const { name, password, interests, travelStyle, gender, age, bio, birthDate, profileImage } = req.body;
 
         const updateData = {};
         // iOS sends null for missing optionals — only update if a real value is present
@@ -84,13 +84,24 @@ export const updateProfile = async (req, res) => {
         if (birthDate !== undefined && birthDate !== null) updateData.birthDate = new Date(birthDate);
         if (profileImage !== undefined && profileImage !== null) updateData.profileImage = profileImage === '' ? null : profileImage;
 
-        if (interests !== undefined) {
-            updateData.interests = interests; // Array of strings
+        if (interests !== undefined || travelStyle !== undefined) {
+            if (interests !== undefined) updateData.interests = interests;
+            if (travelStyle !== undefined) updateData.travelStyle = travelStyle;
 
-            // Generate AI Vector from interests
-            const vector = await generateEmbedding(interests);
+            // Generate AI Vector from interests and travel style
+            // We fetch the current ones if only one is updated to have a complete profile for embedding
+            const currentUser = await prisma.user.findUnique({ where: { id: userId }, select: { interests: true, travelStyle: true } });
+
+            const combinedInterests = interests !== undefined ? interests : (currentUser?.interests || []);
+            const combinedStyle = travelStyle !== undefined ? travelStyle : (currentUser?.travelStyle || {});
+
+            const vector = await generateEmbedding({
+                interests: combinedInterests,
+                travelStyle: combinedStyle
+            });
+
             if (vector) {
-                updateData.embedding = vector; // Save to Json field
+                updateData.embedding = vector;
             }
         }
 

@@ -72,13 +72,7 @@ export const getAllTrips = async (req, res, next) => {
                     },
                 },
                 participants: {
-                    select: {
-                        id: true,
-                        userId: true,
-                        name: true,
-                        interests: true,
-                        joinedAt: true,
-                        status: true,
+                    include: {
                         user: {
                             select: {
                                 id: true,
@@ -88,7 +82,7 @@ export const getAllTrips = async (req, res, next) => {
                                 profileImage: true
                             }
                         }
-                    },
+                    }
                 },
             },
             orderBy,
@@ -119,13 +113,7 @@ export const getTripById = async (req, res, next) => {
                     },
                 },
                 participants: {
-                    select: {
-                        id: true,
-                        userId: true,
-                        name: true,
-                        interests: true,
-                        joinedAt: true,
-                        status: true,
+                    include: {
                         user: {
                             select: {
                                 id: true,
@@ -135,7 +123,7 @@ export const getTripById = async (req, res, next) => {
                                 profileImage: true
                             }
                         }
-                    },
+                    }
                 },
             },
         });
