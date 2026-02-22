@@ -422,6 +422,14 @@ export const banUser = async (req, res) => {
             data: { isBanned }
         });
 
+        // Resolve all pending reports for this user
+        if (isBanned) {
+            await prisma.report.updateMany({
+                where: { reportedId: targetId, status: 'pending' },
+                data: { status: 'resolved' }
+            });
+        }
+
         res.status(200).json({ message: `User ${isBanned ? 'banned' : 'unbanned'} successfully`, isBanned: updatedUser.isBanned });
     } catch (error) {
         console.error('Error banning user:', error);
@@ -457,6 +465,12 @@ export const warnUser = async (req, res) => {
             }
         });
 
+        // Resolve all pending reports for this user after warning
+        await prisma.report.updateMany({
+            where: { reportedId: targetId, status: 'pending' },
+            data: { status: 'resolved' }
+        });
+
         res.status(200).json({ message: 'Warning sent successfully' });
     } catch (error) {
         console.error('Error warning user:', error);
@@ -476,6 +490,7 @@ export const getAllReports = async (req, res) => {
         }
 
         const reports = await prisma.report.findMany({
+            where: { status: 'pending' },
             orderBy: { createdAt: 'desc' },
             include: {
                 reporter: {

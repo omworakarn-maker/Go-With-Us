@@ -76,6 +76,7 @@ const AdminReports: React.FC = () => {
             setShowWarnModal(false);
             setWarningMsg("");
             setTargetUserId("");
+            loadReports(); // Refresh the list
         } catch (err) {
             console.error('Error warning user:', err);
             alert("เกิดข้อผิดพลาดในการส่งคำเตือน");
