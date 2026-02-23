@@ -11,8 +11,9 @@ struct SideMenuView: View {
     
     var body: some View {
         ZStack(alignment: .leading) {
-            // Background for the entire side menu area
+            // Background for the entire side menu area - Opaque and covers full height
             Color.adaptiveBackground
+                .ignoresSafeArea()
             
             mainMenu
                 .disabled(showSettings)
@@ -25,7 +26,8 @@ struct SideMenuView: View {
             }
         }
         .frame(width: UIScreen.main.bounds.width * 0.8)
-        .ignoresSafeArea(.container, edges: .top)
+        .background(Color.adaptiveBackground)
+        .ignoresSafeArea(.all)
         .sheet(isPresented: $showLogoutAlert) {
             LogoutSheet {
                 withAnimation {

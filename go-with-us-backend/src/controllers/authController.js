@@ -55,6 +55,8 @@ export const register = async (req, res, next) => {
                 name: user.name,
                 email: user.email,
                 role: user.role,
+                username: null,
+                usernameUpdatedAt: null
             },
         });
     } catch (error) {
@@ -98,6 +100,8 @@ export const login = async (req, res, next) => {
                 isBanned: true,
                 isVerified: true,
                 verificationStatus: true,
+                username: true,
+                usernameUpdatedAt: true,
             }
         });
 
@@ -147,6 +151,8 @@ export const login = async (req, res, next) => {
                 showEmail: user.showEmail,
                 isVerified: user.isVerified,
                 verificationStatus: user.verificationStatus,
+                username: user.username,
+                usernameUpdatedAt: user.usernameUpdatedAt,
             },
         });
     } catch (error) {
@@ -181,6 +187,8 @@ export const getCurrentUser = async (req, res, next) => {
                 isBanned: true,
                 isVerified: true,
                 verificationStatus: true,
+                username: true,
+                usernameUpdatedAt: true
             },
         });
 
