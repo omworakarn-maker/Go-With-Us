@@ -43,65 +43,74 @@ class TripListViewModel: ObservableObject {
             .store(in: &cancellables)
     }
     
-    func loadTrips() async {
-        isLoading = true
-        errorMessage = nil
-        trips = [] // Clear list to show loading state
+    private var currentLoadTask: Task<Void, Never>?
+
+    func loadTrips(showLoading: Bool = true) async {
+        currentLoadTask?.cancel()
         
-        do {
-            // Map tab to API type
-            let type: String
-            switch activeTab {
-            case "ยอดนิยม", "มาแรง": type = "popular"
-            case "แนะนำ": type = "recommended"
-            case "มาใหม่": type = "new"
-            default: type = "recommended"
+        let task = Task {
+            if showLoading {
+                isLoading = true
+                errorMessage = nil
+                trips = [] 
             }
             
-            // Fetch with filters
-            trips = try await TripService.shared.getAllTrips(
-                type: type,
-                destination: selectedProvince == "ทุกจังหวัด" ? nil : selectedProvince,
-                startDate: selectedDate, // Filter API by start date (>=)
-                category: selectedCategory
-            )
-            
-            // Local Filtering for End Date (Range)
-            if let userSelectionEnd = selectedEndDate {
-                 // Logic: selectedDate is Start. selectedEndDate is End.
-                 // API returns trips starting >= selectedDate.
-                 // We want trips starting <= selectedEndDate also?
-                 // Or trips occurring within the range?
-                 // Usually "Trip Date" filter means the trip *Starts* in this range.
-                 trips = trips.filter { trip in
-                     trip.startDate <= userSelectionEnd
-                 }
-            } else if let end = selectedEndDate {
-                // If only end date is set? (Shouldn't happen with our UI logic)
-                 trips = trips.filter { trip in
-                     trip.startDate <= end
-                 }
-            }
-            
-            // Local search filtering only
-            if !searchText.isEmpty {
-                trips = trips.filter { trip in
-                    trip.title.localizedCaseInsensitiveContains(searchText) ||
-                    trip.destination.localizedCaseInsensitiveContains(searchText) ||
-                    (trip.description?.localizedCaseInsensitiveContains(searchText) ?? false)
+            do {
+                // Map tab to API type
+                let type: String
+                switch activeTab {
+                case "ยอดนิยม", "มาแรง": type = "popular"
+                case "แนะนำ": type = "recommended"
+                case "มาใหม่": type = "new"
+                default: type = "recommended"
+                }
+                
+                // Fetch with filters
+                let fetchedTrips = try await TripService.shared.getAllTrips(
+                    type: type,
+                    destination: selectedProvince == "ทุกจังหวัด" ? nil : selectedProvince,
+                    startDate: selectedDate,
+                    category: selectedCategory
+                )
+                
+                if Task.isCancelled { return }
+                
+                var filtered = fetchedTrips
+                
+                // Local Filtering for End Date
+                if let userSelectionEnd = selectedEndDate {
+                     filtered = filtered.filter { $0.startDate <= userSelectionEnd }
+                }
+                
+                // Local search filtering
+                if !searchText.isEmpty {
+                    filtered = filtered.filter { trip in
+                        trip.title.localizedCaseInsensitiveContains(searchText) ||
+                        trip.destination.localizedCaseInsensitiveContains(searchText) ||
+                        (trip.description?.localizedCaseInsensitiveContains(searchText) ?? false)
+                    }
+                }
+                
+                self.trips = filtered
+                
+            } catch let error as URLError where error.code == .cancelled {
+                return 
+            } catch {
+                if !Task.isCancelled {
+                    errorMessage = error.localizedDescription
                 }
             }
             
-        } catch let error as URLError where error.code == .cancelled {
-            return // Ignore cancellation
-        } catch {
-            errorMessage = error.localizedDescription
+            if !Task.isCancelled {
+                isLoading = false
+            }
         }
         
-        isLoading = false
+        currentLoadTask = task
+        await task.value
     }
     
     func refresh() async {
-        await loadTrips()
+        await loadTrips(showLoading: false)
     }
 }

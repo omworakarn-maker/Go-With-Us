@@ -118,7 +118,7 @@ struct HomeGridView: View {
                     
                     // Grid Content
                     ScrollView {
-                        if viewModel.isLoading {
+                        if viewModel.isLoading && viewModel.trips.isEmpty {
                             VStack {
                                 Spacer()
                                 ProgressView()
@@ -130,7 +130,8 @@ struct HomeGridView: View {
                                     .padding(.top, 8)
                                 Spacer()
                             }
-                            .frame(minHeight: 400)
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 100)
                         } else if viewModel.trips.isEmpty {
                             VStack(spacing: 12) {
                                 Spacer()
@@ -147,7 +148,8 @@ struct HomeGridView: View {
                                     .foregroundColor(.gray)
                                 Spacer()
                             }
-                            .frame(minHeight: 400)
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 100)
                         } else {
                             LazyVGrid(columns: columns, spacing: 16) {
                                 ForEach(viewModel.trips) { trip in
@@ -163,7 +165,7 @@ struct HomeGridView: View {
                         }
                     }
                     .refreshable {
-                        await viewModel.loadTrips()
+                        await viewModel.refresh()
                     }
                 }
             }

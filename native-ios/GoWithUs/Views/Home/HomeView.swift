@@ -118,72 +118,78 @@ struct HomeView: View {
                     }
                     .padding(.bottom, 8)
                     
-                    // Trip List
-                    if viewModel.isLoading {
-                        Spacer()
-                        VStack(spacing: 12) {
-                            ProgressView()
-                                .scaleEffect(1.5)
-                                .tint(.appPrimary)
-                            Text(SettingsManager.shared.localizedString(for: "loading_trips"))
-                                .font(.system(size: 14))
-                                .foregroundColor(.gray)
-                        }
-                        Spacer()
-                    } else if let error = viewModel.errorMessage {
-                        Spacer()
-                        VStack(spacing: 12) {
-                            Image(systemName: "exclamationmark.triangle")
-                                .font(.system(size: 40))
-                                .foregroundColor(.red)
-                            
-                            Text("เกิดข้อผิดพลาด")
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundColor(.adaptiveText)
-                            
-                            Text(error)
-                                .font(.system(size: 14))
-                                .foregroundColor(.gray)
-                                .multilineTextAlignment(.center)
-                                .padding(.horizontal)
-                            
-                            Button(action: {
-                                Task { await viewModel.loadTrips() }
-                            }) {
-                                Text("ลองใหม่")
-                                    .font(.system(size: 15, weight: .bold))
-                                    .foregroundColor(.white)
-                                    .padding(.horizontal, 24)
-                                    .padding(.vertical, 12)
-                                    .background(Color.black)
-                                    .cornerRadius(20)
+                    // Trip List Area
+                    ScrollView {
+                        if viewModel.isLoading && viewModel.trips.isEmpty {
+                            VStack(spacing: 12) {
+                                Spacer()
+                                ProgressView()
+                                    .scaleEffect(1.5)
+                                    .tint(.appPrimary)
+                                Text(SettingsManager.shared.localizedString(for: "loading_trips"))
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.gray)
+                                Spacer()
                             }
-                        }
-                        Spacer()
-                    } else if viewModel.trips.isEmpty {
-                        Spacer()
-                        VStack(spacing: 12) {
-                            Circle()
-                                .stroke(Color.gray.opacity(0.3), lineWidth: 2)
-                                .frame(width: 80, height: 80)
-                                .overlay(
-                                    Text("?")
-                                        .font(.system(size: 40, weight: .bold))
-                                        .foregroundColor(.gray.opacity(0.3))
-                                )
-                            
-                            Text(SettingsManager.shared.localizedString(for: "no_trips_found"))
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundColor(.adaptiveText)
-                            
-                            Text(SettingsManager.shared.localizedString(for: "try_another_search"))
-                                .font(.system(size: 14))
-                                .foregroundColor(.gray)
-                                .multilineTextAlignment(.center)
-                        }
-                        Spacer()
-                    } else {
-                        ScrollView {
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 100)
+                        } else if let error = viewModel.errorMessage {
+                            VStack(spacing: 12) {
+                                Spacer()
+                                Image(systemName: "exclamationmark.triangle")
+                                    .font(.system(size: 40))
+                                    .foregroundColor(.red)
+                                
+                                Text("เกิดข้อผิดพลาด")
+                                    .font(.system(size: 18, weight: .bold))
+                                    .foregroundColor(.adaptiveText)
+                                
+                                Text(error)
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.gray)
+                                    .multilineTextAlignment(.center)
+                                    .padding(.horizontal)
+                                
+                                Button(action: {
+                                    Task { await viewModel.loadTrips() }
+                                }) {
+                                    Text("ลองใหม่")
+                                        .font(.system(size: 15, weight: .bold))
+                                        .foregroundColor(.white)
+                                        .padding(.horizontal, 24)
+                                        .padding(.vertical, 12)
+                                        .background(Color.black)
+                                        .cornerRadius(20)
+                                }
+                                Spacer()
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 100)
+                        } else if viewModel.trips.isEmpty {
+                            VStack(spacing: 12) {
+                                Spacer()
+                                Circle()
+                                    .stroke(Color.gray.opacity(0.3), lineWidth: 2)
+                                    .frame(width: 80, height: 80)
+                                    .overlay(
+                                        Text("?")
+                                            .font(.system(size: 40, weight: .bold))
+                                            .foregroundColor(.gray.opacity(0.3))
+                                    )
+                                
+                                Text(SettingsManager.shared.localizedString(for: "no_trips_found"))
+                                    .font(.system(size: 18, weight: .bold))
+                                    .foregroundColor(.adaptiveText)
+                                
+                                Text(SettingsManager.shared.localizedString(for: "try_another_search"))
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.gray)
+                                    .multilineTextAlignment(.center)
+                                Spacer()
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 100)
+                        } else {
                             LazyVStack(spacing: 16) {
                                 ForEach(viewModel.trips) { trip in
                                     NavigationLink(destination: TripDetailView(tripId: trip.id)) {
@@ -196,9 +202,9 @@ struct HomeView: View {
                             .padding()
                             .padding(.bottom, 90)
                         }
-                        .refreshable {
-                            await viewModel.loadTrips()
-                        }
+                    }
+                    .refreshable {
+                        await viewModel.refresh()
                     }
                 }
             }
