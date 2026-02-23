@@ -13,7 +13,7 @@ struct ChatView: View {
                 if viewModel.isLoading && viewModel.conversations.isEmpty {
                     ProgressView()
                         .tint(.adaptiveText)
-                } else if viewModel.conversations.isEmpty {
+                } else if viewModel.conversations.isEmpty && viewModel.mutualMatches.isEmpty {
                     VStack(spacing: 16) {
                         Image(systemName: "message")
                             .font(.system(size: 48))
@@ -24,14 +24,61 @@ struct ChatView: View {
                     }
                 } else {
                     List {
-                        ForEach(viewModel.conversations) { conversation in
-                            Button(action: {
-                                selectedConversation = conversation
-                            }) {
-                                ConversationRow(conversation: conversation)
+                        // NEW MATCHES SECTION
+                        if !viewModel.mutualMatches.isEmpty {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("เพื่อนใหม่ที่แมตช์กัน")
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundColor(.adaptiveSecondaryText)
+                                    .padding(.horizontal, 16)
+                                
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    HStack(spacing: 20) {
+                                        ForEach(viewModel.mutualMatches) { match in
+                                            Button(action: {
+                                                selectedPartnerId = match.id
+                                            }) {
+                                                VStack(spacing: 8) {
+                                                    UserAvatarView(user: match.toUser(), size: 60)
+                                                        .overlay(
+                                                            Circle()
+                                                                .stroke(Color.rainbowGradient, lineWidth: 2)
+                                                        )
+                                                    Text(match.name)
+                                                        .font(.system(size: 12, weight: .medium))
+                                                        .foregroundColor(.adaptiveText)
+                                                        .lineLimit(1)
+                                                        .frame(width: 70)
+                                                }
+                                            }
+                                        }
+                                    }
+                                    .padding(.horizontal, 16)
+                                }
+                            }
+                            .padding(.vertical, 16)
+                            .listRowInsets(EdgeInsets())
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+                        }
+
+                        // CONVERSATIONS SECTION
+                        Section {
+                            ForEach(viewModel.conversations) { conversation in
+                                Button(action: {
+                                    selectedConversation = conversation
+                                }) {
+                                    ConversationRow(conversation: conversation)
+                                }
+                            }
+                            .onDelete(perform: viewModel.deleteConversation)
+                        } header: {
+                            if !viewModel.conversations.isEmpty && !viewModel.mutualMatches.isEmpty {
+                                Text("ข้อความล่าสุด")
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundColor(.adaptiveSecondaryText)
                             }
                         }
-                        .onDelete(perform: viewModel.deleteConversation)
                     }
                     .listStyle(.plain)
                 }
@@ -57,7 +104,10 @@ struct ChatView: View {
             .padding(.bottom, 80) // Space for TabBar
             .navigationTitle("ข้อความ")
             .onAppear {
-                Task { await viewModel.loadConversations() }
+                Task { 
+                    await viewModel.loadConversations()
+                    await viewModel.loadMutualMatches()
+                }
             }
 
             .refreshable {

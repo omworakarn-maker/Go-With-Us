@@ -116,9 +116,29 @@ struct BuddySwipeCard: View {
     var body: some View {
         ZStack(alignment: .bottomLeading) {
             // Background Image/Color
-            RoundedRectangle(cornerRadius: 24)
-                .fill(Color.adaptiveCardBackground)
-                .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
+            Group {
+                if let imageStr = user.profileImage, !imageStr.isEmpty, let uiImage = ProfileView.decodeBase64Image(imageStr) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .scaledToFill()
+                } else {
+                    RoundedRectangle(cornerRadius: 24)
+                        .fill(Color.adaptiveCardBackground)
+                        .overlay(
+                            Image(systemName: "person.fill")
+                                .font(.system(size: 80))
+                                .foregroundColor(.gray.opacity(0.3))
+                        )
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .cornerRadius(24)
+            .clipped()
+            .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
+            
+            // Subtle Gradient Overlay for text readability
+            LinearGradient(colors: [.black.opacity(0.6), .clear, .clear], startPoint: .bottom, endPoint: .top)
+                .cornerRadius(24)
             
             // Info Overlay
             VStack(alignment: .leading, spacing: 12) {
@@ -161,7 +181,7 @@ struct BuddySwipeCard: View {
                 // Potential bio here if available in MatchUser
             }
             .padding(24)
-            .foregroundColor(.adaptiveText)
+            .foregroundColor(.white) // Always white on image background
             
             // Labels for swipe status
             HStack {
@@ -230,13 +250,23 @@ struct MatchCelebrationView: View {
                     .padding(.horizontal)
                 
                 Button(action: onDismiss) {
-                    Text(SettingsManager.shared.currentLanguage == .thai ? "ส่งข้อความหา \(name)" : "Send a message to \(name)")
+                    Text(SettingsManager.shared.currentLanguage == .thai ? "เริ่มคุยกันเลย!" : "Start Chatting!")
                         .font(.headline)
                         .foregroundColor(.black)
                         .padding(.horizontal, 40)
                         .padding(.vertical, 16)
                         .background(Color.white)
                         .cornerRadius(30)
+                }
+                
+                Button(action: { 
+                    // Just dismiss and keep matching
+                    onDismiss()
+                }) {
+                    Text(SettingsManager.shared.currentLanguage == .thai ? "ปัดหาเพื่อนต่อ" : "Keep Swiping")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .padding(.top, 10)
                 }
             }
         }
@@ -315,7 +345,7 @@ extension MatchUser {
             name: name,
             email: email,
             role: UserRole(rawValue: role) ?? .user,
-            profileImage: nil,
+            profileImage: profileImage,
             interests: interests,
             isVerified: isVerified
         )

@@ -30,6 +30,8 @@ struct MatchTripView: View {
                         
                         Spacer()
                         
+                        // State for navigation
+                        NavigationLink(value: "placeholder") { EmptyView() } // Hack for destiny
                         Button(action: {
                             Task { await viewModel.fetchMatches() }
                         }) {
@@ -109,6 +111,12 @@ struct MatchTripView: View {
                                             withAnimation(.spring()) {
                                                 viewModel.matches.removeAll { $0.id == trip.id }
                                             }
+                                        },
+                                        onRightSwipe: {
+                                            viewModel.selectedTripForJoin = trip
+                                            withAnimation(.spring()) {
+                                                viewModel.matches.removeAll { $0.id == trip.id }
+                                            }
                                         }
                                     )
                                     .padding(.horizontal, 16)
@@ -126,6 +134,9 @@ struct MatchTripView: View {
                     }
                     .padding(.bottom, 80) // Added for TabBar
                 }
+                .navigationDestination(item: $viewModel.selectedTripForJoin) { trip in
+                    TripDetailView(tripId: trip.id, autoShowJoin: true)
+                }
             }
         }
         .task {
@@ -138,6 +149,7 @@ struct MatchTripView: View {
 struct TinderSwipeCardView: View {
     let trip: Trip
     let onRemove: () -> Void
+    var onRightSwipe: () -> Void = {}
     
     @State private var offset: CGSize = .zero
     @State private var color: Color = .clear
@@ -169,9 +181,12 @@ struct TinderSwipeCardView: View {
                 .onChanged { gesture in
                     offset = gesture.translation
                 }
-                .onEnded { _ in
-                    if abs(offset.width) > 100 {
-                        // Swipe recognized
+                .onEnded { gesture in
+                    if gesture.translation.width > 120 {
+                        // Swipe Right - Interested/Join
+                        onRightSwipe()
+                    } else if gesture.translation.width < -120 {
+                        // Swipe Left - Reject
                         onRemove()
                     } else {
                         // Reset back to center if swipe isn't far enough
@@ -194,6 +209,7 @@ class MatchTripViewModel: ObservableObject {
     @Published var matches: [Trip] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
+    @Published var selectedTripForJoin: Trip?
     
     func fetchMatches() async {
         await MainActor.run {

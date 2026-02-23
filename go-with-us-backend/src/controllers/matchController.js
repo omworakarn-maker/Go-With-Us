@@ -24,12 +24,19 @@ export const findBuddy = async (req, res) => {
             });
         }
 
-        // 2. Get All Other Users
-        // In production, use Vector DB (pgvector) for scalability.
-        // For strict MVP with small user base, fetching all is acceptable.
+        // 2. Get users already swiped (liked or disliked)
+        const swipedMatches = await prisma.userMatch.findMany({
+            where: { likerId: userId },
+            select: { likedId: true }
+        });
+        const swipedIds = swipedMatches.map(m => m.likedId);
+
+        // 3. Get All Other Users (Exclude self and swiped)
         const users = await prisma.user.findMany({
             where: {
-                id: { not: userId },
+                id: {
+                    notIn: [userId, ...swipedIds]
+                },
                 embedding: { not: null } // Only users with embeddings
             },
             select: {

@@ -11,6 +11,7 @@ class ChatViewModel: ObservableObject {
     
     @Published var isLoading = false
     @Published var errorMessage: String?
+    @Published var mutualMatches: [MatchUser] = []
     
     // Track last message count for detecting new messages
     private var lastMessageCount = 0
@@ -20,6 +21,18 @@ class ChatViewModel: ObservableObject {
     // Current User ID
     private var currentUserId: String? {
         return AuthService.shared.getCurrentUserId()
+    }
+    
+    // MARK: - Load Mutual Matches
+    func loadMutualMatches() async {
+        do {
+            let response = try await MatchService.shared.getMutualMatches()
+            // Filter out users who already have a conversation
+            let conversationIds = Set(conversations.map { $0.user.id })
+            self.mutualMatches = response.matches.filter { !conversationIds.contains($0.id) }
+        } catch {
+            print("Failed to fetch mutual matches in ChatViewModel: \(error)")
+        }
     }
 
     private var observersSet = false

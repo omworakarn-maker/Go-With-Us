@@ -2,6 +2,7 @@ import SwiftUI
 
 struct TripDetailView: View {
     let tripId: String
+    let autoShowJoin: Bool
     @StateObject private var viewModel: TripDetailViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var showDeleteAlert = false
@@ -14,8 +15,9 @@ struct TripDetailView: View {
         let initialIndex: Int
     }
     
-    init(tripId: String) {
+    init(tripId: String, autoShowJoin: Bool = false) {
         self.tripId = tripId
+        self.autoShowJoin = autoShowJoin
         _viewModel = StateObject(wrappedValue: TripDetailViewModel(tripId: tripId))
     }
     
@@ -147,7 +149,12 @@ struct TripDetailView: View {
         .navigationBarHidden(true)
         .hideTabBar(true)
         .onTapGesture { hideKeyboard() }
-        .task { await viewModel.loadTrip() }
+        .task { 
+            await viewModel.loadTrip() 
+            if autoShowJoin {
+                viewModel.showJoinSheet = true
+            }
+        }
         .alert("ยืนยันการลบ", isPresented: $showDeleteAlert) {
             Button("ยกเลิก", role: .cancel) {}
             Button("ลบ", role: .destructive) {

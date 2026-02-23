@@ -7,6 +7,7 @@ struct MatchUser: Codable, Identifiable {
     let role: String
     let interests: [String]?
     let matchScore: Int?
+    let profileImage: String?
     let isVerified: Bool?
     let verificationStatus: String?
 }
