@@ -103,6 +103,7 @@ struct ChatView: View {
             }
             .padding(.bottom, 80) // Space for TabBar
             .navigationTitle("ข้อความ")
+            .navigationBarTitleDisplayMode(.inline)
             .onAppear {
                 Task { 
                     await viewModel.loadConversations()

@@ -350,7 +350,7 @@ struct CreateTripView: View {
                             
                             // Budget & Max Participants
                             HStack(spacing: 12) {
-                                FormField(label: "งบประมาณ (บาท)", placeholder: "0 = ฟรี", text: $budget)
+                                FormField(label: "งบประมาณ (บาท)", placeholder: "ระบุจำนวนเงิน", text: $budget)
                                     .keyboardType(.numberPad)
                                 
                                 FormField(label: "จำนวนคน", placeholder: "10", text: $maxParticipants)
@@ -502,7 +502,7 @@ struct CreateTripView: View {
         }
         
         guard let budgetValue = Int(budget), budgetValue >= 0 else {
-            errorMessage = "กรุณากรอกงบประมาณที่ถูกต้อง (0 = ฟรี)"
+            errorMessage = "กรุณากรอกงบประมาณที่ถูกต้อง (ระบุจำนวนเงิน)"
             return
         }
         

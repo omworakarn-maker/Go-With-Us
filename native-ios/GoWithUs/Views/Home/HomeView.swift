@@ -4,6 +4,7 @@ struct HomeView: View {
     @StateObject private var viewModel = TripListViewModel()
     @ObservedObject private var notificationPoller = NotificationPoller.shared
     @State private var showNotifications = false
+    @FocusState private var isSearchFocused: Bool
     
     @Binding var showSideMenu: Bool
     @Binding var currentScreen: AppScreen
@@ -96,6 +97,18 @@ struct HomeView: View {
                             
                             TextField(SettingsManager.shared.localizedString(for: "search_placeholder"), text: $viewModel.searchText)
                                 .foregroundColor(.adaptiveText)
+                                .accentColor(.black)
+                                .focused($isSearchFocused)
+                            
+                            if !viewModel.searchText.isEmpty {
+                                Button(action: {
+                                    viewModel.searchText = ""
+                                    isSearchFocused = false
+                                }) {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundColor(.gray.opacity(0.6))
+                                }
+                            }
                         }
                         .padding()
                         .background(Color.gray.opacity(0.05))
@@ -120,77 +133,64 @@ struct HomeView: View {
                     .padding(.bottom, 8)
                     
                     // Trip List Area
-                    ScrollView {
-                        if viewModel.isLoading && viewModel.trips.isEmpty {
-                            VStack(spacing: 12) {
-                                Spacer()
-                                ProgressView()
-                                    .scaleEffect(1.5)
-                                    .tint(.appPrimary)
-                                Text(SettingsManager.shared.localizedString(for: "loading_trips"))
-                                    .font(.system(size: 14))
-                                    .foregroundColor(.gray)
-                                Spacer()
+                    if viewModel.isLoading && viewModel.trips.isEmpty {
+                        loadingView()
+                    } else if let error = viewModel.errorMessage {
+                        VStack(spacing: 12) {
+                            Spacer()
+                            Image(systemName: "exclamationmark.triangle")
+                                .font(.system(size: 40))
+                                .foregroundColor(.red)
+                            
+                            Text("เกิดข้อผิดพลาด")
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundColor(.adaptiveText)
+                            
+                            Text(error)
+                                .font(.system(size: 14))
+                                .foregroundColor(.gray)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal)
+                            
+                            Button(action: {
+                                Task { await viewModel.loadTrips() }
+                            }) {
+                                Text("ลองใหม่")
+                                    .font(.system(size: 15, weight: .bold))
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 24)
+                                    .padding(.vertical, 12)
+                                    .background(Color.black)
+                                    .cornerRadius(20)
                             }
-                            .frame(maxWidth: .infinity)
-                            .padding(.top, 100)
-                        } else if let error = viewModel.errorMessage {
-                            VStack(spacing: 12) {
-                                Spacer()
-                                Image(systemName: "exclamationmark.triangle")
-                                    .font(.system(size: 40))
-                                    .foregroundColor(.red)
-                                
-                                Text("เกิดข้อผิดพลาด")
-                                    .font(.system(size: 18, weight: .bold))
-                                    .foregroundColor(.adaptiveText)
-                                
-                                Text(error)
-                                    .font(.system(size: 14))
-                                    .foregroundColor(.gray)
-                                    .multilineTextAlignment(.center)
-                                    .padding(.horizontal)
-                                
-                                Button(action: {
-                                    Task { await viewModel.loadTrips() }
-                                }) {
-                                    Text("ลองใหม่")
-                                        .font(.system(size: 15, weight: .bold))
-                                        .foregroundColor(.white)
-                                        .padding(.horizontal, 24)
-                                        .padding(.vertical, 12)
-                                        .background(Color.black)
-                                        .cornerRadius(20)
-                                }
-                                Spacer()
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.top, 100)
-                        } else if viewModel.trips.isEmpty {
-                            VStack(spacing: 12) {
-                                Spacer()
-                                Circle()
-                                    .stroke(Color.gray.opacity(0.3), lineWidth: 2)
-                                    .frame(width: 80, height: 80)
-                                    .overlay(
-                                        Text("?")
-                                            .font(.system(size: 40, weight: .bold))
-                                            .foregroundColor(.gray.opacity(0.3))
-                                    )
-                                
-                                Text(SettingsManager.shared.localizedString(for: "no_trips_found"))
-                                    .font(.system(size: 18, weight: .bold))
-                                    .foregroundColor(.adaptiveText)
-                                
-                                Text(SettingsManager.shared.localizedString(for: "try_another_search"))
-                                    .font(.system(size: 14))
-                                    .foregroundColor(.gray)
-                                    .multilineTextAlignment(.center)
-                                Spacer()
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.top, 100)
-                        } else {
+                            Spacer()
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else if viewModel.trips.isEmpty && !viewModel.isLoading {
+                        VStack(spacing: 12) {
+                            Spacer()
+                            Circle()
+                                .stroke(Color.gray.opacity(0.3), lineWidth: 2)
+                                .frame(width: 80, height: 80)
+                                .overlay(
+                                    Text("?")
+                                        .font(.system(size: 40, weight: .bold))
+                                        .foregroundColor(.gray.opacity(0.3))
+                                )
+                            
+                            Text(SettingsManager.shared.localizedString(for: "no_trips_found"))
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundColor(.adaptiveText)
+                            
+                            Text(SettingsManager.shared.localizedString(for: "try_another_search"))
+                                .font(.system(size: 14))
+                                .foregroundColor(.gray)
+                                .multilineTextAlignment(.center)
+                            Spacer()
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else {
+                        ScrollView {
                             LazyVStack(spacing: 16) {
                                 ForEach(viewModel.trips) { trip in
                                     NavigationLink(destination: TripDetailView(tripId: trip.id)) {
@@ -203,13 +203,18 @@ struct HomeView: View {
                             .padding()
                             .padding(.bottom, 90)
                         }
-                    }
-                    .refreshable {
-                        await viewModel.refresh()
+                        .refreshable {
+                            await viewModel.refresh()
+                        }
                     }
                 }
             }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                isSearchFocused = false
+            }
             .navigationBarHidden(true)
+            .hideTabBar(isSearchFocused || !viewModel.searchText.isEmpty)
             .sheet(isPresented: $showNotifications) {
                 NotificationView()
             }
@@ -217,6 +222,25 @@ struct HomeView: View {
                 await viewModel.loadTrips()
             }
         }
+    }
+}
+
+// Adjust loading state with a bit of offset from center
+extension HomeView {
+    @ViewBuilder
+    private func loadingView() -> some View {
+        VStack(spacing: 12) {
+            Spacer()
+                .frame(height: 150) // Push down as requested
+            ProgressView()
+                .scaleEffect(1.5)
+                .tint(.appPrimary)
+            Text(SettingsManager.shared.localizedString(for: "loading_trips"))
+                .font(.system(size: 14))
+                .foregroundColor(.gray)
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 

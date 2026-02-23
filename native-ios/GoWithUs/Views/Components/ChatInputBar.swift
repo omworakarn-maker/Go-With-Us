@@ -11,6 +11,16 @@ func getSafeAreaBottom() -> CGFloat {
     return window.safeAreaInsets.bottom
 }
 
+func getSafeAreaTop() -> CGFloat {
+    guard let window = UIApplication.shared.connectedScenes
+        .compactMap({ $0 as? UIWindowScene })
+        .first?.windows
+        .first else {
+        return 0
+    }
+    return window.safeAreaInsets.top
+}
+
 struct ChatInputBar: View {
     @Binding var text: String
     var onSend: (String) -> Void

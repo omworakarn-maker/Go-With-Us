@@ -156,6 +156,8 @@ export const createTrip = async (req, res, next) => {
             maxParticipants,
             category,
             imageUrl,
+            gallery,
+            itinerary,
             isPublic
         } = req.body;
 
@@ -179,10 +181,12 @@ export const createTrip = async (req, res, next) => {
                 description: description || null,
                 startDate: new Date(startDate),
                 endDate: endDate ? new Date(endDate) : null,
-                budget: budget && budget >= 100 ? budget : 1000,
+                budget: (budget !== undefined && budget !== null) ? budget : 1000,
                 maxParticipants: maxParticipants || 10,
                 category: category || null,
                 imageUrl: imageUrl || null,
+                gallery: gallery || [],
+                itinerary: itinerary || [],
                 isPublic: isPublic !== undefined ? isPublic : true,
                 creatorId: req.user.userId,
                 embedding: await generateEmbedding(`${title} ${description || ''} ${category || ''} ${destination}`),

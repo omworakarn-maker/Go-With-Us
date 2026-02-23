@@ -10,6 +10,9 @@ struct GoWithUsApp: App {
         WindowGroup {
             ZStack {
                 if showSplash {
+                    // ปรับเปลี่ยน SplashScreen ที่นี่:
+                    // - ModernSplashView(): ตัวปัจจุบัน (โลโก้หมุน พรีเมียม)
+                    // - SplashView(): ตัวเก่า (ไอคอนเครื่องบิน ซูมเข้า)
                     ModernSplashView()
                         .zIndex(1)
                         .transition(.move(edge: .top))
