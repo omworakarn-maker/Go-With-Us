@@ -174,6 +174,8 @@ export const createTrip = async (req, res, next) => {
             select: { name: true }
         });
 
+        console.log(`Creating trip with ${gallery?.length || 0} gallery images and ${itinerary?.length || 0} itinerary days`);
+
         const trip = await prisma.trip.create({
             data: {
                 title,
@@ -181,11 +183,11 @@ export const createTrip = async (req, res, next) => {
                 description: description || null,
                 startDate: new Date(startDate),
                 endDate: endDate ? new Date(endDate) : null,
-                budget: (budget !== undefined && budget !== null) ? budget : 1000,
-                maxParticipants: maxParticipants || 10,
+                budget: (budget !== undefined && budget !== null) ? Number(budget) : 1000,
+                maxParticipants: maxParticipants ? Number(maxParticipants) : 10,
                 category: category || null,
-                imageUrl: imageUrl || null,
-                gallery: gallery || [],
+                imageUrl: (imageUrl !== undefined && imageUrl !== null) ? imageUrl : null,
+                gallery: Array.isArray(gallery) ? gallery : (gallery ? [gallery] : []),
                 itinerary: itinerary || [],
                 isPublic: isPublic !== undefined ? isPublic : true,
                 creatorId: req.user.userId,

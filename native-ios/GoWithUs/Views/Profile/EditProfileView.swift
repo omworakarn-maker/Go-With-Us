@@ -489,7 +489,7 @@ struct InterestTag: View {
 extension UIImage {
     func resized(toWidth width: CGFloat) -> UIImage? {
         let canvasSize = CGSize(width: width, height: CGFloat(ceil(width/size.width * size.height)))
-        UIGraphicsBeginImageContextWithOptions(canvasSize, false, scale)
+        UIGraphicsBeginImageContextWithOptions(canvasSize, false, 1.0) // Use 1.0 scale to get exact pixel width
         defer { UIGraphicsEndImageContext() }
         draw(in: CGRect(origin: .zero, size: canvasSize))
         return UIGraphicsGetImageFromCurrentImageContext()
