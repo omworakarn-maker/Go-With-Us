@@ -337,8 +337,9 @@ struct EditProfileView: View {
                             if selectedItem != nil, let image = profileImage,
                                let scaledImage = image.resized(toWidth: 512),
                                let jpegData = scaledImage.jpegData(compressionQuality: 0.6) {
-                                // Save locally as cache
-                                UserDefaults.standard.set(jpegData, forKey: "local_profile_image")
+                                // Save locally as cache - use user-specific key
+                                let userId = targetUser?.id ?? authViewModel.currentUser?.id ?? "unknown"
+                                UserDefaults.standard.set(jpegData, forKey: "local_profile_image_\(userId)")
                                 // Convert to base64 data URI for backend
                                 profileImageBase64 = "data:image/jpeg;base64," + jpegData.base64EncodedString()
                             }
@@ -426,8 +427,8 @@ struct EditProfileView: View {
                 }
                 
                 // Load saved image (local cache first, then backend)
-                if targetUser == nil,
-                   let data = UserDefaults.standard.data(forKey: "local_profile_image"),
+                if let userId = userToEdit?.id,
+                   let data = UserDefaults.standard.data(forKey: "local_profile_image_\(userId)"),
                    let image = UIImage(data: data) {
                     profileImage = image
                 } else if let profileImageStr = userToEdit?.profileImage,
