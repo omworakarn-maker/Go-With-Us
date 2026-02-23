@@ -30,6 +30,13 @@ class SettingsManager: ObservableObject {
         }
     }
     
+    // MARK: - Layout Preference
+    @Published var homeLayoutPreference: AppScreen {
+        didSet {
+            UserDefaults.standard.set(homeLayoutPreference.rawValue, forKey: "home_layout_preference")
+        }
+    }
+    
     private init() {
         // Load Haptics
         self.isHapticEnabled = UserDefaults.standard.object(forKey: "haptic_enabled") as? Bool ?? true
@@ -37,6 +44,10 @@ class SettingsManager: ObservableObject {
         // Load Language
         let savedLang = UserDefaults.standard.string(forKey: "AppLanguage") ?? "th"
         self.currentLanguage = AppLanguage(rawValue: savedLang) ?? .thai
+        
+        // Load Home Layout Preference
+        let savedLayout = UserDefaults.standard.string(forKey: "home_layout_preference") ?? AppScreen.home.rawValue
+        self.homeLayoutPreference = AppScreen(rawValue: savedLayout) ?? .home
     }
     
     // MARK: - Localized String Helper

@@ -45,6 +45,7 @@ struct HomeGridView: View {
                                     // Layout Switcher (Back to List)
                                     Button(action: {
                                         SettingsManager.shared.triggerSelection()
+                                        SettingsManager.shared.homeLayoutPreference = .home
                                         withAnimation { currentScreen = .home }
                                     }) {
                                          Image(systemName: "list.bullet")

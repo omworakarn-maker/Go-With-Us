@@ -42,6 +42,7 @@ struct HomeView: View {
                                     // Layout Switcher
                                     Button(action: {
                                         SettingsManager.shared.triggerSelection()
+                                        SettingsManager.shared.homeLayoutPreference = .homeGrid
                                         withAnimation {
                                             currentScreen = .homeGrid
                                         }

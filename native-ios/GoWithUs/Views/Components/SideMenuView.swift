@@ -87,7 +87,7 @@ struct SideMenuView: View {
             
             // Menu Items
             VStack(alignment: .leading, spacing: 24) {
-                MenuButton(icon: "house", text: SettingsManager.shared.localizedString(for: "home"), targetScreen: .home, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
+                MenuButton(icon: "house", text: SettingsManager.shared.localizedString(for: "home"), targetScreen: SettingsManager.shared.homeLayoutPreference, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
                 MenuButton(icon: "arrow.triangle.2.circlepath", text: SettingsManager.shared.localizedString(for: "match"), targetScreen: .matchTrip, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
                 MenuButton(icon: "suitcase", text: SettingsManager.shared.localizedString(for: "my_trips"), targetScreen: .myTrips, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
                 MenuButton(icon: "bubble.left.and.text.bubble.right", text: SettingsManager.shared.localizedString(for: "ai_chat"), targetScreen: .aiChat, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
@@ -250,6 +250,13 @@ struct MenuButton: View {
     @Binding var isShowing: Bool
     @Binding var transition: AnyTransition
     
+    private var isSelected: Bool {
+        if targetScreen == .home || targetScreen == .homeGrid {
+            return currentScreen == .home || currentScreen == .homeGrid
+        }
+        return currentScreen == targetScreen
+    }
+
     var body: some View {
         Button(action: {
             // Set sliding transition when navigating from Side Menu
@@ -262,12 +269,12 @@ struct MenuButton: View {
             HStack(spacing: 16) {
                 Image(systemName: icon)
                     .font(.system(size: 20))
-                    .foregroundColor(currentScreen == targetScreen ? .adaptiveText : .adaptiveSecondaryText)
+                    .foregroundColor(isSelected ? .adaptiveText : .adaptiveSecondaryText)
                     .frame(width: 24)
                 
                 Text(text)
                     .font(.system(size: 16, weight: .bold))
-                    .foregroundColor(currentScreen == targetScreen ? .adaptiveText : .adaptiveSecondaryText)
+                    .foregroundColor(isSelected ? .adaptiveText : .adaptiveSecondaryText)
                 
                 Spacer()
             }
@@ -275,7 +282,7 @@ struct MenuButton: View {
             .padding(.horizontal, 16)
             .background(
                 Group {
-                    if currentScreen == targetScreen {
+                    if isSelected {
                         Color.adaptiveText.opacity(0.05)
                             .cornerRadius(16)
                     } else {

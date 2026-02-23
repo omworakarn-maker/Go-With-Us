@@ -2,9 +2,10 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
+    @ObservedObject private var settings = SettingsManager.shared
     
     // State for navigation
-    @State private var currentScreen: AppScreen = .home
+    @State private var currentScreen: AppScreen = SettingsManager.shared.homeLayoutPreference
     @State private var showSideMenu = false
     @State private var showingCreateTrip = false
     @State private var badgeCounts: [Tab: Int] = [:]
@@ -181,7 +182,7 @@ struct ContentView: View {
         Binding<Tab>(
             get: {
                 switch currentScreen {
-                case .home: return .home
+                case .home, .homeGrid: return .home
                 case .findBuddy: return .buddy
                 case .chat: return .chat
                 case .profile: return .profile
@@ -194,7 +195,7 @@ struct ContentView: View {
                     activeTransition = .opacity.combined(with: .scale(scale: 0.98))
                     currentScreen = {
                         switch newTab {
-                        case .home: return .home
+                        case .home: return settings.homeLayoutPreference
                         case .buddy: return .findBuddy
                         case .chat: return .chat
                         case .profile: return .profile
