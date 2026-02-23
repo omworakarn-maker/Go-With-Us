@@ -89,4 +89,12 @@ class MessageService {
         
         return response.message
     }
+    
+    // MARK: - Delete Message (Unsend)
+    func deleteMessage(messageId: String) async throws {
+        let _: MessageResponse = try await APIService.shared.request(
+            endpoint: "/messages/\(messageId)",
+            method: .delete
+        )
+    }
 }

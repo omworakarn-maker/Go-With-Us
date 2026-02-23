@@ -120,6 +120,24 @@ struct ChatDetailView: View {
                                 }
                             )
                             .id(message.id)
+                            .contextMenu {
+                                Button {
+                                    UIPasteboard.general.string = message.content
+                                    HapticManager.shared.notification(type: .success)
+                                } label: {
+                                    Label("คัดลอกข้อความ", systemImage: "doc.on.doc")
+                                }
+                                
+                                if viewModel.isFromCurrentUser(message: message) {
+                                    Button(role: .destructive) {
+                                        Task {
+                                            await viewModel.deleteMessage(message)
+                                        }
+                                    } label: {
+                                        Label("ยกเลิกข้อความ", systemImage: "trash")
+                                    }
+                                }
+                            }
                         }
                     }
                     .padding()
@@ -247,6 +265,16 @@ struct MessageBubble: View {
     let isCurrentUser: Bool
     var onTapAvatar: (() -> Void)? = nil
     
+    private static let timeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        return formatter
+    }()
+    
+    private var timeString: String {
+        return Self.timeFormatter.string(from: message.createdAt)
+    }
+    
     var body: some View {
         HStack(alignment: .bottom, spacing: 8) {
             if !isCurrentUser {
@@ -259,6 +287,12 @@ struct MessageBubble: View {
                 }
             } else {
                 Spacer()
+                
+                // Time for current user (left of bubble)
+                Text(timeString)
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundColor(.gray.opacity(0.8))
+                    .padding(.bottom, 4)
             }
             
             VStack(alignment: isCurrentUser ? .trailing : .leading, spacing: 4) {
@@ -291,6 +325,12 @@ struct MessageBubble: View {
             }
             
             if !isCurrentUser {
+                // Time for other user (right of bubble)
+                Text(timeString)
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundColor(.gray.opacity(0.8))
+                    .padding(.bottom, 4)
+                
                 Spacer()
             } else {
                 let senderUser = message.sender.map { chatUser in

@@ -149,6 +149,17 @@ class ChatViewModel: ObservableObject {
         }
     }
     
+    // MARK: - Delete Message
+    func deleteMessage(_ message: Message) async {
+        do {
+            try await MessageService.shared.deleteMessage(messageId: message.id)
+            messages.removeAll { $0.id == message.id }
+            NotificationCenter.default.post(name: NSNotification.Name("NewMessageReceived"), object: nil)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+    
     // MARK: - Delete Conversation
     func deleteConversation(at offsets: IndexSet) {
         // Optimistic update
@@ -156,7 +167,7 @@ class ChatViewModel: ObservableObject {
         conversations.remove(atOffsets: offsets)
         
         Task {
-            for id in idsToDelete {
+            for _ in idsToDelete {
                 // TODO: specific API endpoint for deleting conversation if available
                 // For now, we assume local hide or implementation on backend
                 // await MessageService.shared.deleteConversation(id: id) 

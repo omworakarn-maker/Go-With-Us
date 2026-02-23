@@ -1,7 +1,7 @@
 import Foundation
 
 // MARK: - Participant Model
-struct Participant: Codable, Identifiable {
+struct Participant: Codable, Identifiable, Hashable {
     let id: String
     let tripId: String?
     let userId: String

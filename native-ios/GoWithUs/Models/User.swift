@@ -1,7 +1,7 @@
 import Foundation
 
 // MARK: - User Model
-struct User: Codable, Identifiable {
+struct User: Codable, Identifiable, Hashable {
     let id: String
     let name: String
     let username: String?
@@ -82,13 +82,13 @@ struct User: Codable, Identifiable {
 }
 
 // MARK: - User Role
-enum UserRole: String, Codable {
+enum UserRole: String, Codable, Hashable {
     case user = "user"
     case admin = "admin"
 }
 
 // MARK: - Travel Style
-struct TravelStyle: Codable {
+struct TravelStyle: Codable, Hashable {
     let budget: String?
     let pace: String?
     let social: String?

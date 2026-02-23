@@ -1,7 +1,7 @@
 import Foundation
 
 // MARK: - Trip Model
-struct Trip: Codable, Identifiable {
+struct Trip: Codable, Identifiable, Hashable {
     let id: String
     let title: String
     let destination: String
@@ -160,7 +160,7 @@ enum TripCategory: String, Codable, CaseIterable {
 }
 
 // MARK: - AI Analysis
-struct AIAnalysis: Codable {
+struct AIAnalysis: Codable, Hashable {
     let summary: String
     let highlights: [String]
     let recommendations: [String]
@@ -168,7 +168,7 @@ struct AIAnalysis: Codable {
 }
 
 // MARK: - Itinerary
-struct DayPlan: Codable, Identifiable {
+struct DayPlan: Codable, Identifiable, Hashable {
     var id = UUID()
     var day: Int
     var activities: [Activity]
@@ -178,7 +178,7 @@ struct DayPlan: Codable, Identifiable {
     }
 }
 
-struct Activity: Codable, Identifiable {
+struct Activity: Codable, Identifiable, Hashable {
     var id = UUID()
     var time: String
     var name: String
