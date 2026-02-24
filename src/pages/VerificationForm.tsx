@@ -5,7 +5,7 @@ import { userAPI } from '../services/api';
 
 const VerificationForm: React.FC = () => {
     const navigate = useNavigate();
-    const { user, refreshUser } = useAuth();
+    const { user, refreshUser, isLoading } = useAuth();
     const [idCardImage, setIdCardImage] = useState<string | null>(null);
     const [faceScanImage, setFaceScanImage] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -47,6 +47,70 @@ const VerificationForm: React.FC = () => {
             setIsSubmitting(false);
         }
     };
+
+    if (isLoading) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black"></div>
+            </div>
+        );
+    }
+
+    if (user?.verificationStatus === 'verified') {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+                <div className="max-w-md w-full bg-white rounded-3xl p-10 shadow-sm border border-gray-100 text-center relative">
+                    <button
+                        onClick={() => navigate(-1)}
+                        className="absolute top-6 right-6 w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
+                    >
+                        ✕
+                    </button>
+                    <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+                        </svg>
+                    </div>
+                    <h1 className="text-2xl font-bold text-gray-900 mb-2">ยืนยันเรียบร้อยแล้ว</h1>
+                    <p className="text-gray-500 mb-8">บัญชีของคุณได้รับการยืนยันตัวตนแล้ว คุณสามารถใช้งานฟีเจอร์ต่างๆ ได้อย่างมั่นใจ</p>
+                    <button
+                        onClick={() => navigate('/profile')}
+                        className="w-full py-4 bg-black text-white rounded-xl font-bold hover:bg-gray-800 transition-all active:scale-95 text-base"
+                    >
+                        กลับไปยังโปรไฟล์
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    if (user?.verificationStatus === 'pending') {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+                <div className="max-w-md w-full bg-white rounded-3xl p-10 shadow-sm border border-gray-100 text-center relative">
+                    <button
+                        onClick={() => navigate(-1)}
+                        className="absolute top-6 right-6 w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
+                    >
+                        ✕
+                    </button>
+                    <div className="w-20 h-20 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <h1 className="text-2xl font-bold text-gray-900 mb-2">กำลังรอการตรวจสอบ</h1>
+                    <p className="text-gray-500 mb-8">เราได้รับข้อมูลของคุณแล้ว แอดมินจะดำเนินการตรวจสอบข้อมูลและแจ้งผลให้ทราบโดยเร็วที่สุด</p>
+                    <button
+                        onClick={() => navigate('/profile')}
+                        className="w-full py-4 bg-black text-white rounded-xl font-bold hover:bg-gray-800 transition-all active:scale-95 text-base"
+                    >
+                        กลับไปยังโปรไฟล์
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 py-12">

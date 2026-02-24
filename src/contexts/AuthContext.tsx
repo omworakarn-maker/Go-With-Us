@@ -8,6 +8,8 @@ interface User {
     role: string;
     interests?: string[];
     profileImage?: string;
+    isVerified?: boolean;
+    verificationStatus?: 'unverified' | 'pending' | 'verified' | 'rejected';
 }
 
 interface AuthContextType {
