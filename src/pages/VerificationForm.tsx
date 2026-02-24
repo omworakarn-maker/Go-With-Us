@@ -72,7 +72,7 @@ const VerificationForm: React.FC = () => {
                         </svg>
                     </div>
                     <h1 className="text-2xl font-bold text-gray-900 mb-2">ยืนยันเรียบร้อยแล้ว</h1>
-                    <p className="text-gray-500 mb-8">บัญชีของคุณได้รับการยืนยันตัวตนแล้ว คุณสามารถใช้งานฟีเจอร์ต่างๆ ได้อย่างมั่นใจ</p>
+                    <p className="text-gray-500 mb-8">บัญชีของคุณได้รับการยืนยันตัวตนแล้ว</p>
                     <button
                         onClick={() => navigate('/profile')}
                         className="w-full py-4 bg-black text-white rounded-xl font-bold hover:bg-gray-800 transition-all active:scale-95 text-base"
