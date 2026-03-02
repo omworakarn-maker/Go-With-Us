@@ -149,11 +149,11 @@ class ChatViewModel: ObservableObject {
         }
     }
     
-    // MARK: - Delete Message
     func deleteMessage(_ message: Message) async {
         do {
             try await MessageService.shared.deleteMessage(messageId: message.id)
             messages.removeAll { $0.id == message.id }
+            lastMessageCount = messages.count // Update lastMessageCount so polling doesn't break
             NotificationCenter.default.post(name: NSNotification.Name("NewMessageReceived"), object: nil)
         } catch {
             errorMessage = error.localizedDescription
@@ -207,7 +207,7 @@ class ChatViewModel: ObservableObject {
         // Silent refresh without showing loading state
         do {
             let newMessages = try await MessageService.shared.getPrivateMessages(userId: userId)
-            if newMessages.count > lastMessageCount {
+            if newMessages.count != lastMessageCount {
                 messages = newMessages
                 lastMessageCount = newMessages.count
             }
@@ -220,7 +220,7 @@ class ChatViewModel: ObservableObject {
         // Silent refresh without showing loading state
         do {
             let newMessages = try await MessageService.shared.getTripMessages(tripId: tripId)
-            if newMessages.count > lastMessageCount {
+            if newMessages.count != lastMessageCount {
                 messages = newMessages
                 lastMessageCount = newMessages.count
             }

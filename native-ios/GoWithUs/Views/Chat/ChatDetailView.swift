@@ -212,10 +212,10 @@ struct ChatDetailView: View {
                 }
             }
             
-            // Start polling for new messages every 2.5 seconds
+            // Start polling for new messages every 1.5 seconds
             pollingTask = Task {
                 while !Task.isCancelled {
-                    try? await Task.sleep(nanoseconds: 2_500_000_000)
+                    try? await Task.sleep(nanoseconds: 1_500_000_000)
                     
                     if let tripId = tripId {
                         await viewModel.refreshTripMessages(tripId: tripId)
