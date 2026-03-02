@@ -8,6 +8,8 @@ struct TripDetailView: View {
     @State private var showDeleteAlert = false
     @State private var showEditSheet = false
     @State private var selectedImage: ImageViewerItem? = nil
+    @State private var kickParticipantId: String? = nil
+    @State private var kickParticipantName: String = ""
     
     struct ImageViewerItem: Identifiable {
         let id = UUID()
@@ -161,6 +163,22 @@ struct TripDetailView: View {
                 Task { if await viewModel.deleteTrip() { dismiss() } }
             }
         } message: { Text("คุณต้องการลบทริปนี้ใช่หรือไม่?") }
+        .alert("เตะออกจากทริป", isPresented: Binding(
+            get: { kickParticipantId != nil },
+            set: { if !$0 { kickParticipantId = nil } }
+        )) {
+            Button("ยกเลิก", role: .cancel) { kickParticipantId = nil }
+            Button("เตะ ออก", role: .destructive) {
+                if let uid = kickParticipantId {
+                    Task {
+                        await viewModel.removeParticipant(userId: uid)
+                        kickParticipantId = nil
+                    }
+                }
+            }
+        } message: {
+            Text("ต้องการนำ \(kickParticipantName) ออกจากทริปนี้ใช่หรือไม่?")
+        }
         .sheet(isPresented: $showEditSheet) {
             if let trip = viewModel.trip { CreateTripView(trip: trip) }
         }
@@ -714,7 +732,8 @@ struct TripDetailView: View {
                                     // ลบ (admin/creator เท่านั้น)
                                     if viewModel.isCreator || viewModel.isAdmin {
                                         Button {
-                                            Task { await viewModel.removeParticipant(userId: p.userId) }
+                                            kickParticipantName = name
+                                            kickParticipantId = p.userId
                                         } label: {
                                             Image(systemName: "xmark")
                                                 .font(.system(size: 11, weight: .bold))

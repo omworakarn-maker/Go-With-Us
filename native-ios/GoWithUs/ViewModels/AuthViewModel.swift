@@ -11,6 +11,7 @@ class AuthViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var isAuthenticated = false
     @Published var currentUser: User?
+    @Published var needsOnboarding = false
     
     init() {
         checkAuthStatus()
@@ -85,6 +86,7 @@ class AuthViewModel: ObservableObject {
             let user = try await AuthService.shared.register(name: name, email: email, password: password)
             currentUser = user
             isAuthenticated = true
+            needsOnboarding = true // แสดงหน้า Onboarding หลังสมัคร
         } catch {
             errorMessage = error.localizedDescription
         }

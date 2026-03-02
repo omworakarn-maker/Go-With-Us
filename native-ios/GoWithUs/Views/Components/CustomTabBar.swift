@@ -2,7 +2,7 @@ import SwiftUI
 
 enum Tab: String, CaseIterable {
     case home = "Home"
-    case buddy = "Buddy"
+    case matchTrip = "Match Trip"
     case create = "Create"
     case chat = "Chat"
     case profile = "Profile"
@@ -103,8 +103,8 @@ struct CustomTabBar: View {
         switch tab {
         case .home:
             return selectedTab == .home ? "house.fill" : "house"
-        case .buddy:
-            return selectedTab == .buddy ? "person.2.fill" : "person.2"
+        case .matchTrip:
+            return selectedTab == .matchTrip ? "arrow.triangle.2.circlepath.circle.fill" : "arrow.triangle.2.circlepath.circle"
         case .create:
             return "plus"
         case .chat:
@@ -117,7 +117,7 @@ struct CustomTabBar: View {
     func getThaiTitle(for tab: Tab) -> String {
         switch tab {
         case .home: return SettingsManager.shared.localizedString(for: "home")
-        case .buddy: return SettingsManager.shared.localizedString(for: "find_friend")
+        case .matchTrip: return SettingsManager.shared.currentLanguage == .thai ? "แมตช์ทริป" : "Match Trip"
         case .create: return SettingsManager.shared.localizedString(for: "create")
         case .chat: return SettingsManager.shared.currentLanguage == .thai ? "แชท" : "Chat"
         case .profile: return SettingsManager.shared.localizedString(for: "profile")

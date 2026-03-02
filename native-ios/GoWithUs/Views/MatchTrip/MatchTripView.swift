@@ -26,7 +26,7 @@ struct MatchTripView: View {
                         
                         Text("แมตช์ทริป")
                             .font(.system(size: 24, weight: .black))
-                            .foregroundColor(.appPrimary)
+                            .foregroundColor(.adaptiveText)
                         
                         Spacer()
                         
@@ -48,7 +48,7 @@ struct MatchTripView: View {
                         if viewModel.isLoading {
                             Spacer()
                             ProgressView()
-                                .tint(.appPrimary)
+                                .tint(.adaptiveText)
                                 .scaleEffect(1.5)
                             Spacer()
                         } else if let error = viewModel.errorMessage {
@@ -65,8 +65,8 @@ struct MatchTripView: View {
                                 }
                                 .padding(.horizontal, 24)
                                 .padding(.vertical, 12)
-                                .background(Color.appPrimary)
-                                .foregroundColor(.white)
+                                .background(Color.adaptiveText)
+                                .foregroundColor(Color.adaptiveBackground)
                                 .cornerRadius(20)
                             }
                             Spacer()
@@ -75,7 +75,7 @@ struct MatchTripView: View {
                             VStack(spacing: 16) {
                                 Image(systemName: "sparkles.rectangle.stack.fill")
                                     .font(.system(size: 80))
-                                    .foregroundColor(.appPrimary.opacity(0.4))
+                                    .foregroundColor(.adaptiveText.opacity(0.25))
                                 Text("ไม่มีทริปแมตช์ใหม่ๆ ตอนนี้")
                                     .font(.system(size: 20, weight: .bold))
                                     .foregroundColor(.adaptiveText)
@@ -88,7 +88,7 @@ struct MatchTripView: View {
                                     Task { await viewModel.fetchMatches() }
                                 }
                                 .padding(.top, 10)
-                                .foregroundColor(.appPrimary)
+                                .foregroundColor(.adaptiveText)
                             }
                             Spacer()
                         } else {

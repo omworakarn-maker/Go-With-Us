@@ -125,9 +125,6 @@ struct RegisterView: View {
                             Button(action: {
                                 Task {
                                     await viewModel.register()
-                                    if viewModel.isAuthenticated {
-                                        dismiss()
-                                    }
                                 }
                             }) {
                                 HStack(spacing: 8) {

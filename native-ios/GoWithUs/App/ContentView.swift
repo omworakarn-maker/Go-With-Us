@@ -13,8 +13,9 @@ struct ContentView: View {
     @State private var showTabBarWithAnimation = false
     
     var body: some View {
-        if authViewModel.isAuthenticated {
-            ZStack(alignment: .bottom) {
+        Group {
+            if authViewModel.isAuthenticated {
+                ZStack(alignment: .bottom) {
                 // Main Content Area with Fade Transition
                 Group {
                     switch currentScreen {
@@ -80,6 +81,7 @@ struct ContentView: View {
             .sheet(isPresented: $showingCreateTrip) {
                 CreateTripView()
             }
+
             .onPreferenceChange(TabBarHiddenKey.self) { hidden in
                 withAnimation(.easeInOut(duration: 0.3)) {
                     isChildViewHidingTabBar = hidden
@@ -113,6 +115,13 @@ struct ContentView: View {
             }
         } else {
             LoginView()
+        }
+        }
+        .fullScreenCover(isPresented: $authViewModel.needsOnboarding) {
+            NavigationStack {
+                OnboardingView()
+                    .environmentObject(authViewModel)
+            }
         }
     }
     
@@ -183,7 +192,7 @@ struct ContentView: View {
             get: {
                 switch currentScreen {
                 case .home, .homeGrid: return .home
-                case .findBuddy: return .buddy
+                case .matchTrip: return .matchTrip
                 case .chat: return .chat
                 case .profile: return .profile
                 default: return .home // Default to home highlight for others
@@ -196,7 +205,7 @@ struct ContentView: View {
                     currentScreen = {
                         switch newTab {
                         case .home: return settings.homeLayoutPreference
-                        case .buddy: return .findBuddy
+                        case .matchTrip: return .matchTrip
                         case .chat: return .chat
                         case .profile: return .profile
                         case .create: return currentScreen
@@ -212,7 +221,7 @@ struct ContentView: View {
         if isChildViewHidingTabBar { return false }
         
         switch currentScreen {
-        case .home, .homeGrid, .findBuddy, .chat, .profile:
+        case .home, .homeGrid, .matchTrip, .chat, .profile:
             return true
         default:
             return false
