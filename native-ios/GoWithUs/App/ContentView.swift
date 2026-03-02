@@ -24,7 +24,7 @@ struct ContentView: View {
                     case .homeGrid:
                         HomeGridView(showSideMenu: $showSideMenu, currentScreen: $currentScreen)
                     case .findBuddy:
-                        FindBuddyView()
+                        FindBuddyView(showSideMenu: $showSideMenu)
                     case .chat:
                         ChatView()
                     case .profile:

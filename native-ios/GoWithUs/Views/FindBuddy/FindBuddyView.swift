@@ -3,6 +3,7 @@ import SwiftUI
 struct FindBuddyView: View {
     @StateObject private var viewModel = FindBuddyViewModel()
     @State private var showMutualMatches = false
+    @Binding var showSideMenu: Bool
     
     var body: some View {
         NavigationStack {
@@ -88,9 +89,18 @@ struct FindBuddyView: View {
                 }
                 
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button(action: { Task { await viewModel.fetchMatches() } }) {
-                        Image(systemName: "arrow.clockwise")
-                            .foregroundColor(.adaptiveText)
+                    HStack(spacing: 20) {
+                        Button(action: {
+                            withAnimation { showSideMenu.toggle() }
+                        }) {
+                            Image(systemName: "line.3.horizontal")
+                                .foregroundColor(.adaptiveText)
+                        }
+                        
+                        Button(action: { Task { await viewModel.fetchMatches() } }) {
+                            Image(systemName: "arrow.clockwise")
+                                .foregroundColor(.adaptiveText)
+                        }
                     }
                 }
             }
@@ -353,5 +363,5 @@ extension MatchUser {
 }
 
 #Preview {
-    FindBuddyView()
+    FindBuddyView(showSideMenu: .constant(false))
 }
