@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { userAPI } from '../services/api';
+import { resizeImage } from '../utils/imageResizer';
 
 const VerificationForm: React.FC = () => {
     const navigate = useNavigate();
@@ -11,14 +12,17 @@ const VerificationForm: React.FC = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
 
-    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, setter: React.Dispatch<React.SetStateAction<string | null>>) => {
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, setter: React.Dispatch<React.SetStateAction<string | null>>) => {
         const file = e.target.files?.[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                setter(ev.target?.result as string);
-            };
-            reader.readAsDataURL(file);
+            try {
+                // Compress image before setting it to state (prevents Payload Too Large)
+                const uri = await resizeImage(file);
+                setter(uri);
+            } catch (err) {
+                console.error("Error resizing image:", err);
+                setError("เกิดข้อผิดพลาดในการประมวลผลรูปภาพ กรุณาลองใหม่อีกครั้ง");
+            }
         }
     };
 
@@ -40,9 +44,14 @@ const VerificationForm: React.FC = () => {
             await refreshUser();
             alert('ส่งคำขอยืนยันตัวตนเรียบร้อยแล้ว แอดมินจะตรวจสอบในภายหลัง');
             navigate('/profile');
-        } catch (err) {
+        } catch (err: any) {
             console.error('Verify error:', err);
-            setError('ไม่สามารถส่งคำขอได้ กรุณาลองใหม่อีกครั้ง');
+            // Show more specific error message based on the thrown error
+            if (err.message && err.message.toLowerCase().includes('large')) {
+                setError('รูปภาพของคุณมีขนาดใหญ่เกินไป กรุณาใช้รูปภาพที่มีขนาดเล็กลง');
+            } else {
+                setError(err.message || 'ไม่สามารถส่งคำขอได้ กรุณาลองใหม่อีกครั้ง');
+            }
         } finally {
             setIsSubmitting(false);
         }
