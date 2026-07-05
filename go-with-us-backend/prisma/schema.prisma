@@ -71,6 +71,9 @@ model Trip {
   endDate         DateTime? @map("end_date")
   budget          Int      @default(1000) // Budget in THB (minimum 100)
   maxParticipants Int      @default(10) @map("max_participants")
+activityStyle   Int?     @default(5) @map("activity_style")
+timeOfDay       String[] @default([]) @map("time_of_day")
+budgetRating    Int?     @default(5) @map("budget_rating")
   category        String?  // "กินเที่ยว", "กีฬา", "ปาร์ตี้", etc.
   isPublic        Boolean  @default(true) @map("is_public")
   imageUrl        String?  @db.Text // Base64 image data (main image)

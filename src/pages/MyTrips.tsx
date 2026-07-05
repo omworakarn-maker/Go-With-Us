@@ -69,7 +69,7 @@ const MyTrips: React.FC = () => {
             </button>
           </div>
         ) : trips.length > 0 ? (
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-12">
             {trips.map((trip) => (
               <TripCard key={trip.id} trip={trip} />
             ))}

@@ -84,7 +84,7 @@ export const TripCard: React.FC<TripCardProps> = ({ trip, onClick }) => {
                           { bg: 'bg-red-50', text: 'text-red-700' };
 
           return (
-            <div className={`absolute top-1.5 left-1.5 md:top-2 md:left-2 ${tier.bg} ${tier.text} px-1.5 py-0.5 md:px-2 md:py-1 rounded-md md:rounded-lg text-[9px] md:text-[10px] font-black shadow-sm border border-white/50 flex items-center z-10 backdrop-blur-sm bg-opacity-90`}>
+            <div className={`absolute top-1.5 left-1.5 md:top-2 md:left-2 ${tier.bg} ${tier.text} px-1.5 py-0.5 md:px-2 md:py-1 rounded-md md:rounded-lg text-[11px] md:text-xs font-black shadow-sm border border-white/50 flex items-center z-10 backdrop-blur-sm bg-opacity-90`}>
               <span>{score}% Match</span>
             </div>
           );
@@ -92,7 +92,7 @@ export const TripCard: React.FC<TripCardProps> = ({ trip, onClick }) => {
 
         {/* Category Badge */}
         {trip.category && (
-          <div className="absolute top-1.5 right-1.5 md:top-2 md:right-2 bg-white/90 backdrop-blur-sm px-1.5 py-0.5 md:px-2 md:py-1 rounded-md md:rounded-lg text-[9px] md:text-[10px] font-bold shadow-sm border border-white/50 flex items-center gap-1 z-10 text-black">
+          <div className="absolute top-1.5 right-1.5 md:top-2 md:right-2 bg-white/90 backdrop-blur-sm px-1.5 py-0.5 md:px-2 md:py-1 rounded-md md:rounded-lg text-[11px] md:text-xs font-bold shadow-sm border border-white/50 flex items-center gap-1 z-10 text-black">
             <span>{categoryData?.emoji || '✨'}</span>
             <span className="hidden md:inline">{trip.category}</span>
           </div>
@@ -101,26 +101,26 @@ export const TripCard: React.FC<TripCardProps> = ({ trip, onClick }) => {
 
       <div className="flex flex-col flex-1 p-2.5 md:p-4 h-1/2">
         <div className="flex items-center justify-between mb-1 md:mb-2">
-          <span className={`text-[8px] md:text-[10px] font-bold uppercase tracking-widest ${isEnded ? 'text-gray-400' : 'text-indigo-500'}`}>
+          <span className={`text-[11px] md:text-xs font-bold tracking-wide ${isEnded ? 'text-gray-400' : 'text-indigo-500'}`}>
             {formatDateThai(trip.startDate)}
           </span>
 
           {!isEnded ? (
             isToday ? (
-              <span className="text-[8px] md:text-[10px] font-bold text-indigo-600">วันนี้!</span>
+              <span className="text-[11px] md:text-xs font-bold text-indigo-600">วันนี้!</span>
             ) : daysLeft > 0 && daysLeft <= 30 ? (
-              <span className="text-[8px] md:text-[10px] font-bold text-gray-400">{daysLeft} วัน</span>
+              <span className="text-[11px] md:text-xs font-bold text-gray-400">{daysLeft} วัน</span>
             ) : null
           ) : (
-            <span className="text-[8px] md:text-[10px] font-bold text-gray-300">สิ้นสุด</span>
+            <span className="text-[11px] md:text-xs font-bold text-gray-300">สิ้นสุด</span>
           )}
         </div>
 
-        <h3 className={`text-sm md:text-xl font-black leading-tight tracking-tighter mb-1 ${isEnded ? 'text-gray-400 line-through decoration-2' : 'text-black'} line-clamp-2`}>
+        <h3 className={`text-base md:text-xl font-black leading-tight tracking-tight mb-1 ${isEnded ? 'text-gray-400 line-through decoration-2' : 'text-black'} line-clamp-2`}>
           {trip.title}
         </h3>
 
-        <p className="text-gray-400 font-bold text-[9px] md:text-xs uppercase tracking-widest mb-2 line-clamp-1">
+        <p className="text-gray-400 font-bold text-xs md:text-sm tracking-wide mb-2 line-clamp-1">
           {trip.destination}
         </p>
 
@@ -139,12 +139,12 @@ export const TripCard: React.FC<TripCardProps> = ({ trip, onClick }) => {
                     </div>
                   ))}
                 </div>
-                <span className="text-[9px] md:text-[11px] font-bold text-black whitespace-nowrap">
+                <span className="text-xs md:text-sm font-bold text-black whitespace-nowrap">
                   {participantCount} คน
                 </span>
               </>
             ) : (
-              <span className="text-[9px] md:text-[11px] font-medium text-gray-400 whitespace-nowrap">
+              <span className="text-xs md:text-sm font-medium text-gray-400 whitespace-nowrap">
                 0 คน
               </span>
             )}

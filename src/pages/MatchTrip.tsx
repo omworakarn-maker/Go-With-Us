@@ -49,13 +49,13 @@ const MatchTripPage: React.FC = () => {
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-8">
             {[1, 2, 3].map(i => (
               <div key={i} className="aspect-[4/3] bg-gray-100 rounded-3xl animate-pulse"></div>
             ))}
           </div>
         ) : matches.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-8">
             {matches.map((trip) => {
               const score = trip.matchScore;
 

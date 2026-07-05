@@ -221,7 +221,7 @@ const Profile: React.FC = () => {
                                     )}
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-4 w-full max-w-xs mx-auto mb-8 border-t border-gray-100 pt-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-xs mx-auto mb-8 border-t border-gray-100 pt-6">
                                     <div>
                                         <p className="text-3xl font-black text-black">{profile.createdTrips.length}</p>
                                         <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">ทริปที่สร้าง</p>
@@ -235,7 +235,7 @@ const Profile: React.FC = () => {
                                 {/* Profile Info Cards */}
                                 <div className="w-full space-y-3 mb-6 border-t border-gray-100 pt-6">
                                     {(profile.gender || profile.age) && (
-                                        <div className="grid grid-cols-2 gap-3">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                             {profile.gender && (
                                                 <div className="bg-gray-50 rounded-lg p-3">
                                                     <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">เพศ</p>
@@ -333,7 +333,7 @@ const Profile: React.FC = () => {
                                     />
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-3">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                     <div>
                                         <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-3 mb-1 block">เพศ</label>
                                         <select

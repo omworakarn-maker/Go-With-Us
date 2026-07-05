@@ -11,13 +11,12 @@ const MobileBottomNav = () => {
 
     const isActive = (path: string) => location.pathname === path;
 
-    // เมนูพร้อมไอคอนสวยๆ
     const menus = [
         {
             label: 'Home',
             path: '/',
             icon: (active: boolean) => (
-                <svg className={`w-6 h-6 transition-all ${active ? 'fill-black' : 'stroke-gray-400'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg className={active ? 'w-6 h-6 fill-black' : 'w-6 h-6 stroke-gray-400'} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
                     <polyline points="9 22 9 12 15 12 15 22"></polyline>
                 </svg>
@@ -27,7 +26,7 @@ const MobileBottomNav = () => {
             label: 'Buddy',
             path: '/find-buddy',
             icon: (active: boolean) => (
-                <svg className={`w-6 h-6 transition-all ${active ? 'fill-black' : 'stroke-gray-400'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg className={active ? 'w-6 h-6 fill-black' : 'w-6 h-6 stroke-gray-400'} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
                     <circle cx="9" cy="7" r="4"></circle>
                     <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
@@ -36,20 +35,14 @@ const MobileBottomNav = () => {
             )
         },
         {
-            isCreate: true, // 
-            icon: () => (
-                <div className="w-12 h-12 bg-black rounded-full flex items-center justify-center shadow-lg shadow-black/20 hover:scale-105 transition-transform">
-                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4" />
-                    </svg>
-                </div>
-            )
+            isCreate: true,
+            icon: () => null
         },
         {
             label: 'Chat',
             path: '/chat',
             icon: (active: boolean) => (
-                <svg className={`w-6 h-6 transition-all ${active ? 'fill-black' : 'stroke-gray-400'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg className={active ? 'w-6 h-6 fill-black' : 'w-6 h-6 stroke-gray-400'} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                 </svg>
             )
@@ -58,7 +51,7 @@ const MobileBottomNav = () => {
             label: 'Profile',
             path: '/profile',
             icon: (active: boolean) => (
-                <svg className={`w-6 h-6 transition-all ${active ? 'fill-black' : 'stroke-gray-400'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg className={active ? 'w-6 h-6 fill-black' : 'w-6 h-6 stroke-gray-400'} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                     <circle cx="12" cy="7" r="4"></circle>
                 </svg>
@@ -83,7 +76,7 @@ const MobileBottomNav = () => {
                                         if (!isAuthenticated) navigate('/login');
                                         else openCreateModal();
                                     }}
-                                    className="absolute -top-7 w-14 h-14 bg-gradient-to-tr from-indigo-600 to-purple-600 rounded-full flex items-center justify-center shadow-xl shadow-indigo-600/30 hover:scale-105 transition-transform active:scale-95 border-[3px] border-white"
+                                    className="absolute -top-7 w-14 h-14 bg-black rounded-full flex items-center justify-center shadow-xl shadow-black/30 hover:scale-105 transition-transform active:scale-95 border-[3px] border-white"
                                 >
                                     <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4" />

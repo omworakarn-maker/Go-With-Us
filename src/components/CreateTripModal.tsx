@@ -10,6 +10,13 @@ const PROVINCES = [
     'ทุกจังหวัด', 'กรุงเทพฯ', 'กระบี่', 'กาญจนบุรี', 'กาฬสินธุ์', 'กำแพงเพชร', 'ขอนแก่น', 'จันทบุรี', 'ฉะเชิงเทรา', 'ชลบุรี', 'ชัยนาท', 'ชัยภูมิ', 'ชุมพร', 'เชียงราย', 'เชียงใหม่', 'ตรัง', 'ตราด', 'ตาก', 'นครนายก', 'นครปฐม', 'นครพนม', 'นครราชสีมา', 'นครศรีธรรมราช', 'นครสวรรค์', 'นนทบุรี', 'นราธิวาส', 'น่าน', 'บึงกาฬ', 'บุรีรัมย์', 'ปทุมธานี', 'ประจวบคีรีขันธ์', 'ปราจีนบุรี', 'ปัตตานี', 'พระนครศรีอยุธยา', 'พะเยา', 'พังงา', 'พัทลุง', 'พิจิตร', 'พิษณุโลก', 'เพชรบุรี', 'เพชรบูรณ์', 'แพร่', 'ภูเก็ต', 'มหาสารคาม', 'มุกดาหาร', 'แม่ฮ่องสอน', 'ยโสธร', 'ยะลา', 'ร้อยเอ็ด', 'ระนอง', 'ระยอง', 'ราชบุรี', 'ลพบุรี', 'ลำปาง', 'ลำพูน', 'เลย', 'ศรีสะเกษ', 'สกลนคร', 'สงขลา', 'สตูล', 'สมุทรปราการ', 'สมุทรสงคราม', 'สมุทรสาคร', 'สระแก้ว', 'สระบุรี', 'สิงห์บุรี', 'สุโขทัย', 'สุพรรณบุรี', 'สุราษฎร์ธานี', 'สุรินทร์', 'หนองคาย', 'หนองบัวลำภู', 'อ่างทอง', 'อำนาจเจริญ', 'อุดรธานี', 'อุตรดิตถ์', 'อุทัยธานี', 'อุบลราชธานี'
 ];
 
+const TIME_SLOTS = [
+    { key: 'morning', label: 'เช้า', desc: 'เช้าตรู่' },
+    { key: 'noon', label: 'กลางวัน', desc: 'บ่าย' },
+    { key: 'evening', label: 'เย็น', desc: 'แดดร่มลมตก' },
+    { key: 'night', label: 'มืด/ราตรี', desc: 'ค่ำคืน' },
+];
+
 export const CreateTripModal: React.FC = () => {
     const { user } = useAuth();
     const { isCreateModalOpen, closeCreateModal } = useModal();
@@ -19,7 +26,20 @@ export const CreateTripModal: React.FC = () => {
     const [direction, setDirection] = useState(0); // -1: Back, 1: Next
     const [creating, setCreating] = useState(false);
     const [imagePreview, setImagePreview] = useState<string>('');
-    const [newTrip, setNewTrip] = useState({
+    const [newTrip, setNewTrip] = useState<{
+        title: string;
+        destination: string;
+        description: string;
+        startDate: string;
+        endDate: string;
+        category: string;
+        budget: number;
+        maxParticipants: number;
+        imageUrl: string;
+        activityStyle: number;
+        timeOfDay: string[];
+        budgetRating: number;
+    }>({
         title: '',
         destination: PROVINCES[1],
         description: '',
@@ -29,9 +49,10 @@ export const CreateTripModal: React.FC = () => {
         budget: 1000,
         maxParticipants: 10,
         imageUrl: '',
+        activityStyle: 5,
+        timeOfDay: [],
+        budgetRating: 5
     });
-
-
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -60,6 +81,17 @@ export const CreateTripModal: React.FC = () => {
         setImagePreview('');
     };
 
+    const toggleTimeSlot = (key: string) => {
+        setNewTrip(prev => {
+            const current = prev.timeOfDay;
+            if (current.includes(key)) {
+                return { ...prev, timeOfDay: current.filter(k => k !== key) };
+            } else {
+                return { ...prev, timeOfDay: [...current, key] };
+            }
+        });
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -82,15 +114,13 @@ export const CreateTripModal: React.FC = () => {
                 maxParticipants: newTrip.maxParticipants,
                 category: newTrip.category,
                 imageUrl: newTrip.imageUrl,
+                activityStyle: newTrip.activityStyle,
+                timeOfDay: newTrip.timeOfDay,
+                budgetRating: newTrip.budgetRating
             };
 
             const response: any = await tripsAPI.create(createData);
 
-            // Debugging
-            // console.log('Create Trip Response:', response);
-            // alert('Debug: ' + JSON.stringify(response));
-
-            // Handle different response structures checking for common patterns
             const tripData = response?.trip || response?.data || response;
             const tripId = tripData?.id || tripData?._id;
 
@@ -99,14 +129,13 @@ export const CreateTripModal: React.FC = () => {
                 setNewTrip({
                     title: '', destination: PROVINCES[1], description: '',
                     startDate: '', endDate: '', category: TRIP_CATEGORIES[0].label,
-                    budget: 1000, maxParticipants: 10, imageUrl: ''
+                    budget: 1000, maxParticipants: 10, imageUrl: '',
+                    activityStyle: 5, timeOfDay: [], budgetRating: 5
                 });
                 setImagePreview('');
                 setStep(1);
                 closeCreateModal();
 
-                // Navigate to the newly created trip details page
-                // Uses /trip/:id (singular) to match AnimatedRoutes definition
                 setTimeout(() => {
                     navigate(`/trip/${tripId}`);
                 }, 100);
@@ -235,6 +264,26 @@ export const CreateTripModal: React.FC = () => {
                                                     ))}
                                                 </div>
                                             </div>
+                                            
+                                            <div className="space-y-2">
+                                                <label className="text-sm font-bold text-gray-700">สไตล์กิจกรรม (Pace)</label>
+                                                <div className="grid grid-cols-3 gap-2">
+                                                    {[
+                                                        { value: 2, label: 'ชิลๆ' },
+                                                        { value: 5, label: 'ปานกลาง' },
+                                                        { value: 8, label: 'ลุยเต็มที่' }
+                                                    ].map(style => (
+                                                        <button
+                                                            key={style.value}
+                                                            type="button"
+                                                            onClick={() => setNewTrip({ ...newTrip, activityStyle: style.value })}
+                                                            className={`p-2 rounded-xl border text-center transition-all ${newTrip.activityStyle === style.value ? 'border-black bg-black text-white ring-2 ring-black ring-offset-2' : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'}`}
+                                                        >
+                                                            <span className="text-sm font-bold">{style.label}</span>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
 
                                             <div className="space-y-2">
                                                 <label className="text-sm font-bold text-gray-700">สถานที่</label>
@@ -289,9 +338,46 @@ export const CreateTripModal: React.FC = () => {
                                                     />
                                                 </div>
                                             </div>
+                                            
+                                            <div className="space-y-2">
+                                                <label className="text-sm font-bold text-gray-700">เวลาของทริป (Time of Day)</label>
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    {TIME_SLOTS.map(slot => (
+                                                        <button
+                                                            key={slot.key}
+                                                            type="button"
+                                                            onClick={() => toggleTimeSlot(slot.key)}
+                                                            className={`p-2 rounded-xl border text-center transition-all ${newTrip.timeOfDay.includes(slot.key) ? 'border-black bg-black text-white ring-2 ring-black ring-offset-2' : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'}`}
+                                                        >
+                                                            <div className="text-sm font-bold">{slot.label}</div>
+                                                            <div className="text-[10px] opacity-80">{slot.desc}</div>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="space-y-2">
+                                                <label className="text-sm font-bold text-gray-700">ระดับงบประมาณทริป (ใช้จับคู่)</label>
+                                                <div className="grid grid-cols-3 gap-2">
+                                                    {[
+                                                        { value: 2, label: 'ประหยัด' },
+                                                        { value: 5, label: 'ปานกลาง' },
+                                                        { value: 8, label: 'หรูหรา' }
+                                                    ].map(level => (
+                                                        <button
+                                                            key={level.value}
+                                                            type="button"
+                                                            onClick={() => setNewTrip({ ...newTrip, budgetRating: level.value })}
+                                                            className={`p-2 rounded-xl border text-center transition-all ${newTrip.budgetRating === level.value ? 'border-black bg-black text-white ring-2 ring-black ring-offset-2' : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'}`}
+                                                        >
+                                                            <span className="text-sm font-bold">{level.label}</span>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
 
                                             <div className="space-y-2">
-                                                <label className="text-sm font-bold text-gray-700">งบประมาณต่อคน (บาท)</label>
+                                                <label className="text-sm font-bold text-gray-700">งบประมาณที่ใช้จริง (บาท)</label>
                                                 <div className="relative">
                                                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                                         <span className="text-gray-400 font-bold">฿</span>
@@ -419,7 +505,8 @@ export const CreateTripModal: React.FC = () => {
                                         onClick={nextStep}
                                         disabled={
                                             (step === 1 && !newTrip.title) ||
-                                            (step === 2 && !newTrip.startDate)
+                                            (step === 2 && !newTrip.startDate) ||
+                                            (step === 2 && newTrip.timeOfDay.length === 0)
                                         }
                                         className="flex-1 px-6 py-3 bg-black text-white rounded-xl font-bold text-sm hover:bg-gray-800 transition-all shadow-lg shadow-black/20 disabled:opacity-50 disabled:cursor-not-allowed"
                                         type="button"

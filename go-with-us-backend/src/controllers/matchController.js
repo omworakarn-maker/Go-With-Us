@@ -53,8 +53,8 @@ const calculateDetailedCompatibility = (userA, userB) => {
     // 3. Time of Day
     if (styleA && styleA.timeOfDay && styleA.timeOfDay.length > 0 && styleB && styleB.timeOfDay && styleB.timeOfDay.length > 0) {
         const intersect = styleA.timeOfDay.filter(x => styleB.timeOfDay.includes(x)).length;
-        const union = new Set([...styleA.timeOfDay, ...styleB.timeOfDay]).size;
-        const score = union > 0 ? (intersect / union) : 1.0;
+        const minLen = Math.min(styleA.timeOfDay.length, styleB.timeOfDay.length);
+        const score = minLen > 0 ? (intersect / minLen) : 1.0;
         scores.push(score);
     }
 
@@ -63,8 +63,8 @@ const calculateDetailedCompatibility = (userA, userB) => {
     const intB = Array.isArray(userB.interests) ? userB.interests : [];
     if (intA.length > 0 || intB.length > 0) {
         const intersect = intA.filter(x => intB.includes(x)).length;
-        const union = new Set([...intA, ...intB]).size;
-        const score = union > 0 ? (intersect / union) : 1.0;
+        const minLen = Math.min(intA.length, intB.length);
+        const score = minLen > 0 ? (intersect / minLen) : 1.0;
         scores.push(score);
     }
 
@@ -87,28 +87,33 @@ const mapTripBudgetToRating = (budgetVal) => {
 // Helper to calculate exact user-to-trip compatibility percentage
 const calculateTripCompatibility = (user, trip) => {
     const styleU = normalizeTravelStyle(user.travelStyle);
-    const styleC = normalizeTravelStyle(trip.creator && trip.creator.travelStyle ? trip.creator.travelStyle : null);
 
     let scores = [];
 
-    // 1. Budget
+    // 1. Budget Rating
+    // We use the new budgetRating from the trip, fallback to mapped THB budget if not set
+    const tripBudgetRating = trip.budgetRating != null ? trip.budgetRating : mapTripBudgetToRating(trip.budget);
     if (styleU && styleU.budget !== null) {
-        const tripRating = mapTripBudgetToRating(trip.budget);
-        const score = 1.0 - (Math.abs(styleU.budget - tripRating) / 9.0);
+        const score = 1.0 - (Math.abs(styleU.budget - tripBudgetRating) / 9.0);
         scores.push(score);
     }
 
     // 2. Activity Style
-    if (styleU && styleU.activityStyle !== null && styleC && styleC.activityStyle !== null) {
-        const score = 1.0 - (Math.abs(styleU.activityStyle - styleC.activityStyle) / 9.0);
+    // We use the new activityStyle from the trip, fallback to creator's style if not set
+    const styleC = normalizeTravelStyle(trip.creator && trip.creator.travelStyle ? trip.creator.travelStyle : null);
+    const tripPace = trip.activityStyle != null ? trip.activityStyle : (styleC ? styleC.activityStyle : null);
+    if (styleU && styleU.activityStyle !== null && tripPace !== null) {
+        const score = 1.0 - (Math.abs(styleU.activityStyle - tripPace) / 9.0);
         scores.push(score);
     }
 
     // 3. Time of Day
-    if (styleU && styleU.timeOfDay && styleU.timeOfDay.length > 0 && styleC && styleC.timeOfDay && styleC.timeOfDay.length > 0) {
-        const intersect = styleU.timeOfDay.filter(x => styleC.timeOfDay.includes(x)).length;
-        const union = new Set([...styleU.timeOfDay, ...styleC.timeOfDay]).size;
-        const score = union > 0 ? (intersect / union) : 1.0;
+    // We use timeOfDay from trip, fallback to creator's time if not set
+    const tripTime = (trip.timeOfDay && trip.timeOfDay.length > 0) ? trip.timeOfDay : (styleC ? styleC.timeOfDay : []);
+    if (styleU && styleU.timeOfDay && styleU.timeOfDay.length > 0 && tripTime && tripTime.length > 0) {
+        const intersect = styleU.timeOfDay.filter(x => tripTime.includes(x)).length;
+        const minLen = Math.min(styleU.timeOfDay.length, tripTime.length);
+        const score = minLen > 0 ? (intersect / minLen) : 1.0;
         scores.push(score);
     }
 
