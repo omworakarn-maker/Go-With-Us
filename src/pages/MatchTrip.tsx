@@ -56,15 +56,90 @@ const MatchTripPage: React.FC = () => {
           </div>
         ) : matches.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {matches.map((trip) => (
-              <div key={trip.id} className="relative group">
-                <div className="absolute -top-3 -right-3 z-20 bg-black text-white text-[10px] font-bold px-3 py-1.5 rounded-full border-4 border-white shadow-xl transform group-hover:scale-110 transition-transform">
-                  {trip.matchScore}% Match
+            {matches.map((trip) => {
+              const score = trip.matchScore;
+
+              // 4-tier match system
+              const tier =
+                score >= 76 ? {
+                  color: '#16a34a',
+                  bg: 'bg-green-50 border-green-200',
+                  text: 'text-green-700',
+                  label: 'ดีเยี่ยม',
+                  sublabel: 'เนื้อคู่ร่วมทริป',
+                  desc: 'มีความชอบตรงกันเกือบทุกด้าน ทั้งงบประมาณและกิจกรรม เหมาะกับการเดินทางระยะยาว',
+                } : score >= 51 ? {
+                  color: '#2563eb',
+                  bg: 'bg-blue-50 border-blue-200',
+                  text: 'text-blue-700',
+                  label: 'ปานกลาง',
+                  sublabel: 'พอไปกันได้',
+                  desc: 'มีจุดร่วมหลักที่ตรงกัน แต่อาจมีไลฟ์สไตล์ปลีกย่อยที่ต่างกันบ้าง',
+                } : score >= 26 ? {
+                  color: '#d97706',
+                  bg: 'bg-amber-50 border-amber-200',
+                  text: 'text-amber-700',
+                  label: 'ค่อนข้างต่ำ',
+                  sublabel: 'ต้องปรับตัวสูง',
+                  desc: 'มีจุดที่สนใจตรงกันเพียง 1-2 อย่าง หากร่วมทริปต้องมีการประนีประนอมอย่างมาก',
+                } : {
+                  color: '#dc2626',
+                  bg: 'bg-red-50 border-red-200',
+                  text: 'text-red-700',
+                  label: 'ไม่แนะนำ',
+                  sublabel: 'ไลฟ์สไตล์ต่างกันสิ้นเชิง',
+                  desc: 'แทบไม่มีจุดร่วมในความสนใจเลย ไม่แนะนำให้ร่วมทริปกัน',
+                };
+
+              const circumference = 2 * Math.PI * 20;
+              const dashOffset = circumference - (score / 100) * circumference;
+
+              return (
+                <div key={trip.id} className="flex flex-col gap-3">
+                  {/* Match Score Card */}
+                  <div className={`flex items-center gap-4 px-4 py-3 rounded-2xl border-2 ${tier.bg}`}>
+                    {/* Circular ring */}
+                    <div className="relative w-14 h-14 flex-shrink-0">
+                      <svg className="w-14 h-14 -rotate-90" viewBox="0 0 48 48">
+                        <circle cx="24" cy="24" r="20" fill="none" stroke="#e5e7eb" strokeWidth="4" />
+                        <circle
+                          cx="24" cy="24" r="20" fill="none"
+                          stroke={tier.color} strokeWidth="4"
+                          strokeDasharray={circumference}
+                          strokeDashoffset={dashOffset}
+                          strokeLinecap="round"
+                          style={{ transition: 'stroke-dashoffset 0.6s ease' }}
+                        />
+                      </svg>
+                      <span className={`absolute inset-0 flex items-center justify-center text-sm font-black ${tier.text}`}>
+                        {score}%
+                      </span>
+                    </div>
+
+                    {/* Text info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <p className={`text-base font-black ${tier.text} leading-tight`}>{tier.label}</p>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/70 ${tier.text} border border-current/20`}>
+                          {tier.sublabel}
+                        </span>
+                      </div>
+                      <p className={`text-[11px] leading-snug ${tier.text} opacity-80`}>{tier.desc}</p>
+                      {/* Progress bar */}
+                      <div className="mt-2 w-full h-1.5 bg-white/70 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{ width: `${score}%`, backgroundColor: tier.color }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Trip Card */}
+                  <TripCard trip={trip as any} />
                 </div>
-                {/* Reusing TripCard component but mapped to MatchTrip interface */}
-                <TripCard trip={trip as any} />
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="text-center py-20 bg-gray-50 rounded-3xl border border-dashed border-gray-200">

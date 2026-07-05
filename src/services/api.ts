@@ -289,7 +289,7 @@ export const messagesAPI = {
 
 export const userAPI = {
     getProfile: () => authFetch(`${API_BASE_URL}/users/profile`),
-    updateProfile: (data: { name?: string; password?: string; interests?: string[] }) => authFetch(`${API_BASE_URL}/users/profile`, {
+    updateProfile: (data: { name?: string; password?: string; interests?: string[]; travelStyle?: any }) => authFetch(`${API_BASE_URL}/users/profile`, {
         method: 'PUT',
         body: JSON.stringify(data),
     }),

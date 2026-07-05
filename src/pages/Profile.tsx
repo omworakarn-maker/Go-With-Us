@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { TripCard } from '../components/TripCard';
 import { useAuth } from '../contexts/AuthContext';
 import { userAPI } from '../services/api';
 import { Trip } from '../types';
 import { TRIP_CATEGORIES } from '../constants/categories';
 import Loader from '../components/Loader';
-import { TravelStyleQuizModal } from '../components/TravelStyleQuizModal';
 
 interface ExtendedUser {
     id: string;
@@ -34,10 +34,10 @@ interface ExtendedUser {
 
 const Profile: React.FC = () => {
     const { logout, refreshUser } = useAuth();
+    const navigate = useNavigate();
     const [profile, setProfile] = useState<ExtendedUser | null>(null);
     const [loading, setLoading] = useState(true);
     const [isEditing, setIsEditing] = useState(false);
-    const [showQuiz, setShowQuiz] = useState(false);
 
     // Edit Form States
     const [newName, setNewName] = useState('');
@@ -422,7 +422,7 @@ const Profile: React.FC = () => {
 
                                     <button
                                         type="button"
-                                        onClick={() => setShowQuiz(true)}
+                                        onClick={() => navigate('/questionnaire')}
                                         className="w-full py-3 mb-4 bg-black text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 hover:bg-gray-800 transition-all"
                                     >
                                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -435,12 +435,44 @@ const Profile: React.FC = () => {
                                     {profile.travelStyle && (
                                         <div className="flex flex-wrap gap-2 justify-center">
                                             {Object.entries(profile.travelStyle).map(([key, value]) => {
-                                                if (key === 'interests') return null; // Skip interests array here
-                                                const label = typeof value === 'string' ? value : '';
+                                                if (key === 'interests') return null;
+
+                                                const keyLabels: { [key: string]: string } = {
+                                                    budget: 'งบประมาณ',
+                                                    activityStyle: 'สไตล์กิจกรรม',
+                                                    pace: 'ความเร็วทริป',
+                                                    adventure: 'แอดเวนเจอร์',
+                                                    food: 'เน้นกิน',
+                                                    social: 'ปาร์ตี้/สังคม',
+                                                    photography: 'ถ่ายรูป'
+                                                };
+                                                const timeLabels: { [key: string]: string } = {
+                                                    morning: 'เช้า',
+                                                    noon:    'กลางวัน',
+                                                    evening: 'เย็น',
+                                                    night:   'มืด/ราตรี',
+                                                };
+
+                                                // timeOfDay stored as string[]
+                                                if (key === 'timeOfDay' && Array.isArray(value)) {
+                                                    return (value as string[]).map(slot => (
+                                                        <span key={`time-${slot}`} className="px-3 py-1 bg-black text-white text-[10px] font-bold rounded-full uppercase tracking-wider border border-white shadow-sm">
+                                                            {timeLabels[slot] || slot}
+                                                        </span>
+                                                    ));
+                                                }
+
+                                                let label = '';
+                                                if (typeof value === 'number') {
+                                                    const thaiKey = keyLabels[key] || key;
+                                                    label = `${thaiKey}: ${value}/10`;
+                                                } else if (typeof value === 'string') {
+                                                    label = value.replace('_', ' ');
+                                                }
                                                 if (!label) return null;
                                                 return (
                                                     <span key={key} className="px-3 py-1 bg-black text-white text-[10px] font-bold rounded-full uppercase tracking-wider border border-white shadow-sm">
-                                                        {label.replace('_', ' ')}
+                                                        {label}
                                                     </span>
                                                 );
                                             })}
@@ -617,15 +649,6 @@ const Profile: React.FC = () => {
             </div>
 
 
-            <TravelStyleQuizModal
-                isOpen={showQuiz}
-                onClose={() => setShowQuiz(false)}
-                initialData={profile?.travelStyle}
-                onSave={async (newStyle) => {
-                    await fetchProfile(); // Refresh profile to show new tags
-                    setShowQuiz(false);
-                }}
-            />
         </div >
     );
 };

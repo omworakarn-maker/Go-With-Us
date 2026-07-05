@@ -68,12 +68,12 @@ const MobileBottomNav = () => {
 
     return (
         <div
-            className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 pt-2 px-6 z-[1000] md:hidden shadow-[0_-5px_20px_rgba(0,0,0,0.03)]"
+            className="fixed bottom-0 left-0 right-0 px-4 z-[1000] md:hidden mb-3"
             style={{
                 paddingBottom: 'env(safe-area-inset-bottom)'
             }}
         >
-            <div className="grid grid-cols-5 items-end h-full pb-2">
+            <div className="bg-white/85 backdrop-blur-2xl shadow-[0_10px_40px_rgb(0,0,0,0.1)] border border-white/50 rounded-[2rem] grid grid-cols-5 items-center h-[72px] px-2">
                 {menus.map((menu, index) => {
                     if (menu.isCreate) {
                         return (
@@ -83,7 +83,7 @@ const MobileBottomNav = () => {
                                         if (!isAuthenticated) navigate('/login');
                                         else openCreateModal();
                                     }}
-                                    className="absolute -top-6 w-14 h-14 bg-black rounded-full flex items-center justify-center shadow-lg shadow-black/30 hover:scale-105 transition-transform active:scale-95 border-4 border-white"
+                                    className="absolute -top-7 w-14 h-14 bg-gradient-to-tr from-indigo-600 to-purple-600 rounded-full flex items-center justify-center shadow-xl shadow-indigo-600/30 hover:scale-105 transition-transform active:scale-95 border-[3px] border-white"
                                 >
                                     <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4" />

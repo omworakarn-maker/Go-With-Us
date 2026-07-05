@@ -4,7 +4,6 @@ import { Trip } from './types';
 import { TripCard } from './components/TripCard';
 import { TripDetails } from './components/TripDetails';
 import Navbar from './components/Navbar';
-import MobileHeader from './components/MobileHeader';
 import { tripsAPI, userAPI } from './services/api';
 import { useAuth } from './contexts/AuthContext';
 import { InterestModal } from './components/InterestModal';
@@ -115,8 +114,6 @@ const App = () => {
 				}}
 			/>
 
-			{/* Mobile Header (New Component) */}
-			<MobileHeader />
 
 			<main className="flex-1 w-full max-w-6xl mx-auto md:px-6 md:pt-8 overflow-x-hidden">
 				{!selectedTrip ? (

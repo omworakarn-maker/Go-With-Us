@@ -10,6 +10,7 @@ import Explore from '../pages/Explore';
 import CreateActivity from '../pages/CreateActivity';
 import Login from '../pages/Login';
 import Register from '../pages/Register';
+import Questionnaire from '../pages/Questionnaire';
 import Profile from '../pages/Profile';
 import PublicProfile from '../pages/PublicProfile';
 import Chat from '../pages/Chat';
@@ -83,7 +84,7 @@ const AnimatedRoutes: React.FC = () => {
     const showNavbar = ['/', '/explore', '/activities', '/find-buddy', '/mytrips', '/profile', '/chat', '/search'].includes(location.pathname) || location.pathname.startsWith('/trip/');
 
     // Determine if we should show Bottom Nav (Mobile) - Show on ALL pages except Auth pages & Chat
-    const hideBottomNav = ['/login', '/register', '/intro', '/landing'];
+    const hideBottomNav = ['/login', '/register', '/intro', '/landing', '/questionnaire'];
     const isChatPage = location.pathname.startsWith('/chat');
     const showBottomNav = !hideBottomNav.includes(location.pathname) && !isChatPage;
 
@@ -92,9 +93,6 @@ const AnimatedRoutes: React.FC = () => {
             <CreateTripModal />
             {/* Desktop Navbar - Hidden on mobile via CSS */}
             {showNavbar && <Navbar />} {/* Fixed Navbar outside AnimatePresence */}
-
-            {/* Mobile Header - Hidden on desktop via CSS */}
-            {/* <MobileHeader /> */}
 
             <AnimatePresence mode="wait" custom={direction.current}>
                 {/* @ts-ignore */}
@@ -125,6 +123,14 @@ const AnimatedRoutes: React.FC = () => {
                         path="/register"
                         element={
                             <Register />
+                        }
+                    />
+                    <Route
+                        path="/questionnaire"
+                        element={
+                            <ProtectedRoute>
+                                <Questionnaire />
+                            </ProtectedRoute>
                         }
                     />
                     <Route
@@ -268,7 +274,7 @@ const AnimatedRoutes: React.FC = () => {
             </AnimatePresence>
 
             {/* Mobile Bottom Navigation */}
-            {/* <MobileBottomNav /> */}
+            {showBottomNav && <MobileBottomNav />}
         </>
     );
 };

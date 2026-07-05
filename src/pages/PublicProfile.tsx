@@ -251,11 +251,43 @@ const PublicProfile: React.FC = () => {
                                     <div className="flex flex-wrap justify-center gap-2">
                                         {Object.entries(profile.travelStyle).map(([key, value]) => {
                                             if (key === 'interests') return null;
-                                            const label = typeof value === 'string' ? value : '';
+
+                                            const keyLabels: { [key: string]: string } = {
+                                                budget: 'งบประมาณ',
+                                                activityStyle: 'สไตล์กิจกรรม',
+                                                pace: 'ความเร็วทริป',
+                                                adventure: 'แอดเวนเจอร์',
+                                                food: 'เน้นกิน',
+                                                social: 'ปาร์ตี้/สังคม',
+                                                photography: 'ถ่ายรูป'
+                                            };
+                                            const timeLabels: { [key: string]: string } = {
+                                                morning: 'เช้า',
+                                                noon:    'กลางวัน',
+                                                evening: 'เย็น',
+                                                night:   'มืด/ราตรี',
+                                            };
+
+                                            // timeOfDay is stored as string[]
+                                            if (key === 'timeOfDay' && Array.isArray(value)) {
+                                                return (value as string[]).map(slot => (
+                                                    <span key={`time-${slot}`} className="px-3 py-1 bg-black text-white text-[10px] font-bold rounded-full uppercase tracking-wider">
+                                                        {timeLabels[slot] || slot}
+                                                    </span>
+                                                ));
+                                            }
+
+                                            let label = '';
+                                            if (typeof value === 'number') {
+                                                const thaiKey = keyLabels[key] || key;
+                                                label = `${thaiKey}: ${value}/10`;
+                                            } else if (typeof value === 'string') {
+                                                label = value.replace('_', ' ');
+                                            }
                                             if (!label) return null;
                                             return (
                                                 <span key={key} className="px-3 py-1 bg-black text-white text-[10px] font-bold rounded-full uppercase tracking-wider">
-                                                    {label.replace('_', ' ')}
+                                                    {label}
                                                 </span>
                                             );
                                         })}
