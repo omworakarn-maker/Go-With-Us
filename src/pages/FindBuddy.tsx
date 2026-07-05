@@ -77,14 +77,14 @@ export const FindBuddy: React.FC = () => {
                             <div className="flex-1 min-w-0">
                                 <h3 className="font-bold text-lg text-gray-900 truncate">{user.name}</h3>
                                 <div className="flex flex-wrap gap-1 mt-1">
-                                    {user.interests.slice(0, 3).map((interest, i) => (
+                                    {(user.interests || []).slice(0, 3).map((interest, i) => (
                                         <span key={i} className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md">
                                             {interest}
                                         </span>
                                     ))}
-                                    {user.interests.length > 3 && (
+                                    {(user.interests || []).length > 3 && (
                                         <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md">
-                                            +{user.interests.length - 3}
+                                            +{(user.interests || []).length - 3}
                                         </span>
                                     )}
                                 </div>

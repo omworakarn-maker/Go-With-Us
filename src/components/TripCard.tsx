@@ -54,94 +54,83 @@ export const TripCard: React.FC<TripCardProps> = ({ trip, onClick }) => {
   // Check if it's "Today" (ongoing)
   const isToday = now >= start && now <= end;
 
-  const handleClick = (e: React.MouseEvent) => {
-    if (onClick) {
-      e.preventDefault();
-      onClick(trip);
-    }
+  const handleClick = () => {
+    if (onClick) onClick(trip);
   };
 
   return (
     <Link
       to={`/trip/${trip.id}`}
       onClick={handleClick}
-      className="group bg-white border border-gray-100 md:border-gray-200 rounded-2xl md:rounded-3xl p-3 md:p-6 transition-all duration-500 cursor-pointer flex flex-row gap-3 md:gap-8 items-stretch hover:border-black hover:shadow-xl shadow-sm relative overflow-hidden h-full"
+      className="group bg-white border border-gray-100 md:border-gray-200 rounded-2xl md:rounded-3xl transition-all duration-500 cursor-pointer flex flex-col items-stretch hover:border-black hover:shadow-xl shadow-sm relative overflow-hidden h-full aspect-square"
     >
-      <div className="w-28 h-32 md:w-48 md:h-48 rounded-xl md:rounded-2xl overflow-hidden bg-gray-50 shrink-0 relative">
+      <div className="w-full h-1/2 overflow-hidden bg-gray-50 shrink-0 relative">
         <img
           src={trip.imageUrl || defaultTripImage}
           className={`w-full h-full object-cover transition-all duration-700 group-hover:scale-110 ${isEnded ? 'grayscale opacity-70' : ''}`}
           alt={trip.title}
         />
 
-        {/* Match Score Badge - On Image (Top Left) */}
+        {/* Match Score Badge */}
         {(() => {
-          // Use real matchScore if available, otherwise generate a consistent fallback score based on trip ID
           const score = trip.matchScore !== undefined 
             ? trip.matchScore 
-            : 40 + (Math.abs(trip.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % 61); // Random-ish between 40-100
+            : 40 + (Math.abs(trip.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % 61);
 
           const tier =
-            score >= 76 ? { bg: 'bg-green-50', border: 'border-green-200', text: 'text-green-700' } :
-            score >= 51 ? { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700' } :
-            score >= 26 ? { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700' } :
-                          { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-700' };
+            score >= 76 ? { bg: 'bg-green-50', text: 'text-green-700' } :
+            score >= 51 ? { bg: 'bg-blue-50', text: 'text-blue-700' } :
+            score >= 26 ? { bg: 'bg-amber-50', text: 'text-amber-700' } :
+                          { bg: 'bg-red-50', text: 'text-red-700' };
 
           return (
-            <div className={`absolute top-2 left-2 ${tier.bg} ${tier.border} ${tier.text} px-2 py-1 rounded-lg text-[10px] font-black shadow-sm border flex items-center gap-1 z-10 backdrop-blur-sm bg-opacity-90`}>
+            <div className={`absolute top-1.5 left-1.5 md:top-2 md:left-2 ${tier.bg} ${tier.text} px-1.5 py-0.5 md:px-2 md:py-1 rounded-md md:rounded-lg text-[9px] md:text-[10px] font-black shadow-sm border border-white/50 flex items-center z-10 backdrop-blur-sm bg-opacity-90`}>
               <span>{score}% Match</span>
             </div>
           );
         })()}
 
-        {/* Category Badge - On Image (Top Right) */}
+        {/* Category Badge */}
         {trip.category && (
-          <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg text-[10px] font-bold shadow-sm border border-white/50 flex items-center gap-1 z-10 text-black">
+          <div className="absolute top-1.5 right-1.5 md:top-2 md:right-2 bg-white/90 backdrop-blur-sm px-1.5 py-0.5 md:px-2 md:py-1 rounded-md md:rounded-lg text-[9px] md:text-[10px] font-bold shadow-sm border border-white/50 flex items-center gap-1 z-10 text-black">
             <span>{categoryData?.emoji || '✨'}</span>
-            <span>{trip.category}</span>
+            <span className="hidden md:inline">{trip.category}</span>
           </div>
         )}
       </div>
 
-      <div className="flex-1 flex flex-col pt-0">
-        <div className="flex items-center justify-between mb-2 md:mb-3">
-          <span className={`text-[9px] md:text-[10px] font-bold uppercase tracking-widest ${isEnded ? 'text-gray-400' : 'text-indigo-500'}`}>
+      <div className="flex flex-col flex-1 p-2.5 md:p-4 h-1/2">
+        <div className="flex items-center justify-between mb-1 md:mb-2">
+          <span className={`text-[8px] md:text-[10px] font-bold uppercase tracking-widest ${isEnded ? 'text-gray-400' : 'text-indigo-500'}`}>
             {formatDateThai(trip.startDate)}
           </span>
 
-          {/* Status Text Right Aligned */}
           {!isEnded ? (
             isToday ? (
-              <span className="text-[10px] font-bold text-indigo-600">วันนี้!</span>
+              <span className="text-[8px] md:text-[10px] font-bold text-indigo-600">วันนี้!</span>
             ) : daysLeft > 0 && daysLeft <= 30 ? (
-              <span className="text-[10px] font-bold text-gray-400">เหลืออีก {daysLeft} วัน</span>
+              <span className="text-[8px] md:text-[10px] font-bold text-gray-400">{daysLeft} วัน</span>
             ) : null
           ) : (
-            <span className="text-[10px] font-bold text-gray-300">สิ้นสุดแล้ว</span>
+            <span className="text-[8px] md:text-[10px] font-bold text-gray-300">สิ้นสุด</span>
           )}
         </div>
 
-        <h3 className={`text-base md:text-2xl font-black leading-tight tracking-tighter mb-1 md:mb-2 ${isEnded ? 'text-gray-400 line-through decoration-2' : 'text-black'}`}>
+        <h3 className={`text-sm md:text-xl font-black leading-tight tracking-tighter mb-1 ${isEnded ? 'text-gray-400 line-through decoration-2' : 'text-black'} line-clamp-2`}>
           {trip.title}
         </h3>
 
-        <p className="text-gray-400 font-bold text-[10px] md:text-sm uppercase tracking-widest mb-2 md:mb-4">
+        <p className="text-gray-400 font-bold text-[9px] md:text-xs uppercase tracking-widest mb-2 line-clamp-1">
           {trip.destination}
         </p>
 
-        <p className="hidden md:block text-gray-500 leading-relaxed font-medium line-clamp-2 max-w-xl text-sm mb-4">
-          {trip.description}
-        </p>
-
-
-
-        <div className="mt-auto flex items-center justify-between pt-2 md:pt-4 border-t border-gray-50 w-full">
-          <div className="flex items-center gap-2 md:gap-3">
+        <div className="mt-auto flex items-center justify-between pt-2 border-t border-gray-50 w-full">
+          <div className="flex items-center gap-1.5 md:gap-3">
             {participantCount > 0 ? (
               <>
-                <div className="flex -space-x-3">
-                  {displayParticipants.map((participant, index) => (
-                    <div key={participant.id} className="w-8 h-8 rounded-full border-2 border-white bg-gray-100 overflow-hidden">
+                <div className="flex -space-x-2 md:-space-x-3">
+                  {displayParticipants.slice(0, 2).map((participant) => (
+                    <div key={participant.id} className="w-5 h-5 md:w-8 md:h-8 rounded-full border border-white md:border-2 bg-gray-100 overflow-hidden">
                       <img
                         src={participant.user?.profileImage || `https://api.dicebear.com/7.x/avataaars/svg?seed=${participant.id}`}
                         alt={participant.name}
@@ -150,20 +139,16 @@ export const TripCard: React.FC<TripCardProps> = ({ trip, onClick }) => {
                     </div>
                   ))}
                 </div>
-                <span className="text-[10px] md:text-[11px] font-bold text-black whitespace-nowrap">
-                  {participantCount} คนเข้าร่วม
+                <span className="text-[9px] md:text-[11px] font-bold text-black whitespace-nowrap">
+                  {participantCount} คน
                 </span>
               </>
             ) : (
-              <span className="text-[11px] font-medium text-gray-400 whitespace-nowrap">
-                ยังไม่มีคนเข้าร่วม
+              <span className="text-[9px] md:text-[11px] font-medium text-gray-400 whitespace-nowrap">
+                0 คน
               </span>
             )}
           </div>
-
-          <span className="flex items-center gap-1 md:gap-2 text-[10px] md:text-[11px] font-bold text-black uppercase tracking-widest group-hover:translate-x-2 transition-all whitespace-nowrap ml-4">
-            ดูรายละเอียด <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-          </span>
         </div>
       </div>
     </Link>

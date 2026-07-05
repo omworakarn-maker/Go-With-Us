@@ -606,7 +606,7 @@ const Profile: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="animate-in slide-in-from-bottom-4 duration-700 delay-100 flex flex-col gap-6">
+                    <div className="animate-in slide-in-from-bottom-4 duration-700 delay-100 grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-8">
                         {activeTab === 'my-trips' ? (
                             <>
                                 {profile.createdTrips.length > 0 ? (

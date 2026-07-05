@@ -1,53 +1,76 @@
+import prisma from '../utils/prismaClient.js';
 
-// Helper to calculate exact user-to-user compatibility percentage (based on the 4 questionnaire pillars)
+// Helper to normalize legacy and new travel styles
+const normalizeTravelStyle = (style) => {
+    if (!style || typeof style !== 'object') return null;
+    
+    let budget = null;
+    if (style.budget !== undefined) {
+        if (typeof style.budget === 'number') budget = style.budget;
+        else if (style.budget === 'budget') budget = 2;
+        else if (style.budget === 'moderate') budget = 5;
+        else if (style.budget === 'luxury') budget = 8;
+        else if (!isNaN(Number(style.budget))) budget = Number(style.budget);
+    }
+    
+    let activityStyle = null;
+    if (style.activityStyle !== undefined) {
+        if (typeof style.activityStyle === 'number') activityStyle = style.activityStyle;
+        else if (!isNaN(Number(style.activityStyle))) activityStyle = Number(style.activityStyle);
+    } else if (style.pace !== undefined) {
+        if (style.pace === 'relaxed') activityStyle = 2;
+        else if (style.pace === 'moderate') activityStyle = 5;
+        else if (style.pace === 'fast') activityStyle = 8;
+    }
+    
+    let timeOfDay = [];
+    if (Array.isArray(style.timeOfDay)) {
+        timeOfDay = style.timeOfDay;
+    }
+    
+    return { budget, activityStyle, timeOfDay };
+};
+
+// Helper to calculate exact user-to-user compatibility percentage
 const calculateDetailedCompatibility = (userA, userB) => {
-    const hasStyleA = userA.travelStyle && typeof userA.travelStyle === 'object';
-    const hasStyleB = userB.travelStyle && typeof userB.travelStyle === 'object';
+    const styleA = normalizeTravelStyle(userA.travelStyle);
+    const styleB = normalizeTravelStyle(userB.travelStyle);
 
-    // 1. Budget Level (25%)
-    let budgetScore = 0.5; // neutral fallback
-    if (hasStyleA && hasStyleB) {
-        const ratingA = Number(userA.travelStyle.budget);
-        const ratingB = Number(userB.travelStyle.budget);
-        if (!isNaN(ratingA) && !isNaN(ratingB)) {
-            budgetScore = 1.0 - (Math.abs(ratingA - ratingB) / 9.0);
-        }
+    let scores = [];
+    
+    // 1. Budget Level
+    if (styleA && styleA.budget !== null && styleB && styleB.budget !== null) {
+        const score = 1.0 - (Math.abs(styleA.budget - styleB.budget) / 9.0);
+        scores.push(score);
     }
 
-    // 2. Activity Style (25%)
-    let activityScore = 0.5; // neutral fallback
-    if (hasStyleA && hasStyleB) {
-        const ratingA = Number(userA.travelStyle.activityStyle);
-        const ratingB = Number(userB.travelStyle.activityStyle);
-        if (!isNaN(ratingA) && !isNaN(ratingB)) {
-            activityScore = 1.0 - (Math.abs(ratingA - ratingB) / 9.0);
-        }
+    // 2. Activity Style
+    if (styleA && styleA.activityStyle !== null && styleB && styleB.activityStyle !== null) {
+        const score = 1.0 - (Math.abs(styleA.activityStyle - styleB.activityStyle) / 9.0);
+        scores.push(score);
     }
 
-    // 3. Time of Day (25%)
-    let timeScore = 0.5; // neutral fallback
-    const timeA = userA.travelStyle?.timeOfDay;
-    const timeB = userB.travelStyle?.timeOfDay;
-    const arrayA = Array.isArray(timeA) ? timeA : [];
-    const arrayB = Array.isArray(timeB) ? timeB : [];
-    if (arrayA.length > 0 || arrayB.length > 0) {
-        const intersect = arrayA.filter(x => arrayB.includes(x)).length;
-        const union = new Set([...arrayA, ...arrayB]).size;
-        timeScore = union > 0 ? (intersect / union) : 1.0;
+    // 3. Time of Day
+    if (styleA && styleA.timeOfDay && styleA.timeOfDay.length > 0 && styleB && styleB.timeOfDay && styleB.timeOfDay.length > 0) {
+        const intersect = styleA.timeOfDay.filter(x => styleB.timeOfDay.includes(x)).length;
+        const union = new Set([...styleA.timeOfDay, ...styleB.timeOfDay]).size;
+        const score = union > 0 ? (intersect / union) : 1.0;
+        scores.push(score);
     }
 
-    // 4. Interests (25%)
-    let interestScore = 0.5; // neutral fallback
+    // 4. Interests (Always evaluated if at least one has it)
     const intA = Array.isArray(userA.interests) ? userA.interests : [];
     const intB = Array.isArray(userB.interests) ? userB.interests : [];
     if (intA.length > 0 || intB.length > 0) {
         const intersect = intA.filter(x => intB.includes(x)).length;
         const union = new Set([...intA, ...intB]).size;
-        interestScore = union > 0 ? (intersect / union) : 1.0;
+        const score = union > 0 ? (intersect / union) : 1.0;
+        scores.push(score);
     }
 
-    // Weighted average
-    const finalScore = (budgetScore * 0.25) + (activityScore * 0.25) + (timeScore * 0.25) + (interestScore * 0.25);
+    if (scores.length === 0) return 50; // Fallback if no matching fields are found
+
+    const finalScore = scores.reduce((sum, s) => sum + s, 0) / scores.length;
     return Math.round(finalScore * 100);
 };
 
@@ -63,47 +86,45 @@ const mapTripBudgetToRating = (budgetVal) => {
 
 // Helper to calculate exact user-to-trip compatibility percentage
 const calculateTripCompatibility = (user, trip) => {
-    // 1. Budget (25%) - User budget rating vs Trip mapped budget rating
-    let budgetScore = 0.5;
-    const userBudget = user.travelStyle?.budget;
-    if (userBudget !== undefined) {
-        const userRating = Number(userBudget) || 5;
+    const styleU = normalizeTravelStyle(user.travelStyle);
+    const styleC = normalizeTravelStyle(trip.creator && trip.creator.travelStyle ? trip.creator.travelStyle : null);
+
+    let scores = [];
+
+    // 1. Budget
+    if (styleU && styleU.budget !== null) {
         const tripRating = mapTripBudgetToRating(trip.budget);
-        budgetScore = 1.0 - (Math.abs(userRating - tripRating) / 9.0);
+        const score = 1.0 - (Math.abs(styleU.budget - tripRating) / 9.0);
+        scores.push(score);
     }
 
-    // 2. Activity Style (25%) - User vs Creator
-    let activityScore = 0.5;
-    const userActivity = user.travelStyle?.activityStyle;
-    const creatorActivity = trip.creator?.travelStyle?.activityStyle;
-    if (userActivity !== undefined && creatorActivity !== undefined) {
-        const ratingU = Number(userActivity) || 5;
-        const ratingC = Number(creatorActivity) || 5;
-        activityScore = 1.0 - (Math.abs(ratingU - ratingC) / 9.0);
+    // 2. Activity Style
+    if (styleU && styleU.activityStyle !== null && styleC && styleC.activityStyle !== null) {
+        const score = 1.0 - (Math.abs(styleU.activityStyle - styleC.activityStyle) / 9.0);
+        scores.push(score);
     }
 
-    // 3. Time of Day (25%) - User vs Creator
-    let timeScore = 0.5;
-    const userTime = user.travelStyle?.timeOfDay;
-    const creatorTime = trip.creator?.travelStyle?.timeOfDay;
-    const arrayU = Array.isArray(userTime) ? userTime : [];
-    const arrayC = Array.isArray(creatorTime) ? creatorTime : [];
-    if (arrayU.length > 0 || arrayC.length > 0) {
-        const intersect = arrayU.filter(x => arrayC.includes(x)).length;
-        const union = new Set([...arrayU, ...arrayC]).size;
-        timeScore = union > 0 ? (intersect / union) : 1.0;
+    // 3. Time of Day
+    if (styleU && styleU.timeOfDay && styleU.timeOfDay.length > 0 && styleC && styleC.timeOfDay && styleC.timeOfDay.length > 0) {
+        const intersect = styleU.timeOfDay.filter(x => styleC.timeOfDay.includes(x)).length;
+        const union = new Set([...styleU.timeOfDay, ...styleC.timeOfDay]).size;
+        const score = union > 0 ? (intersect / union) : 1.0;
+        scores.push(score);
     }
 
-    // 4. Category Match (25%) - User interests vs Trip category
-    let categoryScore = 0.0;
+    // 4. Category
     const userInterests = Array.isArray(user.interests) ? user.interests : [];
-    if (trip.category && userInterests.includes(trip.category)) {
-        categoryScore = 1.0;
-    } else if (userInterests.length === 0) {
-        categoryScore = 0.5; // neutral
+    if (trip.category) {
+        if (userInterests.includes(trip.category)) {
+            scores.push(1.0);
+        } else if (userInterests.length > 0) {
+            scores.push(0.0);
+        }
     }
 
-    const finalScore = (budgetScore * 0.25) + (activityScore * 0.25) + (timeScore * 0.25) + (categoryScore * 0.25);
+    if (scores.length === 0) return 50;
+
+    const finalScore = scores.reduce((sum, s) => sum + s, 0) / scores.length;
     return Math.round(finalScore * 100);
 };
 
