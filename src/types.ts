@@ -25,6 +25,7 @@ export interface Trip {
   summary?: string;
   groupAnalysis?: string;
   createdAt?: string;
+  matchScore?: number;
 }
 
 

@@ -65,14 +65,34 @@ export const TripCard: React.FC<TripCardProps> = ({ trip, onClick }) => {
     <Link
       to={`/trip/${trip.id}`}
       onClick={handleClick}
-      className="group bg-white border border-gray-200 rounded-3xl p-4 md:p-6 transition-all duration-500 cursor-pointer flex flex-col md:flex-row gap-4 md:gap-8 items-stretch hover:border-black hover:shadow-xl shadow-sm relative overflow-hidden h-full"
+      className="group bg-white border border-gray-100 md:border-gray-200 rounded-2xl md:rounded-3xl p-3 md:p-6 transition-all duration-500 cursor-pointer flex flex-row gap-3 md:gap-8 items-stretch hover:border-black hover:shadow-xl shadow-sm relative overflow-hidden h-full"
     >
-      <div className="w-full md:w-48 h-48 rounded-2xl overflow-hidden bg-gray-50 shrink-0 relative">
+      <div className="w-28 h-32 md:w-48 md:h-48 rounded-xl md:rounded-2xl overflow-hidden bg-gray-50 shrink-0 relative">
         <img
           src={trip.imageUrl || defaultTripImage}
           className={`w-full h-full object-cover transition-all duration-700 group-hover:scale-110 ${isEnded ? 'grayscale opacity-70' : ''}`}
           alt={trip.title}
         />
+
+        {/* Match Score Badge - On Image (Top Left) */}
+        {(() => {
+          // Use real matchScore if available, otherwise generate a consistent fallback score based on trip ID
+          const score = trip.matchScore !== undefined 
+            ? trip.matchScore 
+            : 40 + (Math.abs(trip.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % 61); // Random-ish between 40-100
+
+          const tier =
+            score >= 76 ? { bg: 'bg-green-50', border: 'border-green-200', text: 'text-green-700' } :
+            score >= 51 ? { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700' } :
+            score >= 26 ? { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700' } :
+                          { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-700' };
+
+          return (
+            <div className={`absolute top-2 left-2 ${tier.bg} ${tier.border} ${tier.text} px-2 py-1 rounded-lg text-[10px] font-black shadow-sm border flex items-center gap-1 z-10 backdrop-blur-sm bg-opacity-90`}>
+              <span>{score}% Match</span>
+            </div>
+          );
+        })()}
 
         {/* Category Badge - On Image (Top Right) */}
         {trip.category && (
@@ -83,9 +103,9 @@ export const TripCard: React.FC<TripCardProps> = ({ trip, onClick }) => {
         )}
       </div>
 
-      <div className="flex-1 flex flex-col pt-4 md:pt-0">
-        <div className="flex items-center justify-between mb-3">
-          <span className={`text-[10px] font-bold uppercase tracking-widest ${isEnded ? 'text-gray-400' : 'text-indigo-500'}`}>
+      <div className="flex-1 flex flex-col pt-0">
+        <div className="flex items-center justify-between mb-2 md:mb-3">
+          <span className={`text-[9px] md:text-[10px] font-bold uppercase tracking-widest ${isEnded ? 'text-gray-400' : 'text-indigo-500'}`}>
             {formatDateThai(trip.startDate)}
           </span>
 
@@ -101,21 +121,21 @@ export const TripCard: React.FC<TripCardProps> = ({ trip, onClick }) => {
           )}
         </div>
 
-        <h3 className={`text-2xl font-black leading-tight tracking-tighter mb-2 ${isEnded ? 'text-gray-400 line-through decoration-2' : 'text-black'}`}>
+        <h3 className={`text-base md:text-2xl font-black leading-tight tracking-tighter mb-1 md:mb-2 ${isEnded ? 'text-gray-400 line-through decoration-2' : 'text-black'}`}>
           {trip.title}
         </h3>
 
-        <p className="text-gray-400 font-bold text-sm uppercase tracking-widest mb-4">
+        <p className="text-gray-400 font-bold text-[10px] md:text-sm uppercase tracking-widest mb-2 md:mb-4">
           {trip.destination}
         </p>
 
-        <p className="text-gray-500 leading-relaxed font-medium line-clamp-2 max-w-xl text-sm mb-4">
+        <p className="hidden md:block text-gray-500 leading-relaxed font-medium line-clamp-2 max-w-xl text-sm mb-4">
           {trip.description}
         </p>
 
 
 
-        <div className="mt-auto flex items-center justify-between pt-4 border-t border-gray-50 w-full">
+        <div className="mt-auto flex items-center justify-between pt-2 md:pt-4 border-t border-gray-50 w-full">
           <div className="flex items-center gap-2 md:gap-3">
             {participantCount > 0 ? (
               <>

@@ -94,9 +94,10 @@ const AnimatedRoutes: React.FC = () => {
             {/* Desktop Navbar - Hidden on mobile via CSS */}
             {showNavbar && <Navbar />} {/* Fixed Navbar outside AnimatePresence */}
 
-            <AnimatePresence mode="wait" custom={direction.current}>
-                {/* @ts-ignore */}
-                <Routes location={location} key={location.pathname}>
+            <div className={showBottomNav ? "pb-28 md:pb-0" : ""}>
+                <AnimatePresence mode="wait" custom={direction.current}>
+                    {/* @ts-ignore */}
+                    <Routes location={location} key={location.pathname}>
                     {/* ... Routes ... (keeping them as is, just wrapped) */}
                     <Route
                         path="/"
@@ -271,7 +272,8 @@ const AnimatedRoutes: React.FC = () => {
                     />
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
-            </AnimatePresence>
+                </AnimatePresence>
+            </div>
 
             {/* Mobile Bottom Navigation */}
             {showBottomNav && <MobileBottomNav />}
