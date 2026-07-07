@@ -75,7 +75,6 @@ export const getAllTrips = async (req, res, next) => {
                         email: true,
                         role: true,
                         profileImage: true,
-                        travelStyle: true,
                     },
                 },
                 participants: {
@@ -143,7 +142,6 @@ export const getTripById = async (req, res, next) => {
                         email: true,
                         role: true,
                         profileImage: true,
-                        travelStyle: true,
                     },
                 },
                 participants: {
