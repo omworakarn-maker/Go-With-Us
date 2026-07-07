@@ -90,25 +90,25 @@ export const calculateTripCompatibility = (user, trip) => {
 
     let scores = [];
 
-    // 1. Budget Rating
-    // We use the new budgetRating from the trip, fallback to mapped THB budget if not set
-    const tripBudgetRating = trip.budgetRating != null ? trip.budgetRating : mapTripBudgetToRating(trip.budget);
+    // 1. Budget — always calculate from actual trip budget (THB), not the default budgetRating
+    // mapTripBudgetToRating converts actual THB amount to 1-10 scale
+    const tripBudgetRating = mapTripBudgetToRating(trip.budget);
     if (styleU && styleU.budget !== null) {
         const score = 1.0 - (Math.abs(styleU.budget - tripBudgetRating) / 9.0);
         scores.push(score);
     }
 
-    // 2. Activity Style
-    // We use the new activityStyle from the trip, fallback to creator's style if not set
+    // 2. Activity Style — use trip.activityStyle only if explicitly set (not default 5)
+    // A stored activityStyle of 5 = default, so skip it to avoid false equality
     const styleC = normalizeTravelStyle(trip.creator && trip.creator.travelStyle ? trip.creator.travelStyle : null);
-    const tripPace = trip.activityStyle != null ? trip.activityStyle : (styleC ? styleC.activityStyle : null);
+    const hasExplicitPace = trip.activityStyle != null && trip.activityStyle !== 5;
+    const tripPace = hasExplicitPace ? trip.activityStyle : (styleC ? styleC.activityStyle : null);
     if (styleU && styleU.activityStyle !== null && tripPace !== null) {
         const score = 1.0 - (Math.abs(styleU.activityStyle - tripPace) / 9.0);
         scores.push(score);
     }
 
-    // 3. Time of Day
-    // We use timeOfDay from trip, fallback to creator's time if not set
+    // 3. Time of Day — only use if trip has explicitly set timeOfDay
     const tripTime = (trip.timeOfDay && trip.timeOfDay.length > 0) ? trip.timeOfDay : (styleC ? styleC.timeOfDay : []);
     if (styleU && styleU.timeOfDay && styleU.timeOfDay.length > 0 && tripTime && tripTime.length > 0) {
         const intersect = styleU.timeOfDay.filter(x => tripTime.includes(x)).length;
@@ -117,7 +117,7 @@ export const calculateTripCompatibility = (user, trip) => {
         scores.push(score);
     }
 
-    // 4. Category
+    // 4. Category — check if trip category matches user interests
     const userInterests = Array.isArray(user.interests) ? user.interests : [];
     if (trip.category) {
         if (userInterests.includes(trip.category)) {
@@ -132,6 +132,7 @@ export const calculateTripCompatibility = (user, trip) => {
     const finalScore = scores.reduce((sum, s) => sum + s, 0) / scores.length;
     return Math.round(finalScore * 100);
 };
+
 
 // Match Buddies (Find similar users)
 export const findBuddy = async (req, res) => {
