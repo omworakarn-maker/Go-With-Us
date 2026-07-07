@@ -364,10 +364,11 @@ struct TripDetailView: View {
                 
                 // Factor list
                 VStack(alignment: .leading, spacing: 10) {
-                    compatibilityRow(icon: "banknote", label: "งบประมาณ", color: Color(hex: "#3B82F6"))
-                    compatibilityRow(icon: "figure.walk", label: "ไลฟ์สไตล์การเดินทาง", color: Color(hex: "#8B5CF6"))
-                    compatibilityRow(icon: "tag.fill", label: "ประเภทกิจกรรม", color: Color(hex: "#F59E0B"))
-                    compatibilityRow(icon: "clock.fill", label: "ช่วงเวลาที่ชอบ", color: Color(hex: "#EF4444"))
+                    let bd = trip.matchBreakdown
+                    compatibilityRow(icon: "banknote", label: "งบประมาณ", color: Color(hex: "#3B82F6"), score: bd?.budget)
+                    compatibilityRow(icon: "figure.walk", label: "ไลฟ์สไตล์", color: Color(hex: "#8B5CF6"), score: bd?.activityStyle)
+                    compatibilityRow(icon: "tag.fill", label: "ความชอบ", color: Color(hex: "#F59E0B"), score: bd?.category)
+                    compatibilityRow(icon: "clock.fill", label: "ช่วงเวลา", color: Color(hex: "#EF4444"), score: bd?.timeOfDay)
                 }
             }
             .padding(18)
@@ -383,7 +384,7 @@ struct TripDetailView: View {
     }
     
     @ViewBuilder
-    private func compatibilityRow(icon: String, label: String, color: Color) -> some View {
+    private func compatibilityRow(icon: String, label: String, color: Color, score: Int?) -> some View {
         HStack(spacing: 8) {
             Image(systemName: icon)
                 .font(.system(size: 11, weight: .semibold))
@@ -392,6 +393,18 @@ struct TripDetailView: View {
             Text(label)
                 .font(.system(size: 12, weight: .medium))
                 .foregroundColor(.adaptiveSecondaryText)
+            
+            Spacer(minLength: 8)
+            
+            if let s = score {
+                Text("\(s)%")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(scoreColor(score: s))
+            } else {
+                Text("-")
+                    .font(.system(size: 12))
+                    .foregroundColor(.gray.opacity(0.5))
+            }
         }
     }
     

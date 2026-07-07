@@ -20,6 +20,7 @@ struct Trip: Codable, Identifiable, Hashable {
     let itinerary: [DayPlan]?
     let aiAnalysis: AIAnalysis?
     let matchScore: Int?
+    let matchBreakdown: MatchBreakdown?
     let createdAt: Date?
     let updatedAt: Date?
     
@@ -42,6 +43,7 @@ struct Trip: Codable, Identifiable, Hashable {
         creatorId: String? = nil,
         aiAnalysis: AIAnalysis? = nil,
         matchScore: Int? = nil,
+        matchBreakdown: MatchBreakdown? = nil,
         createdAt: Date? = nil,
         updatedAt: Date? = nil
     ) {
@@ -63,12 +65,13 @@ struct Trip: Codable, Identifiable, Hashable {
         self.creatorId = creatorId ?? creator.id
         self.aiAnalysis = aiAnalysis
         self.matchScore = matchScore
+        self.matchBreakdown = matchBreakdown
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
     
     enum CodingKeys: String, CodingKey {
-        case id, title, destination, description, startDate, endDate, budget, maxParticipants, category, isPublic, imageUrl, gallery, creatorId, creator, participants, itinerary, aiAnalysis, matchScore, createdAt, updatedAt
+        case id, title, destination, description, startDate, endDate, budget, maxParticipants, category, isPublic, imageUrl, gallery, creatorId, creator, participants, itinerary, aiAnalysis, matchScore, matchBreakdown, createdAt, updatedAt
     }
     
     init(from decoder: Decoder) throws {
@@ -91,6 +94,7 @@ struct Trip: Codable, Identifiable, Hashable {
         itinerary = try container.decodeIfPresent([DayPlan].self, forKey: .itinerary)
         aiAnalysis = try container.decodeIfPresent(AIAnalysis.self, forKey: .aiAnalysis)
         matchScore = try container.decodeIfPresent(Int.self, forKey: .matchScore)
+        matchBreakdown = try container.decodeIfPresent(MatchBreakdown.self, forKey: .matchBreakdown)
         createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt)
         updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt)
     }
@@ -188,4 +192,12 @@ struct Activity: Codable, Identifiable, Hashable {
     enum CodingKeys: String, CodingKey {
         case time, name, location, description
     }
+}
+
+// MARK: - Match Breakdown
+struct MatchBreakdown: Codable, Hashable {
+    let budget: Int?
+    let activityStyle: Int?
+    let category: Int?
+    let timeOfDay: Int?
 }

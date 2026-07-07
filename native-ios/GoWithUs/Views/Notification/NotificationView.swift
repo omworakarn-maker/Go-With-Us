@@ -214,7 +214,12 @@ class NotificationViewModel: ObservableObject {
     func deleteNotification(id: String) async {
         do {
             try await NotificationService.shared.deleteNotification(id: id)
-            notifications.removeAll(where: { $0.id == id })
+            await MainActor.run {
+                withAnimation {
+                    notifications.removeAll(where: { $0.id == id })
+                }
+            }
+            LocalNotificationStore.shared.remove(id: id)
         } catch {
             print("Error deleting notification: \(error)")
         }
@@ -223,6 +228,12 @@ class NotificationViewModel: ObservableObject {
     func clearAllNotifications() async {
         do {
             try await NotificationService.shared.clearAllNotifications()
+            LocalNotificationStore.shared.clearAll()
+            await MainActor.run {
+                withAnimation {
+                    notifications.removeAll()
+                }
+            }
             await loadNotifications() // Reload to see what remains (private ones cleared)
         } catch {
             print("Error clearing notifications: \(error)")

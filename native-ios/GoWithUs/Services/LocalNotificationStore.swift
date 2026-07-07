@@ -45,6 +45,13 @@ class LocalNotificationStore: ObservableObject {
         }
     }
 
+    func remove(id: String) {
+        DispatchQueue.main.async {
+            self.notifications.removeAll(where: { $0.id == id })
+            self.save()
+        }
+    }
+
     func clearAll() {
         notifications = []
         save()

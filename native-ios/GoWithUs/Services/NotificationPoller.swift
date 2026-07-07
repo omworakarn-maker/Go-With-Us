@@ -58,7 +58,12 @@ class NotificationPoller: ObservableObject {
                 
                 if !newNotifications.isEmpty {
                     print("🔔 Found \(newNotifications.count) new notifications")
-                    self.lastChecked = Date() // Update last checked time
+                    
+                    if let maxDate = newNotifications.compactMap({ self.date(from: $0.createdAt) }).max() {
+                        self.lastChecked = maxDate
+                    } else {
+                        self.lastChecked = Date()
+                    }
 
                     for notification in newNotifications {
                         // Persist locally

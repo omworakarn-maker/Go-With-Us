@@ -1,6 +1,6 @@
 import prisma from '../utils/prismaClient.js';
 import { generateEmbedding } from '../utils/gemini.js';
-import { calculateTripCompatibility } from './matchController.js';
+import { calculateTripCompatibility, calculateTripCompatibilityDetailed } from './matchController.js';
 
 // Get all trips with filters
 export const getAllTrips = async (req, res, next) => {
@@ -107,8 +107,8 @@ export const getAllTrips = async (req, res, next) => {
                 
                 if (currentUser) {
                     responseTrips = trips.map(trip => {
-                        const score = calculateTripCompatibility(currentUser, trip);
-                        return { ...trip, matchScore: score };
+                        const { total, breakdown } = calculateTripCompatibilityDetailed(currentUser, trip);
+                        return { ...trip, matchScore: total, matchBreakdown: breakdown };
                     });
                     console.log(`Calculated matchScore for ${responseTrips.length} trips.`);
                 } else {
@@ -174,8 +174,8 @@ export const getTripById = async (req, res, next) => {
                     select: { travelStyle: true, interests: true }
                 });
                 if (currentUser) {
-                    const score = calculateTripCompatibility(currentUser, trip);
-                    responseTrip = { ...trip, matchScore: score };
+                    const { total, breakdown } = calculateTripCompatibilityDetailed(currentUser, trip);
+                    responseTrip = { ...trip, matchScore: total, matchBreakdown: breakdown };
                 }
             } catch (err) {
                 // Non-critical — still return trip without score
