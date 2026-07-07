@@ -1,5 +1,6 @@
 import prisma from '../utils/prismaClient.js';
 import { generateEmbedding } from '../utils/gemini.js';
+import { calculateTripCompatibility } from './matchController.js';
 
 // Get all trips with filters
 export const getAllTrips = async (req, res, next) => {
@@ -94,7 +95,33 @@ export const getAllTrips = async (req, res, next) => {
             take: limit ? parseInt(limit) : undefined
         });
 
-        res.json({ trips, count: trips.length });
+        let responseTrips = trips;
+        
+        if (userId) {
+            console.log("User is logged in for getAllTrips, calculating matchScore for userId:", userId);
+            try {
+                const currentUser = await prisma.user.findUnique({
+                    where: { id: userId },
+                    select: { travelStyle: true, interests: true }
+                });
+                
+                if (currentUser) {
+                    responseTrips = trips.map(trip => {
+                        const score = calculateTripCompatibility(currentUser, trip);
+                        return { ...trip, matchScore: score };
+                    });
+                    console.log(`Calculated matchScore for ${responseTrips.length} trips.`);
+                } else {
+                    console.log("Could not find currentUser for matchScore.");
+                }
+            } catch (err) {
+                console.log("Error calculating match score for trips:", err);
+            }
+        } else {
+            console.log("No userId found in getAllTrips. Auth header might be missing.");
+        }
+
+        res.json({ trips: responseTrips, count: responseTrips.length });
     } catch (error) {
         next(error);
     }
@@ -115,6 +142,7 @@ export const getTripById = async (req, res, next) => {
                         email: true,
                         role: true,
                         profileImage: true,
+                        travelStyle: true,
                     },
                 },
                 participants: {
@@ -137,11 +165,30 @@ export const getTripById = async (req, res, next) => {
             return res.status(404).json({ error: 'Trip not found.' });
         }
 
-        res.json({ trip });
+        // Calculate matchScore if user is logged in
+        let responseTrip = trip;
+        const userId = req.user?.userId;
+        if (userId) {
+            try {
+                const currentUser = await prisma.user.findUnique({
+                    where: { id: userId },
+                    select: { travelStyle: true, interests: true }
+                });
+                if (currentUser) {
+                    const score = calculateTripCompatibility(currentUser, trip);
+                    responseTrip = { ...trip, matchScore: score };
+                }
+            } catch (err) {
+                // Non-critical — still return trip without score
+            }
+        }
+
+        res.json({ trip: responseTrip });
     } catch (error) {
         next(error);
     }
 };
+
 
 // Create new trip (protected)
 export const createTrip = async (req, res, next) => {

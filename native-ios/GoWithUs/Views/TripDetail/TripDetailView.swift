@@ -68,6 +68,11 @@ struct TripDetailView: View {
                             badgesRow(trip: trip)
                             infoCards(trip: trip)
                             
+                            if let score = trip.matchScore {
+                                softDivider()
+                                compatibilitySection(trip: trip, score: score)
+                            }
+                            
                             softDivider()
                             creatorSection(trip: trip)
                             
@@ -304,12 +309,12 @@ struct TripDetailView: View {
             
             HStack(spacing: 18) {
                 HStack(spacing: 5) {
-                    Image(systemName: "mappin.circle") // Minimal
+                    Image(systemName: "mappin.circle")
                         .foregroundColor(Color(hex: "#EF4444"))
                     Text(trip.destination)
                 }
                 HStack(spacing: 5) {
-                    Image(systemName: "calendar") // Minimal
+                    Image(systemName: "calendar")
                         .foregroundColor(Color(hex: "#3B82F6"))
                     Text(trip.formattedDateRange)
                 }
@@ -319,6 +324,104 @@ struct TripDetailView: View {
         }
     }
     
+    // MARK: - Compatibility Section
+    @ViewBuilder
+    private func compatibilitySection(trip: Trip, score: Int) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(spacing: 8) {
+                Image(systemName: "heart.fill")
+                    .font(.system(size: 13))
+                    .foregroundColor(Color(hex: "#10B981"))
+                Text("ความเข้ากันของคุณ")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(.adaptiveText)
+            }
+            
+            HStack(spacing: 20) {
+                // Circular progress
+                ZStack {
+                    Circle()
+                        .stroke(Color.gray.opacity(0.15), lineWidth: 8)
+                        .frame(width: 90, height: 90)
+                    Circle()
+                        .trim(from: 0, to: CGFloat(score) / 100.0)
+                        .stroke(
+                            LinearGradient(colors: scoreGradientColors(score: score), startPoint: .topLeading, endPoint: .bottomTrailing),
+                            style: StrokeStyle(lineWidth: 8, lineCap: .round)
+                        )
+                        .frame(width: 90, height: 90)
+                        .rotationEffect(.degrees(-90))
+                    
+                    VStack(spacing: 2) {
+                        Text("\(score)%")
+                            .font(.system(size: 22, weight: .black))
+                            .foregroundColor(scoreColor(score: score))
+                        Text("แมตช์")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundColor(.adaptiveSecondaryText)
+                    }
+                }
+                
+                // Factor list
+                VStack(alignment: .leading, spacing: 10) {
+                    compatibilityRow(icon: "banknote", label: "งบประมาณ", color: Color(hex: "#3B82F6"))
+                    compatibilityRow(icon: "figure.walk", label: "ไลฟ์สไตล์การเดินทาง", color: Color(hex: "#8B5CF6"))
+                    compatibilityRow(icon: "tag.fill", label: "ประเภทกิจกรรม", color: Color(hex: "#F59E0B"))
+                    compatibilityRow(icon: "clock.fill", label: "ช่วงเวลาที่ชอบ", color: Color(hex: "#EF4444"))
+                }
+            }
+            .padding(18)
+            .background(Color.adaptiveCardBackground)
+            .cornerRadius(20)
+            .shadow(color: scoreColor(score: score).opacity(0.10), radius: 12, x: 0, y: 4)
+            
+            Text(scoreLabel(score: score))
+                .font(.system(size: 13, weight: .medium))
+                .foregroundColor(.adaptiveSecondaryText)
+                .padding(.horizontal, 4)
+        }
+    }
+    
+    @ViewBuilder
+    private func compatibilityRow(icon: String, label: String, color: Color) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundColor(color)
+                .frame(width: 18)
+            Text(label)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(.adaptiveSecondaryText)
+        }
+    }
+    
+    private func scoreColor(score: Int) -> Color {
+        switch score {
+        case 80...100: return Color(hex: "#10B981")
+        case 60...79:  return Color(hex: "#3B82F6")
+        case 40...59:  return Color(hex: "#F59E0B")
+        default:       return Color(hex: "#EF4444")
+        }
+    }
+    
+    private func scoreGradientColors(score: Int) -> [Color] {
+        switch score {
+        case 80...100: return [Color(hex: "#10B981"), Color(hex: "#34D399")]
+        case 60...79:  return [Color(hex: "#3B82F6"), Color(hex: "#60A5FA")]
+        case 40...59:  return [Color(hex: "#F59E0B"), Color(hex: "#FCD34D")]
+        default:       return [Color(hex: "#EF4444"), Color(hex: "#F87171")]
+        }
+    }
+    
+    private func scoreLabel(score: Int) -> String {
+        switch score {
+        case 80...100: return "🎉 เข้ากันมากๆ! ทริปนี้ตรงกับรสนิยมของคุณเป๊ะ ทั้งงบ สไตล์ และประเภทกิจกรรม"
+        case 60...79:  return "👍 เข้ากันดี! ส่วนใหญ่ตรงกับความชอบของคุณ ลองดูรายละเอียดเพิ่มเติมได้เลย"
+        case 40...59:  return "🤔 เข้ากันปานกลาง บางส่วนอาจไม่ตรงกับสไตล์คุณ แต่ก็น่าลองดู!"
+        default:       return "😅 อาจไม่ค่อยตรงกับสไตล์ของคุณนัก แต่ใครๆ ก็เซอร์ไพรส์ตัวเองได้!"
+        }
+    }
+
     // MARK: - Info Cards
     @ViewBuilder
     private func infoCards(trip: Trip) -> some View {

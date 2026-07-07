@@ -42,6 +42,7 @@ class APIService {
         var request = URLRequest(url: url)
         request.httpMethod = method.rawValue
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.cachePolicy = .reloadIgnoringLocalCacheData
         
         // Add auth token if required
         if requiresAuth, let token = KeychainService.shared.getToken() {

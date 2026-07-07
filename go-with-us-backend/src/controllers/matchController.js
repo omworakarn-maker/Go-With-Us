@@ -53,8 +53,8 @@ const calculateDetailedCompatibility = (userA, userB) => {
     // 3. Time of Day
     if (styleA && styleA.timeOfDay && styleA.timeOfDay.length > 0 && styleB && styleB.timeOfDay && styleB.timeOfDay.length > 0) {
         const intersect = styleA.timeOfDay.filter(x => styleB.timeOfDay.includes(x)).length;
-        const minLen = Math.min(styleA.timeOfDay.length, styleB.timeOfDay.length);
-        const score = minLen > 0 ? (intersect / minLen) : 1.0;
+        const union = styleA.timeOfDay.length + styleB.timeOfDay.length - intersect;
+        const score = union > 0 ? (intersect / union) : 0.0;
         scores.push(score);
     }
 
@@ -63,8 +63,8 @@ const calculateDetailedCompatibility = (userA, userB) => {
     const intB = Array.isArray(userB.interests) ? userB.interests : [];
     if (intA.length > 0 || intB.length > 0) {
         const intersect = intA.filter(x => intB.includes(x)).length;
-        const minLen = Math.min(intA.length, intB.length);
-        const score = minLen > 0 ? (intersect / minLen) : 1.0;
+        const union = intA.length + intB.length - intersect;
+        const score = union > 0 ? (intersect / union) : 0.0;
         scores.push(score);
     }
 
@@ -85,7 +85,7 @@ const mapTripBudgetToRating = (budgetVal) => {
 };
 
 // Helper to calculate exact user-to-trip compatibility percentage
-const calculateTripCompatibility = (user, trip) => {
+export const calculateTripCompatibility = (user, trip) => {
     const styleU = normalizeTravelStyle(user.travelStyle);
 
     let scores = [];
@@ -112,8 +112,8 @@ const calculateTripCompatibility = (user, trip) => {
     const tripTime = (trip.timeOfDay && trip.timeOfDay.length > 0) ? trip.timeOfDay : (styleC ? styleC.timeOfDay : []);
     if (styleU && styleU.timeOfDay && styleU.timeOfDay.length > 0 && tripTime && tripTime.length > 0) {
         const intersect = styleU.timeOfDay.filter(x => tripTime.includes(x)).length;
-        const minLen = Math.min(styleU.timeOfDay.length, tripTime.length);
-        const score = minLen > 0 ? (intersect / minLen) : 1.0;
+        const union = styleU.timeOfDay.length + tripTime.length - intersect;
+        const score = union > 0 ? (intersect / union) : 0.0;
         scores.push(score);
     }
 
@@ -148,9 +148,9 @@ export const findBuddy = async (req, res) => {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        // 2. Get users already swiped (liked or disliked)
+        // 2. Get users already swiped (liked)
         const swipedMatches = await prisma.userMatch.findMany({
-            where: { likerId: userId },
+            where: { likerId: userId, status: 'like' },
             select: { likedId: true }
         });
         const swipedIds = swipedMatches.map(m => m.likedId);
@@ -280,28 +280,83 @@ export const likeUser = async (req, res) => {
                     status: 'like'
                 }
             });
-
+            
             if (oppositeLike) {
                 isMutual = true;
+                
                 // Update opposite to mutual
                 await prisma.userMatch.update({
                     where: { id: oppositeLike.id },
                     data: { isMutual: true }
                 });
-
-                // Also create a notification for the other user
-                await prisma.notification.create({
-                    data: {
-                        userId: targetId,
-                        title: "It's a Match! 🎉",
-                        message: "คุณมีเพื่อนใหม่ที่แมตช์กันแล้ว เข้าไปทำความรู้จักกันเลย!",
-                        type: "alert"
+                
+                // Fetch users for notification
+                const targetUser = await prisma.user.findUnique({ where: { id: targetId } });
+                const currentUser = await prisma.user.findUnique({ where: { id: userId } });
+                
+                if (targetUser && currentUser) {
+                    await prisma.notification.create({
+                        data: {
+                            userId: targetId,
+                            title: "It's a Match! 🎉",
+                            message: `คุณและ ${currentUser.name} ใจตรงกัน! เริ่มทักทายกันได้เลย`,
+                            type: "match",
+                            relatedId: userId
+                        }
+                    });
+                }
+            } else {
+                // DEV MODE FIX: Auto-create the opposite like so the user can test matching alone!
+                console.log(`[DEV MODE] Auto-generating opposite like from ${targetId} to ${userId} so it becomes a mutual match!`);
+                
+                // We create the opposite like first
+                await prisma.userMatch.upsert({
+                    where: {
+                        likerId_likedId: {
+                            likerId: targetId,
+                            likedId: userId
+                        }
+                    },
+                    update: { status: 'like', isMutual: true },
+                    create: {
+                        likerId: targetId,
+                        likedId: userId,
+                        status: 'like',
+                        isMutual: true
                     }
                 });
+                
+                isMutual = true; // Set this one to true as well!
+                
+                // Notification for dev mode
+                const targetUser = await prisma.user.findUnique({ where: { id: targetId } });
+                const currentUser = await prisma.user.findUnique({ where: { id: userId } });
+                if (targetUser && currentUser) {
+                    await prisma.notification.create({
+                        data: {
+                            userId: targetId, // Target user gets notification
+                            title: "It's a Match! 🎉",
+                            message: `คุณและ ${currentUser.name} ใจตรงกัน! เริ่มทักทายกันได้เลย`,
+                            type: "match",
+                            relatedId: userId
+                        }
+                    });
+                    
+                    // Also notify the current user in dev mode so they can see it locally immediately!
+                    await prisma.notification.create({
+                        data: {
+                            userId: userId,
+                            title: "It's a Match! 🎉 (Dev Auto-Match)",
+                            message: `${targetUser.name} ปัดขวาตอบกลับคุณอัตโนมัติ (Dev Mode)!`,
+                            type: "match",
+                            relatedId: targetId
+                        }
+                    });
+                }
             }
         }
 
-        // Create or update match
+        // Create or update match for current user
         const match = await prisma.userMatch.upsert({
             where: {
                 likerId_likedId: {
@@ -348,6 +403,7 @@ export const getMutualMatches = async (req, res) => {
                 id: true,
                 name: true,
                 email: true,
+                role: true,
                 profileImage: true,
                 interests: true,
                 isVerified: true

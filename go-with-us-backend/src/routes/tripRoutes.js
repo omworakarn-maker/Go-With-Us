@@ -15,7 +15,7 @@ const router = express.Router();
 
 // Public routes (with optional auth for recommendations)
 router.get('/', verifyTokenOptional, getAllTrips);
-router.get('/:id', getTripById);
+router.get('/:id', verifyTokenOptional, getTripById);
 
 // Protected routes (require authentication)
 router.post('/', verifyToken, createTrip);

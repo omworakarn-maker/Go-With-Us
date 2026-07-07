@@ -33,6 +33,9 @@ class TripService {
             queryItems.append(URLQueryItem(name: "category", value: category.rawValue))
         }
         
+        // Cache buster to bypass iOS aggressive caching
+        queryItems.append(URLQueryItem(name: "cb", value: String(Date().timeIntervalSince1970)))
+        
         let response: TripsResponse = try await APIService.shared.request(
             endpoint: "/trips",
             method: .get,
