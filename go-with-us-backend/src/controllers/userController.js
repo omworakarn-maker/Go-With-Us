@@ -19,6 +19,7 @@ export const getProfile = async (req, res) => {
                 bio: true,
                 birthDate: true,
                 profileImage: true,
+                gallery: true,
                 interests: true,
                 createdAt: true,
                 updatedAt: true,
@@ -84,7 +85,7 @@ export const updateProfile = async (req, res) => {
             }
             userId = targetId;
         }
-        const { name, username, password, interests, travelStyle, gender, age, bio, birthDate, profileImage } = req.body;
+        const { name, username, password, interests, travelStyle, gender, age, bio, birthDate, profileImage, gallery } = req.body;
 
         const updateData = {};
 
@@ -134,6 +135,7 @@ export const updateProfile = async (req, res) => {
         if (bio !== undefined && bio !== null) updateData.bio = bio === '' ? null : bio;
         if (birthDate !== undefined && birthDate !== null) updateData.birthDate = new Date(birthDate);
         if (profileImage !== undefined && profileImage !== null) updateData.profileImage = profileImage === '' ? null : profileImage;
+        if (gallery !== undefined) updateData.gallery = gallery;
 
         if (interests !== undefined || travelStyle !== undefined) {
             if (interests !== undefined) updateData.interests = interests;
@@ -183,6 +185,7 @@ export const updateProfile = async (req, res) => {
                 bio: true,
                 birthDate: true,
                 profileImage: true,
+                gallery: true,
                 interests: true,
                 createdAt: true,
                 updatedAt: true,
@@ -220,6 +223,7 @@ export const getPublicProfile = async (req, res) => {
                 bio: true,
                 birthDate: true,
                 profileImage: true,
+                gallery: true,
                 interests: true,
                 createdAt: true,
                 isProfilePublic: true,

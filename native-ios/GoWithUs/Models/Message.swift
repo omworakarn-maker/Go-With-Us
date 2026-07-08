@@ -26,6 +26,7 @@ struct ChatUser: Codable, Identifiable {
     let email: String
     var avatarUrl: String? // Future proofing
     var profileImage: String?
+    var gallery: [String]?
 }
 
 // MARK: - Conversation Model

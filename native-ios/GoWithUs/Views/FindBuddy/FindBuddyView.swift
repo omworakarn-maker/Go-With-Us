@@ -131,121 +131,184 @@ struct BuddySwipeCard: View {
     
     @State private var offset = CGSize.zero
     @State private var color: Color = .black.opacity(0.8)
+    @State private var currentImageIndex = 0
+    
+    var allImages: [String] {
+        var images: [String] = []
+        if let profile = user.profileImage, !profile.isEmpty {
+            images.append(profile)
+        }
+        if let gallery = user.gallery {
+            images.append(contentsOf: gallery.filter { !$0.isEmpty })
+        }
+        return images
+    }
     
     var body: some View {
-        ZStack(alignment: .bottomLeading) {
-            // Background Image/Color
-            Group {
-                if let imageStr = user.profileImage, !imageStr.isEmpty, let uiImage = ProfileView.decodeBase64Image(imageStr) {
-                    Image(uiImage: uiImage)
-                        .resizable()
-                        .scaledToFill()
-                } else {
-                    RoundedRectangle(cornerRadius: 24)
-                        .fill(Color.adaptiveCardBackground)
-                        .overlay(
-                            Image(systemName: "person.fill")
-                                .font(.system(size: 80))
-                                .foregroundColor(.gray.opacity(0.3))
-                        )
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .cornerRadius(24)
-            .clipped()
-            .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
-            
-            // Subtle Gradient Overlay for text readability
-            LinearGradient(colors: [.black.opacity(0.6), .clear, .clear], startPoint: .bottom, endPoint: .top)
-                .cornerRadius(24)
-            
-            // Info Overlay
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Text(user.name)
-                        .font(.system(size: 32, weight: .bold))
-                    
-                    if user.isVerified == true {
-                        Image(systemName: "checkmark.seal.fill")
-                            .foregroundColor(.appAccent)
-                            .font(.title2)
+        GeometryReader { geo in
+            ZStack(alignment: .bottomLeading) {
+                // Background Image
+                Group {
+                    if !allImages.isEmpty, let uiImage = ProfileView.decodeBase64Image(allImages[currentImageIndex]) {
+                        ZStack {
+                            // Blurred Background for non-filling images
+                            Image(uiImage: uiImage)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: geo.size.width, height: geo.size.height)
+                                .blur(radius: 20)
+                                .overlay(Color.black.opacity(0.3))
+                                .clipped()
+                            
+                            // Actual Image scaled to fit within the card
+                            Image(uiImage: uiImage)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: geo.size.width, height: geo.size.height)
+                        }
+                    } else {
+                        RoundedRectangle(cornerRadius: 24)
+                            .fill(Color.adaptiveCardBackground)
+                            .overlay(
+                                Image(systemName: "person.fill")
+                                    .font(.system(size: 80))
+                                    .foregroundColor(.gray.opacity(0.3))
+                            )
                     }
+                }
+                .frame(width: geo.size.width, height: geo.size.height)
+                .cornerRadius(24)
+                .clipped()
+                .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
+                
+                // Tap Zones for Carousel
+                HStack(spacing: 0) {
+                    Rectangle()
+                        .fill(Color.white.opacity(0.001))
+                        .frame(width: geo.size.width / 2)
+                        .onTapGesture {
+                            if currentImageIndex > 0 {
+                                currentImageIndex -= 1
+                            }
+                        }
                     
-                    Spacer()
-                    
-                    if let score = user.matchScore {
-                        Text("\(score)% Match")
-                            .font(.system(size: 14, weight: .black))
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(score >= 80 ? Color.green : Color.orange)
-                            .foregroundColor(.white)
-                            .cornerRadius(12)
+                    Rectangle()
+                        .fill(Color.white.opacity(0.001))
+                        .frame(width: geo.size.width / 2)
+                        .onTapGesture {
+                            if currentImageIndex < allImages.count - 1 {
+                                currentImageIndex += 1
+                            }
+                        }
+                }
+                
+                // Top Progress Bars
+                if allImages.count > 1 {
+                    VStack {
+                        HStack(spacing: 4) {
+                            ForEach(0..<allImages.count, id: \.self) { index in
+                                Capsule()
+                                    .fill(index == currentImageIndex ? Color.white : Color.white.opacity(0.4))
+                                    .frame(height: 4)
+                            }
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.top, 12)
+                        Spacer()
                     }
                 }
                 
-                if let interests = user.interests, !interests.isEmpty {
-                    FlowLayout(spacing: 8) {
-                        ForEach(interests, id: \.self) { interest in
-                            Text(interest)
-                                .font(.system(size: 12, weight: .bold))
+                // Subtle Gradient Overlay for text readability
+                LinearGradient(colors: [.black.opacity(0.7), .black.opacity(0.3), .clear, .clear], startPoint: .bottom, endPoint: .top)
+                    .cornerRadius(24)
+                
+                // Info Overlay
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Text(user.name)
+                            .font(.system(size: 32, weight: .bold))
+                            .foregroundColor(.white)
+                        
+                        if user.isVerified == true {
+                            Image(systemName: "checkmark.seal.fill")
+                                .foregroundColor(.appAccent)
+                                .font(.title2)
+                        }
+                        
+                        Spacer()
+                        
+                        if let score = user.matchScore {
+                            Text("\(score)% Match")
+                                .font(.system(size: 14, weight: .black))
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 6)
-                                .background(Color.adaptiveText.opacity(0.1))
+                                .background(score >= 80 ? Color.green : Color.orange)
+                                .foregroundColor(.white)
                                 .cornerRadius(12)
                         }
                     }
-                }
-                
-                // Potential bio here if available in MatchUser
-            }
-            .padding(24)
-            .foregroundColor(.white) // Always white on image background
-            
-            // Labels for swipe status
-            HStack {
-                Text("LIKE")
-                    .font(.system(size: 40, weight: .black))
-                    .foregroundColor(.green)
-                    .padding()
-                    .border(Color.green, width: 4)
-                    .cornerRadius(8)
-                    .opacity(Double(offset.width / 150))
-                    .rotationEffect(.degrees(-20))
-                
-                Spacer()
-                
-                Text("NOPE")
-                    .font(.system(size: 40, weight: .black))
-                    .foregroundColor(.red)
-                    .padding()
-                    .border(Color.red, width: 4)
-                    .cornerRadius(8)
-                    .opacity(Double(-offset.width / 150))
-                    .rotationEffect(.degrees(20))
-            }
-            .padding(40)
-            .frame(maxHeight: .infinity, alignment: .top)
-        }
-        .offset(x: offset.width, y: offset.height * 0.4)
-        .rotationEffect(.degrees(Double(offset.width / 20)))
-        .gesture(
-            DragGesture()
-                .onChanged { gesture in
-                    offset = gesture.translation
-                }
-                .onEnded { gesture in
-                    if gesture.translation.width > 150 {
-                        onSwipe("like")
-                    } else if gesture.translation.width < -150 {
-                        onSwipe("dislike")
-                    } else {
-                        withAnimation(.spring()) {
-                            offset = .zero
+                    
+                    if let interests = user.interests, !interests.isEmpty {
+                        FlowLayout(spacing: 8) {
+                            ForEach(interests, id: \.self) { interest in
+                                Text(interest)
+                                    .font(.system(size: 12, weight: .bold))
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(Color.white.opacity(0.2))
+                                    .foregroundColor(.white)
+                                    .cornerRadius(12)
+                            }
                         }
                     }
                 }
-        )
+                .padding(24)
+                
+                // Labels for swipe status
+                HStack {
+                    Text("LIKE")
+                        .font(.system(size: 40, weight: .black))
+                        .foregroundColor(.green)
+                        .padding()
+                        .border(Color.green, width: 4)
+                        .cornerRadius(8)
+                        .opacity(Double(offset.width / 150))
+                        .rotationEffect(.degrees(-20))
+                    
+                    Spacer()
+                    
+                    Text("NOPE")
+                        .font(.system(size: 40, weight: .black))
+                        .foregroundColor(.red)
+                        .padding()
+                        .border(Color.red, width: 4)
+                        .cornerRadius(8)
+                        .opacity(Double(-offset.width / 150))
+                        .rotationEffect(.degrees(20))
+                }
+                .padding(40)
+                .frame(maxHeight: .infinity, alignment: .top)
+            }
+            .offset(x: offset.width, y: offset.height * 0.4)
+            .rotationEffect(.degrees(Double(offset.width / 20)))
+            .gesture(
+                DragGesture()
+                    .onChanged { gesture in
+                        offset = gesture.translation
+                    }
+                    .onEnded { gesture in
+                        if gesture.translation.width > 150 {
+                            onSwipe("like")
+                        } else if gesture.translation.width < -150 {
+                            onSwipe("dislike")
+                        } else {
+                            withAnimation(.spring()) {
+                                offset = .zero
+                            }
+                        }
+                    }
+            )
+        }
     }
 }
 

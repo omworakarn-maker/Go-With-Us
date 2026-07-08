@@ -86,58 +86,83 @@ struct EditProfileView: View {
     @State private var showInterests = true
     @State private var showEmail = false
     
-    // Photo picker
-    @State private var selectedItem: PhotosPickerItem?
-    @State private var profileImage: UIImage?
+    // Photo picker (6 slots)
+    @State private var selectedItems: [PhotosPickerItem?] = Array(repeating: nil, count: 6)
+    @State private var profileImages: [UIImage?] = Array(repeating: nil, count: 6)
     
     var body: some View {
         NavigationView {
             Form {
                 // Profile Image Section
-                Section {
-                    HStack {
-                        Spacer()
-                        PhotosPicker(selection: $selectedItem, matching: .images) {
-                            ZStack(alignment: .bottomTrailing) {
-                                if let image = profileImage {
-                                    Image(uiImage: image)
-                                        .resizable()
-                                        .scaledToFill()
-                                        .frame(width: 90, height: 90)
-                                        .clipShape(Circle())
-                                } else {
-                                    Circle()
-                                        .fill(Color.black)
-                                        .frame(width: 90, height: 90)
-                                        .overlay(
-                                            Text(String(name.prefix(1)))
-                                                .font(.system(size: 36, weight: .bold))
-                                                .foregroundColor(.white)
-                                        )
+                Section(header: Text("รูปโปรไฟล์ (สูงสุด 6 รูป)")) {
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 3), spacing: 16) {
+                        ForEach(0..<6, id: \.self) { index in
+                            ZStack(alignment: .topTrailing) {
+                                PhotosPicker(selection: Binding(
+                                    get: { selectedItems[index] },
+                                    set: { selectedItems[index] = $0 }
+                                ), matching: .images) {
+                                    if let image = profileImages[index] {
+                                        Image(uiImage: image)
+                                            .resizable()
+                                            .scaledToFill()
+                                            .frame(minWidth: 0, maxWidth: .infinity)
+                                            .frame(height: 120)
+                                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 12).stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                                            )
+                                    } else {
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .fill(Color.gray.opacity(0.1))
+                                            .frame(minWidth: 0, maxWidth: .infinity)
+                                            .frame(height: 120)
+                                            .overlay(
+                                                Image(systemName: "plus")
+                                                    .font(.system(size: 24, weight: .bold))
+                                                    .foregroundColor(.gray.opacity(0.6))
+                                            )
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 12)
+                                                    .stroke(style: StrokeStyle(lineWidth: 1, dash: [5]))
+                                                    .foregroundColor(.gray.opacity(0.3))
+                                            )
+                                    }
+                                }
+                                .onChange(of: selectedItems[index]) { oldItem, newItem in
+                                    Task {
+                                        if let data = try? await newItem?.loadTransferable(type: Data.self),
+                                           let uiImage = UIImage(data: data) {
+                                            await MainActor.run {
+                                                profileImages[index] = uiImage
+                                            }
+                                        }
+                                    }
                                 }
                                 
-                                Circle()
-                                    .fill(Color.appAccent)
-                                    .frame(width: 28, height: 28)
-                                    .overlay(
-                                        Image(systemName: "camera.fill")
-                                            .font(.system(size: 12))
-                                            .foregroundColor(.white)
-                                    )
-                                    .offset(x: 2, y: 2)
-                            }
-                        }
-                        .onChange(of: selectedItem) { oldItem, newItem in
-                            Task {
-                                if let data = try? await newItem?.loadTransferable(type: Data.self),
-                                   let uiImage = UIImage(data: data) {
-                                    profileImage = uiImage
+                                if profileImages[index] != nil {
+                                    Button(action: {
+                                        profileImages[index] = nil
+                                        selectedItems[index] = nil
+                                    }) {
+                                        Circle()
+                                            .fill(Color.red)
+                                            .frame(width: 24, height: 24)
+                                            .overlay(
+                                                Image(systemName: "xmark")
+                                                    .font(.system(size: 10, weight: .bold))
+                                                    .foregroundColor(.white)
+                                            )
+                                    }
+                                    .buttonStyle(.plain)
+                                    .offset(x: 8, y: -8)
                                 }
                             }
                         }
-                        Spacer()
                     }
+                    .padding(.vertical, 10)
                     .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets())
                 }
                 
                 Section(header: Text("ข้อมูลส่วนตัว")) {
@@ -340,16 +365,25 @@ struct EditProfileView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button(action: {
                         Task {
-                            // Convert profile image to base64 for backend
+                            // Convert profile images to base64 for backend
                             var profileImageBase64: String? = nil
-                            if selectedItem != nil, let image = profileImage,
-                               let scaledImage = image.resized(toWidth: 512),
+                            var galleryBase64: [String] = []
+                            
+                            let userId = targetUser?.id ?? authViewModel.currentUser?.id ?? "unknown"
+                            
+                            if let mainImage = profileImages[0],
+                               let scaledImage = mainImage.resized(toWidth: 512),
                                let jpegData = scaledImage.jpegData(compressionQuality: 0.6) {
-                                // Save locally as cache - use user-specific key
-                                let userId = targetUser?.id ?? authViewModel.currentUser?.id ?? "unknown"
-                                UserDefaults.standard.set(jpegData, forKey: "local_profile_image_\(userId)")
-                                // Convert to base64 data URI for backend
                                 profileImageBase64 = "data:image/jpeg;base64," + jpegData.base64EncodedString()
+                                UserDefaults.standard.set(jpegData, forKey: "local_profile_image_\(userId)")
+                            }
+                            
+                            for i in 1..<6 {
+                                if let img = profileImages[i],
+                                   let scaledImage = img.resized(toWidth: 512),
+                                   let jpegData = scaledImage.jpegData(compressionQuality: 0.6) {
+                                    galleryBase64.append("data:image/jpeg;base64," + jpegData.base64EncodedString())
+                                }
                             }
                             
                             let calendar = Calendar.current
@@ -367,7 +401,8 @@ struct EditProfileView: View {
                                     bio: bio,
                                     birthDate: birthDate,
                                     travelStyle: target.travelStyle, // Keep their style or use what's in VM
-                                    profileImage: profileImageBase64
+                                    profileImage: profileImageBase64,
+                                    gallery: galleryBase64.isEmpty ? nil : galleryBase64
                                 )
                             } else {
                                 // Default self-update
@@ -380,7 +415,8 @@ struct EditProfileView: View {
                                     bio: bio,
                                     birthDate: birthDate,
                                     travelStyle: authViewModel.currentUser?.travelStyle,
-                                    profileImage: profileImageBase64
+                                    profileImage: profileImageBase64,
+                                    gallery: galleryBase64.isEmpty ? nil : galleryBase64
                                 )
                             }
                             
@@ -434,15 +470,23 @@ struct EditProfileView: View {
                     self.showEmail = user.showEmail ?? false
                 }
                 
-                // Load saved image (local cache first, then backend)
+                // Load saved images
                 if let userId = userToEdit?.id,
                    let data = UserDefaults.standard.data(forKey: "local_profile_image_\(userId)"),
                    let image = UIImage(data: data) {
-                    profileImage = image
+                    profileImages[0] = image
                 } else if let profileImageStr = userToEdit?.profileImage,
                           !profileImageStr.isEmpty,
                           let image = ProfileView.decodeBase64Image(profileImageStr) {
-                    profileImage = image
+                    profileImages[0] = image
+                }
+                
+                if let gallery = userToEdit?.gallery {
+                    for (i, str) in gallery.prefix(5).enumerated() {
+                        if !str.isEmpty, let image = ProfileView.decodeBase64Image(str) {
+                            profileImages[i+1] = image
+                        }
+                    }
                 }
             }
             .sheet(isPresented: $showQuiz) {

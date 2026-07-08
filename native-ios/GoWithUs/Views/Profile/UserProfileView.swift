@@ -88,20 +88,37 @@ struct UserProfileView: View {
                     VStack(spacing: 28) {
                         // ── Profile Header ──
                         VStack(spacing: 16) {
-                            // Avatar with gradient ring
-                            ZStack {
-                                Circle()
-                                    .strokeBorder(
-                                        Color.adaptiveText.opacity(0.1),
-                                        lineWidth: 4
-                                    )
-                                    .frame(width: 110, height: 110)
-                                    .background(Circle().fill(Color.adaptiveBackground))
-                            
-                                UserAvatarView(user: displayUser, size: 100)
-                                    .background(Circle().fill(Color.adaptiveBackground))
+                            // Photo Carousel
+                            let allImages = getGalleryImages(user: displayUser)
+                            if !allImages.isEmpty {
+                                TabView {
+                                    ForEach(0..<allImages.count, id: \.self) { index in
+                                        if let uiImage = ProfileView.decodeBase64Image(allImages[index]) {
+                                            Image(uiImage: uiImage)
+                                                .resizable()
+                                                .scaledToFill()
+                                                .frame(width: 320, height: 400)
+                                                .clipShape(RoundedRectangle(cornerRadius: 24))
+                                                .clipped()
+                                        }
+                                    }
+                                }
+                                .frame(height: 400)
+                                .tabViewStyle(PageTabViewStyle(indexDisplayMode: .always))
+                                .padding(.top, 16)
+                            } else {
+                                // Fallback Avatar
+                                ZStack {
+                                    Circle()
+                                        .strokeBorder(Color.adaptiveText.opacity(0.1), lineWidth: 4)
+                                        .frame(width: 110, height: 110)
+                                        .background(Circle().fill(Color.adaptiveBackground))
+                                    
+                                    UserAvatarView(user: displayUser, size: 100)
+                                        .background(Circle().fill(Color.adaptiveBackground))
+                                }
+                                .padding(.top, 16)
                             }
-                            .padding(.top, 16)
                             
                             VStack(spacing: 5) {
                                 Text(displayUser.name)
@@ -386,6 +403,17 @@ struct UserProfileView: View {
             actionMessage = "เกิดข้อผิดพลาดในการส่งคำเตือน"
             showingActionMessage = true
         }
+    }
+    
+    private func getGalleryImages(user: User) -> [String] {
+        var images: [String] = []
+        if let profile = user.profileImage, !profile.isEmpty {
+            images.append(profile)
+        }
+        if let gallery = user.gallery {
+            images.append(contentsOf: gallery.filter { !$0.isEmpty })
+        }
+        return images
     }
 }
 

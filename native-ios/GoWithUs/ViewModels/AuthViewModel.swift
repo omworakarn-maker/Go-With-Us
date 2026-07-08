@@ -115,7 +115,8 @@ class AuthViewModel: ObservableObject {
         bio: String? = nil,
         birthDate: Date? = nil,
         travelStyle: TravelStyle? = nil,
-        profileImage: String? = nil
+        profileImage: String? = nil,
+        gallery: [String]? = nil
     ) async throws {
         isLoading = true
         errorMessage = nil
@@ -131,6 +132,7 @@ class AuthViewModel: ObservableObject {
                 birthDate: birthDate,
                 travelStyle: travelStyle,
                 profileImage: profileImage,
+                gallery: gallery,
                 username: username
             )
         } catch {
@@ -152,7 +154,8 @@ class AuthViewModel: ObservableObject {
         bio: String? = nil,
         birthDate: Date? = nil,
         travelStyle: TravelStyle? = nil,
-        profileImage: String? = nil
+        profileImage: String? = nil,
+        gallery: [String]? = nil
     ) async {
         isLoading = true
         errorMessage = nil
@@ -167,6 +170,7 @@ class AuthViewModel: ObservableObject {
                 birthDate: birthDate,
                 travelStyle: travelStyle,
                 profileImage: profileImage,
+                gallery: gallery,
                 username: username
             )
         } catch {

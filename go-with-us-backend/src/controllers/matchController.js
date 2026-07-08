@@ -185,6 +185,7 @@ export const findBuddy = async (req, res) => {
                 email: true,
                 role: true,
                 profileImage: true,
+                gallery: true,
                 interests: true,
                 bio: true,
                 gender: true,
@@ -400,6 +401,7 @@ export const getMutualMatches = async (req, res) => {
                 email: true,
                 role: true,
                 profileImage: true,
+                gallery: true,
                 interests: true,
                 isVerified: true
             }

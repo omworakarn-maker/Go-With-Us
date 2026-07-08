@@ -87,6 +87,7 @@ class AuthService {
         birthDate: Date? = nil,
         travelStyle: TravelStyle? = nil,
         profileImage: String? = nil,
+        gallery: [String]? = nil,
         username: String? = nil
     ) async throws -> User {
         struct AdminUpdateProfileRequest: Encodable {
@@ -99,9 +100,10 @@ class AuthService {
             let birthDate: Date?
             let travelStyle: TravelStyle?
             let profileImage: String?
+            let gallery: [String]?
             
             enum CodingKeys: String, CodingKey {
-                case name, username, interests, gender, age, bio, birthDate, travelStyle, profileImage
+                case name, username, interests, gender, age, bio, birthDate, travelStyle, profileImage, gallery
             }
             func encode(to encoder: Encoder) throws {
                 var c = encoder.container(keyedBy: CodingKeys.self)
@@ -114,6 +116,7 @@ class AuthService {
                 try c.encodeIfPresent(birthDate, forKey: .birthDate)
                 try c.encodeIfPresent(travelStyle, forKey: .travelStyle)
                 try c.encodeIfPresent(profileImage, forKey: .profileImage)
+                try c.encodeIfPresent(gallery, forKey: .gallery)
             }
         }
         
@@ -131,7 +134,8 @@ class AuthService {
             bio: bio,
             birthDate: birthDate,
             travelStyle: travelStyle,
-            profileImage: profileImage
+            profileImage: profileImage,
+            gallery: gallery
         )
         
         let response: UpdateProfileResponse = try await APIService.shared.request(
@@ -153,6 +157,7 @@ class AuthService {
         birthDate: Date? = nil,
         travelStyle: TravelStyle? = nil,
         profileImage: String? = nil,
+        gallery: [String]? = nil,
         username: String? = nil
     ) async throws -> User {
         struct UpdateProfileRequest: Encodable {
@@ -165,11 +170,12 @@ class AuthService {
             let birthDate: Date?
             let travelStyle: TravelStyle?
             let profileImage: String?
+            let gallery: [String]?
             
             // Custom encode: omit nil fields entirely (don't send "null")
             // so backend's `!== undefined` check works correctly
             enum CodingKeys: String, CodingKey {
-                case name, username, interests, gender, age, bio, birthDate, travelStyle, profileImage
+                case name, username, interests, gender, age, bio, birthDate, travelStyle, profileImage, gallery
             }
             func encode(to encoder: Encoder) throws {
                 var c = encoder.container(keyedBy: CodingKeys.self)
@@ -182,6 +188,7 @@ class AuthService {
                 try c.encodeIfPresent(birthDate, forKey: .birthDate)
                 try c.encodeIfPresent(travelStyle, forKey: .travelStyle)
                 try c.encodeIfPresent(profileImage, forKey: .profileImage)
+                try c.encodeIfPresent(gallery, forKey: .gallery)
             }
         }
 
@@ -200,7 +207,8 @@ class AuthService {
             bio: bio,
             birthDate: birthDate,
             travelStyle: travelStyle,
-            profileImage: profileImage
+            profileImage: profileImage,
+            gallery: gallery
         )
         
         let response: UpdateProfileResponse = try await APIService.shared.request(

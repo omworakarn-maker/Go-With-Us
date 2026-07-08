@@ -28,6 +28,7 @@ model User {
   bio       String?  @db.Text // User biography
   birthDate DateTime? // Birth date for age calculation
   profileImage String? @db.Text // Base64 or URL
+  gallery   String[] @default([]) // Array of up to 5 additional base64/URL images
   
   // Privacy Settings
   isProfilePublic Boolean @default(true) // Allow public viewing

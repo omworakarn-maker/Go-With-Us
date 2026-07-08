@@ -13,6 +13,7 @@ struct User: Codable, Identifiable, Hashable {
     let bio: String?
     let birthDate: Date?
     let profileImage: String?
+    let gallery: [String]?
     let travelStyle: TravelStyle?
     let interests: [String]?
     let createdAt: Date?
@@ -42,6 +43,7 @@ struct User: Codable, Identifiable, Hashable {
         bio: String? = nil,
         birthDate: Date? = nil,
         profileImage: String? = nil,
+        gallery: [String]? = nil,
         travelStyle: TravelStyle? = nil,
         interests: [String]? = nil,
         createdAt: Date? = nil,
@@ -66,6 +68,7 @@ struct User: Codable, Identifiable, Hashable {
         self.bio = bio
         self.birthDate = birthDate
         self.profileImage = profileImage
+        self.gallery = gallery
         self.travelStyle = travelStyle
         self.interests = interests
         self.createdAt = createdAt
