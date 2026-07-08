@@ -23,11 +23,30 @@ class ChatViewModel: ObservableObject {
         return AuthService.shared.getCurrentUserId()
     }
     
+    // MARK: - Load Initial Data (Concurrent)
+    func loadInitialData() async {
+        isLoading = true
+        errorMessage = nil
+        
+        async let fetchConversations: () = loadConversationsInternal()
+        async let fetchMutualMatches: () = loadMutualMatchesInternal()
+        
+        _ = await (fetchConversations, fetchMutualMatches)
+        
+        isLoading = false
+    }
+    
     // MARK: - Load Mutual Matches
     func loadMutualMatches() async {
+        await loadMutualMatchesInternal()
+    }
+    
+    private func loadMutualMatchesInternal() async {
         do {
             let response = try await MatchService.shared.getMutualMatches()
-            self.mutualMatches = response.matches
+            await MainActor.run {
+                self.mutualMatches = response.matches
+            }
         } catch {
             print("Failed to fetch mutual matches in ChatViewModel: \(error)")
         }
@@ -51,26 +70,33 @@ class ChatViewModel: ObservableObject {
     func loadConversations() async {
         isLoading = true
         errorMessage = nil
-        
+        await loadConversationsInternal()
+        isLoading = false
+    }
+    
+    private func loadConversationsInternal() async {
         do {
             let convs = try await MessageService.shared.getConversations()
             // Merge server conversations with local unread overrides so badge stays visible
-            conversations = convs.map { conv in
+            let mappedConvs = convs.map { conv in
                 let pid = conv.user.id
                 let serverCount = conv.unreadCount ?? 0
                 let override = localUnreadOverrides[pid] ?? 0
                 let display = max(serverCount, override)
                 return Conversation(user: conv.user, lastMessage: conv.lastMessage, unreadCount: display)
             }
-            print("🛰 ChatViewModel: loaded \(conversations.count) conversations")
-            for c in conversations {
+            await MainActor.run {
+                self.conversations = mappedConvs
+            }
+            print("🛰 ChatViewModel: loaded \(mappedConvs.count) conversations")
+            for c in mappedConvs {
                 print("  - conv user=\(c.user.name) id=\(c.user.id) unread=\(c.unreadCount ?? 0)")
             }
         } catch {
-            errorMessage = error.localizedDescription
+            await MainActor.run {
+                self.errorMessage = error.localizedDescription
+            }
         }
-        
-        isLoading = false
     }
     
     // MARK: - Load Private Messages

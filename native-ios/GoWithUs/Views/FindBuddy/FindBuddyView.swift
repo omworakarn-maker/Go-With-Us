@@ -51,19 +51,22 @@ struct FindBuddyView: View {
                     }
                 } else {
                     // Swipe Cards
-                    ZStack {
-                        ForEach((viewModel.currentCardIndex..<min(viewModel.currentCardIndex + 3, viewModel.matches.count)).reversed(), id: \.self) { index in
-                            BuddySwipeCard(user: viewModel.matches[index]) { status in
-                                withAnimation(.spring()) {
-                                    let targetUser = viewModel.matches[index]
-                                    viewModel.currentCardIndex += 1
-                                    Task {
-                                        await viewModel.swipeUser(targetUser: targetUser, status: status)
+                    GeometryReader { geo in
+                        ZStack {
+                            ForEach((viewModel.currentCardIndex..<min(viewModel.currentCardIndex + 3, viewModel.matches.count)).reversed(), id: \.self) { index in
+                                BuddySwipeCard(user: viewModel.matches[index]) { status in
+                                    withAnimation(.spring()) {
+                                        let targetUser = viewModel.matches[index]
+                                        viewModel.currentCardIndex += 1
+                                        Task {
+                                            await viewModel.swipeUser(targetUser: targetUser, status: status)
+                                        }
                                     }
                                 }
+                                .padding(.horizontal, 20)
+                                .padding(.vertical, 40)
+                                .frame(width: geo.size.width, height: geo.size.height)
                             }
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 40)
                         }
                     }
                 }

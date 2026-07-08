@@ -136,7 +136,8 @@ export const sendTripMessage = async (req, res, next) => {
 
             const trip = await prisma.trip.findUnique({ where: { id: tripId }, select: { title: true } });
             const title = `ข้อความใหม่ในทริป ${trip?.title || 'Group Chat'}`;
-            const body = `${req.user.name || 'เพื่อน'}: ${content.substring(0, 50)}`;
+            const previewText = content ? content.substring(0, 50) : (imageUrl ? 'รูปภาพ' : '');
+            const body = `${req.user.name || 'เพื่อน'}: ${previewText}`;
 
             // Create Notifications, Send Push, and Send WebSockets
             await Promise.all(recipients.map(async (recipient) => {
@@ -300,7 +301,8 @@ export const sendPrivateMessage = async (req, res, next) => {
 
         // Create Notification for Recipient & Send Push
         const title = `ข้อความใหม่จาก ${req.user.name || 'เพื่อน'}`;
-        const body = content.length > 50 ? content.substring(0, 50) + '...' : content;
+        const previewText = content ? (content.length > 50 ? content.substring(0, 50) + '...' : content) : (imageUrl ? 'รูปภาพ' : '');
+        const body = previewText;
 
         try {
             // Send WebSocket Realtime Message

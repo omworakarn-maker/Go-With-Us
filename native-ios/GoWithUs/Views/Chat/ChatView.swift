@@ -105,21 +105,13 @@ struct ChatView: View {
             .navigationTitle("ข้อความ")
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
-                Task { 
-                    await viewModel.loadConversations()
-                    await viewModel.loadMutualMatches()
-                }
+                Task { await viewModel.loadInitialData() }
             }
-
             .refreshable {
-                await viewModel.loadConversations()
-                await viewModel.loadMutualMatches()
+                await viewModel.loadInitialData()
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("NewNotificationReceived"))) { _ in
-                Task { 
-                    await viewModel.loadConversations()
-                    await viewModel.loadMutualMatches()
-                }
+                Task { await viewModel.loadInitialData() }
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("NewMessageReceived"))) { _ in
                 Task { await viewModel.loadConversations() }
@@ -161,7 +153,7 @@ struct ConversationRow: View {
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(.adaptiveText)
                 
-                Text(conversation.lastMessage.content)
+                Text(conversation.lastMessage.content.isEmpty && conversation.lastMessage.imageUrl != nil ? "รูปภาพ" : conversation.lastMessage.content)
                     .font(.system(size: 14))
                     .foregroundColor(.gray)
                     .lineLimit(1)

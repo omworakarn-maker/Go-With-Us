@@ -31,7 +31,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         UIApplication.shared.setMinimumBackgroundFetchInterval(UIApplication.backgroundFetchIntervalMinimum)
 
         // Start message polling to keep chat badges up-to-date (Replaced with WebSockets)
-        MessagePoller.shared.startPolling()
+        // MessagePoller.shared.startPolling()
         
         // Start WebSocket Connection
         WebSocketService.shared.connect()

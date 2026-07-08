@@ -1,4 +1,6 @@
 import prisma from '../utils/prismaClient.js';
+import { sendPushNotification } from '../utils/firebase.js';
+
 
 // Helper to normalize legacy and new travel styles
 const normalizeTravelStyle = (style) => {
@@ -310,6 +312,7 @@ export const likeUser = async (req, res) => {
                 const currentUser = await prisma.user.findUnique({ where: { id: userId } });
                 
                 if (targetUser && currentUser) {
+                    // Notify target user
                     await prisma.notification.create({
                         data: {
                             userId: targetId,
@@ -319,54 +322,31 @@ export const likeUser = async (req, res) => {
                             relatedId: userId
                         }
                     });
-                }
-            } else {
-                // DEV MODE FIX: Auto-create the opposite like so the user can test matching alone!
-                console.log(`[DEV MODE] Auto-generating opposite like from ${targetId} to ${userId} so it becomes a mutual match!`);
-                
-                // We create the opposite like first
-                await prisma.userMatch.upsert({
-                    where: {
-                        likerId_likedId: {
-                            likerId: targetId,
-                            likedId: userId
-                        }
-                    },
-                    update: { status: 'like', isMutual: true },
-                    create: {
-                        likerId: targetId,
-                        likedId: userId,
-                        status: 'like',
-                        isMutual: true
-                    }
-                });
-                
-                isMutual = true; // Set this one to true as well!
-                
-                // Notification for dev mode
-                const targetUser = await prisma.user.findUnique({ where: { id: targetId } });
-                const currentUser = await prisma.user.findUnique({ where: { id: userId } });
-                if (targetUser && currentUser) {
-                    await prisma.notification.create({
-                        data: {
-                            userId: targetId, // Target user gets notification
-                            title: "It's a Match! 🎉",
-                            message: `คุณและ ${currentUser.name} ใจตรงกัน! เริ่มทักทายกันได้เลย`,
-                            type: "match",
-                            relatedId: userId
-                        }
-                    });
                     
-                    // Also notify the current user in dev mode so they can see it locally immediately!
+                    if (targetUser.fcmToken) {
+                        await sendPushNotification(targetUser.fcmToken, "It's a Match! 🎉", `คุณและ ${currentUser.name} ใจตรงกัน! เริ่มทักทายกันได้เลย`, {
+                            type: 'match',
+                            targetId: userId
+                        });
+                    }
+
+                    // Notify current user
                     await prisma.notification.create({
                         data: {
                             userId: userId,
-                            title: "It's a Match! 🎉 (Dev Auto-Match)",
-                            message: `${targetUser.name} ปัดขวาตอบกลับคุณอัตโนมัติ (Dev Mode)!`,
+                            title: "It's a Match! 🎉",
+                            message: `คุณและ ${targetUser.name} ใจตรงกัน! เริ่มทักทายกันได้เลย`,
                             type: "match",
                             relatedId: targetId
                         }
                     });
+                    
+                    if (currentUser.fcmToken) {
+                        await sendPushNotification(currentUser.fcmToken, "It's a Match! 🎉", `คุณและ ${targetUser.name} ใจตรงกัน! เริ่มทักทายกันได้เลย`, {
+                            type: 'match',
+                            targetId: targetId
+                        });
+                    }
                 }
             }
         }

@@ -274,6 +274,7 @@ struct ChatDetailView: View {
                         partnerUser = user
                     }
                 }
+            }
             // WebSocket automatically pushes new messages via NSNotification "WebSocketNewMessage"
             // No more polling required!
         }
