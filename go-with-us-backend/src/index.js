@@ -59,7 +59,7 @@ import { createServer } from 'http';
 import { initWebSocketServer } from './utils/websocket.js';
 
 // Start server if not running on Vercel
-if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+if (!process.env.VERCEL) {
   const server = createServer(app);
   
   // Initialize WebSocket server

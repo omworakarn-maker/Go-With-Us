@@ -8,8 +8,9 @@ class APIService {
     // private let baseURL = "https://go-with-us.vercel.app/api"
     // private let baseURL = "http://192.168.1.88:3000/api" // Local backup
     
-    // Base URL - Production (Vercel)
-    private let baseURL = "https://go-with-us.vercel.app/api"
+    // Base URL - Production (Vercel/Render)
+    // เปลี่ยนตรงนี้เป็น URL ที่ได้จาก Render แทน Vercel ครับ!
+    let baseURL = "https://go-with-us.vercel.app/api"
     
     private init() {}
     
