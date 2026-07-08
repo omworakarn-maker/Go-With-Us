@@ -145,11 +145,20 @@ export const updateProfile = async (req, res) => {
 
             const combinedInterests = interests !== undefined ? interests : (currentUser?.interests || []);
             const combinedStyle = travelStyle !== undefined ? travelStyle : (currentUser?.travelStyle || {});
+            
+            // Format into narrative text for better semantic AI embedding
+            const narrativeParts = [];
+            narrativeParts.push(`This user enjoys: ${combinedInterests.join(', ') || 'general traveling'}.`);
+            
+            if (combinedStyle.activityStyle !== undefined) narrativeParts.push(`Their preferred activity level is ${combinedStyle.activityStyle} out of 10.`);
+            if (combinedStyle.budget !== undefined) narrativeParts.push(`Their travel budget level is ${combinedStyle.budget} out of 10.`);
+            if (combinedStyle.timeOfDay && combinedStyle.timeOfDay.length > 0) {
+                narrativeParts.push(`They prefer traveling during the following times: ${combinedStyle.timeOfDay.join(', ')}.`);
+            }
+            
+            const narrativeText = narrativeParts.join(' ');
 
-            const vector = await generateEmbedding({
-                interests: combinedInterests,
-                travelStyle: combinedStyle
-            });
+            const vector = await generateEmbedding(narrativeText);
 
             if (vector) {
                 updateData.embedding = vector;

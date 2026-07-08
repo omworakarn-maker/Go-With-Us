@@ -11,7 +11,9 @@ class TripService {
         type: String? = nil,
         destination: String? = nil,
         startDate: Date? = nil,
-        category: TripCategory? = nil
+        category: TripCategory? = nil,
+        creatorId: String? = nil,
+        participantId: String? = nil
     ) async throws -> [Trip] {
         struct TripsResponse: Decodable {
             let trips: [Trip]
@@ -20,6 +22,12 @@ class TripService {
         var queryItems: [URLQueryItem] = []
         if let type = type {
             queryItems.append(URLQueryItem(name: "type", value: type))
+        }
+        if let creatorId = creatorId {
+            queryItems.append(URLQueryItem(name: "creatorId", value: creatorId))
+        }
+        if let participantId = participantId {
+            queryItems.append(URLQueryItem(name: "participantId", value: participantId))
         }
         if let destination = destination {
             queryItems.append(URLQueryItem(name: "destination", value: destination))

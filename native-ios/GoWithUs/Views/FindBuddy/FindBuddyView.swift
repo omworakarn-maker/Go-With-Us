@@ -55,10 +55,10 @@ struct FindBuddyView: View {
                         ForEach((viewModel.currentCardIndex..<min(viewModel.currentCardIndex + 3, viewModel.matches.count)).reversed(), id: \.self) { index in
                             BuddySwipeCard(user: viewModel.matches[index]) { status in
                                 withAnimation(.spring()) {
-                                    let targetId = viewModel.matches[index].id
+                                    let targetUser = viewModel.matches[index]
                                     viewModel.currentCardIndex += 1
                                     Task {
-                                        await viewModel.swipeUser(targetId: targetId, status: status)
+                                        await viewModel.swipeUser(targetUser: targetUser, status: status)
                                     }
                                 }
                             }
@@ -77,6 +77,12 @@ struct FindBuddyView: View {
                     .transition(.opacity)
                     .zIndex(10)
                 }
+            }
+            .fullScreenCover(item: $viewModel.chatPartner) { user in
+                ChatDetailView(
+                    chatTitle: user.name,
+                    partnerId: user.id
+                )
             }
             .navigationTitle(SettingsManager.shared.localizedString(for: "find_friend"))
             .navigationBarTitleDisplayMode(.inline)

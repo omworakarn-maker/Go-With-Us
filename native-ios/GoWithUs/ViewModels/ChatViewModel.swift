@@ -27,9 +27,7 @@ class ChatViewModel: ObservableObject {
     func loadMutualMatches() async {
         do {
             let response = try await MatchService.shared.getMutualMatches()
-            // Filter out users who already have a conversation
-            let conversationIds = Set(conversations.map { $0.user.id })
-            self.mutualMatches = response.matches.filter { !conversationIds.contains($0.id) }
+            self.mutualMatches = response.matches
         } catch {
             print("Failed to fetch mutual matches in ChatViewModel: \(error)")
         }
@@ -93,6 +91,14 @@ class ChatViewModel: ObservableObject {
             }
             // Clear local unread override for this partner since user opened the chat
             localUnreadOverrides.removeValue(forKey: userId)
+            
+            // Optimistically clear unread count for this conversation so badge disappears immediately
+            if let idx = conversations.firstIndex(where: { $0.user.id == userId }) {
+                var conv = conversations[idx]
+                conv = Conversation(user: conv.user, lastMessage: conv.lastMessage, unreadCount: 0)
+                conversations[idx] = conv
+            }
+            
             postLocalTotal()
             // Reload conversations to sync with server and remove badge
             Task { await loadConversations() }
@@ -105,11 +111,11 @@ class ChatViewModel: ObservableObject {
     }
     
     // MARK: - Send Private Message
-    func sendPrivateMessage(userId: String, content: String) async {
-        guard !content.isEmpty else { return }
+    func sendPrivateMessage(userId: String, content: String, imageUrl: String? = nil) async {
+        guard !content.isEmpty || imageUrl != nil else { return }
         
         do {
-            let message = try await MessageService.shared.sendPrivateMessage(userId: userId, content: content)
+            let message = try await MessageService.shared.sendPrivateMessage(userId: userId, content: content, imageUrl: imageUrl)
             messages.append(message)
             NotificationCenter.default.post(name: NSNotification.Name("NewMessageReceived"), object: nil)
         } catch {
@@ -137,11 +143,11 @@ class ChatViewModel: ObservableObject {
     }
     
     // MARK: - Send Trip Message
-    func sendTripMessage(tripId: String, content: String) async {
-        guard !content.isEmpty else { return }
+    func sendTripMessage(tripId: String, content: String, imageUrl: String? = nil) async {
+        guard !content.isEmpty || imageUrl != nil else { return }
         
         do {
-            let message = try await MessageService.shared.sendTripMessage(tripId: tripId, content: content)
+            let message = try await MessageService.shared.sendTripMessage(tripId: tripId, content: content, imageUrl: imageUrl)
             messages.append(message)
             NotificationCenter.default.post(name: NSNotification.Name("NewMessageReceived"), object: nil)
         } catch {
@@ -163,14 +169,16 @@ class ChatViewModel: ObservableObject {
     // MARK: - Delete Conversation
     func deleteConversation(at offsets: IndexSet) {
         // Optimistic update
-        let idsToDelete = offsets.map { conversations[$0].id }
+        let idsToDelete = offsets.map { conversations[$0].user.id }
         conversations.remove(atOffsets: offsets)
         
         Task {
-            for _ in idsToDelete {
-                // TODO: specific API endpoint for deleting conversation if available
-                // For now, we assume local hide or implementation on backend
-                // await MessageService.shared.deleteConversation(id: id) 
+            for id in idsToDelete {
+                do {
+                    try await MessageService.shared.deleteConversation(userId: id)
+                } catch {
+                    print("Failed to delete conversation: \(error)")
+                }
             }
         }
     }

@@ -30,8 +30,11 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         // iOS will decide when to wake up the app based on usage
         UIApplication.shared.setMinimumBackgroundFetchInterval(UIApplication.backgroundFetchIntervalMinimum)
 
-        // Start message polling to keep chat badges up-to-date
+        // Start message polling to keep chat badges up-to-date (Replaced with WebSockets)
         MessagePoller.shared.startPolling()
+        
+        // Start WebSocket Connection
+        WebSocketService.shared.connect()
         
         // Initialize Haptic Settings
         HapticManager.setupInitial()

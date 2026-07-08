@@ -138,10 +138,12 @@ struct TripCardView: View {
         .background(Color.adaptiveCardBackground)
         .overlay(
             RoundedRectangle(cornerRadius: 20)
-                .stroke(Color.gray.opacity(0.15), lineWidth: 1)
+                .stroke(Color.gray.opacity(0.1), lineWidth: 1)
         )
         .cornerRadius(20)
-        .shadow(color: Color.black.opacity(0.03), radius: 8, x: 0, y: 2)
+        .shadow(color: Color.black.opacity(0.04), radius: 10, x: 0, y: 4)
+        .grayscale(trip.isExpired ? 1.0 : 0.0)
+        .opacity(trip.isExpired ? 0.6 : 1.0)
     }
 }
 

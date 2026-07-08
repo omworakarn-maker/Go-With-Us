@@ -119,7 +119,7 @@ struct ContentView: View {
         }
         .fullScreenCover(isPresented: $authViewModel.needsOnboarding) {
             NavigationStack {
-                OnboardingView()
+                QuestionnaireView(isOnboarding: true)
                     .environmentObject(authViewModel)
             }
         }

@@ -45,8 +45,15 @@ export const rankTripsForUser = (user, trips) => {
 
         // 3. Final Score
         const finalScore = (simScore * 0.7) + categoryBonus;
+        
+        // Calculate Match Percentage (normalize simScore from roughly 0.5-1.0 to 0-100%)
+        // Embeddings usually have high baseline similarity. We'll adjust it so 0.7 is around 50%, 0.9 is 90%
+        let normalizedSim = (simScore - 0.5) * 2; 
+        if (normalizedSim < 0) normalizedSim = 0;
+        if (normalizedSim > 1) normalizedSim = 1;
+        const matchPercentage = Math.round((normalizedSim * 0.8 + categoryBonus) * 100);
 
-        return { ...trip, score: finalScore };
+        return { ...trip, score: finalScore, matchPercentage: Math.min(matchPercentage, 99) };
     })
         .sort((a, b) => b.score - a.score); // เรียงจากมากไปน้อย
 };

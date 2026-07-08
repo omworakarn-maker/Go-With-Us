@@ -260,7 +260,15 @@ struct EditProfileView: View {
                     .foregroundColor(.adaptiveText)
                     
                     if let style = authViewModel.currentUser?.travelStyle {
-                        let tags = [style.budget, style.pace, style.social, style.accommodation].compactMap { $0 }
+                        let tags: [String] = {
+                            var t: [String] = []
+                            if let b = style.budget { t.append("Budget \(b)/10") }
+                            if let a = style.activityStyle { t.append("Activity \(a)/10") }
+                            if let time = style.timeOfDay {
+                                t.append(contentsOf: time.map { $0.capitalized })
+                            }
+                            return t
+                        }()
                         if !tags.isEmpty {
                             FlowLayout(spacing: 8) {
                                 ForEach(tags, id: \.self) { tag in
@@ -438,7 +446,7 @@ struct EditProfileView: View {
                 }
             }
             .sheet(isPresented: $showQuiz) {
-                TravelStyleQuizView()
+                QuestionnaireView()
                     .environmentObject(authViewModel)
             }
         }

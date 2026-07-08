@@ -219,7 +219,9 @@ struct HomeView: View {
                 NotificationView()
             }
             .task {
-                await viewModel.loadTrips()
+                if viewModel.trips.isEmpty {
+                    await viewModel.loadTrips()
+                }
             }
         }
     }

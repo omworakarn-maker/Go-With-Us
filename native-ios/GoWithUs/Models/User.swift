@@ -87,15 +87,38 @@ enum UserRole: String, Codable, Hashable {
     case admin = "admin"
 }
 
-// MARK: - Travel Style
+// MARK: - TravelStyle
 struct TravelStyle: Codable, Hashable {
-    let budget: String?
-    let pace: String?
-    let social: String?
-    let accommodation: String?
-    let food: String?
-    let nightlife: String?
-    let transport: String?
-    let photography: String?
+    var budget: Int?
+    var activityStyle: Int?
+    var timeOfDay: [String]?
+    
+    enum CodingKeys: String, CodingKey {
+        case budget, activityStyle, timeOfDay
+    }
+    
+    init(budget: Int? = nil, activityStyle: Int? = nil, timeOfDay: [String]? = nil) {
+        self.budget = budget
+        self.activityStyle = activityStyle
+        self.timeOfDay = timeOfDay
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try? decoder.container(keyedBy: CodingKeys.self)
+        
+        if let b = try? container?.decodeIfPresent(Int.self, forKey: .budget) {
+            self.budget = b
+        } else if let bStr = try? container?.decodeIfPresent(String.self, forKey: .budget) {
+            self.budget = Int(bStr)
+        }
+        
+        if let a = try? container?.decodeIfPresent(Int.self, forKey: .activityStyle) {
+            self.activityStyle = a
+        } else if let aStr = try? container?.decodeIfPresent(String.self, forKey: .activityStyle) {
+            self.activityStyle = Int(aStr)
+        }
+        
+        self.timeOfDay = try? container?.decodeIfPresent([String].self, forKey: .timeOfDay)
+    }
 }
 

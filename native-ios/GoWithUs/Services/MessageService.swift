@@ -35,16 +35,17 @@ class MessageService {
     }
     
     // MARK: - Send Private Message
-    func sendPrivateMessage(userId: String, content: String) async throws -> Message {
+    func sendPrivateMessage(userId: String, content: String, imageUrl: String? = nil) async throws -> Message {
         struct MessageRequest: Encodable {
             let content: String
+            let imageUrl: String?
         }
         
         struct MessageResponseWrapper: Decodable {
             let message: Message
         }
         
-        let request = MessageRequest(content: content)
+        let request = MessageRequest(content: content, imageUrl: imageUrl)
         
         let response: MessageResponseWrapper = try await APIService.shared.request(
             endpoint: "/messages/private/\(userId)",
@@ -70,16 +71,17 @@ class MessageService {
     }
     
     // MARK: - Send Trip Message
-    func sendTripMessage(tripId: String, content: String) async throws -> Message {
+    func sendTripMessage(tripId: String, content: String, imageUrl: String? = nil) async throws -> Message {
         struct MessageRequest: Encodable {
             let content: String
+            let imageUrl: String?
         }
         
         struct MessageResponseWrapper: Decodable {
             let message: Message
         }
         
-        let request = MessageRequest(content: content)
+        let request = MessageRequest(content: content, imageUrl: imageUrl)
         
         let response: MessageResponseWrapper = try await APIService.shared.request(
             endpoint: "/messages/trips/\(tripId)",
@@ -94,6 +96,15 @@ class MessageService {
     func deleteMessage(messageId: String) async throws {
         let _: MessageResponse = try await APIService.shared.request(
             endpoint: "/messages/\(messageId)",
+            method: .delete
+        )
+    }
+    
+    // MARK: - Delete Conversation (Unmatch)
+    func deleteConversation(userId: String) async throws {
+        struct EmptyResponse: Decodable {}
+        let _: EmptyResponse = try await APIService.shared.request(
+            endpoint: "/messages/private/\(userId)",
             method: .delete
         )
     }

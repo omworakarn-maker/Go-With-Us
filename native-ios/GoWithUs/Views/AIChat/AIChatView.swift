@@ -235,7 +235,8 @@ struct AIChatView: View {
                     budget: draft.budget,
                     maxParticipants: draft.maxParticipants,
                     category: draft.category,
-                    isPublic: true
+                    isPublic: true,
+                    itinerary: draft.itinerary
                 )
                 await MainActor.run {
                     isAutoCreating = false

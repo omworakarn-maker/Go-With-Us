@@ -172,7 +172,11 @@ struct HomeGridView: View {
             }
             .navigationBarHidden(true)
             .sheet(isPresented: $showNotifications) { NotificationView() }
-            .task { await viewModel.loadTrips() }
+            .task { 
+                if viewModel.trips.isEmpty {
+                    await viewModel.loadTrips() 
+                }
+            }
         }
     }
 }

@@ -28,15 +28,14 @@ class FindBuddyViewModel: ObservableObject {
         self.isLoading = false
     }
     
+    @Published var chatPartner: MatchUser? = nil
+    
     @MainActor
-    func swipeUser(targetId: String, status: String) async {
+    func swipeUser(targetUser: MatchUser, status: String) async {
         do {
-            let response = try await MatchService.shared.likeUser(targetId: targetId, status: status)
+            let response = try await MatchService.shared.likeUser(targetId: targetUser.id, status: status)
             if response.isMutual {
-                if let user = matches.first(where: { $0.id == targetId }) {
-                    self.lastMatchedUserName = user.name
-                    self.showMatchCelebration = true
-                }
+                print("Mutual Match with \(targetUser.name)!")
             }
         } catch {
             print("Failed to swipe user: \(error)")

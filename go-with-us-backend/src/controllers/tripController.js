@@ -5,21 +5,23 @@ import { calculateTripCompatibility, calculateTripCompatibilityDetailed } from '
 // Get all trips with filters
 export const getAllTrips = async (req, res, next) => {
     try {
-        /*
         // --- AUTO CLEANUP LOGIC ---
-        // Delete trips ended more than 1 day ago
+        // Delete trips ended more than 3 days ago
         const cleanupDate = new Date();
-        cleanupDate.setDate(cleanupDate.getDate() - 1); // 1 day ago
+        cleanupDate.setDate(cleanupDate.getDate() - 3); // 3 days ago
 
-        await prisma.trip.deleteMany({
-            where: {
-                endDate: {
-                    lt: cleanupDate
+        try {
+            await prisma.trip.deleteMany({
+                where: {
+                    endDate: {
+                        lt: cleanupDate
+                    }
                 }
-            }
-        });
+            });
+        } catch (e) {
+            console.error("Cleanup error:", e);
+        }
         // --------------------------
-        */
 
         const { destination, category, startDate, endDate, type, limit } = req.query;
         const userId = req.user?.userId; // Optional, might be available if using verifyToken optionally or passed
@@ -40,6 +42,18 @@ export const getAllTrips = async (req, res, next) => {
 
         if (endDate) {
             where.endDate = { lte: new Date(endDate) };
+        }
+        
+        const creatorId = req.query.creatorId;
+        if (creatorId) {
+            where.creatorId = creatorId;
+        }
+        
+        const participantId = req.query.participantId;
+        if (participantId) {
+            where.participants = {
+                some: { userId: participantId }
+            };
         }
 
         let orderBy = { createdAt: 'desc' }; // Default: Newest
@@ -75,6 +89,7 @@ export const getAllTrips = async (req, res, next) => {
                         email: true,
                         role: true,
                         profileImage: true,
+                        travelStyle: true
                     },
                 },
                 participants: {
@@ -142,6 +157,7 @@ export const getTripById = async (req, res, next) => {
                         email: true,
                         role: true,
                         profileImage: true,
+                        travelStyle: true
                     },
                 },
                 participants: {

@@ -1,5 +1,6 @@
 import prisma from '../utils/prismaClient.js';
 import { sendPushNotification } from '../utils/firebase.js';
+import { sendMessageToUser } from '../utils/websocket.js';
 
 // Get all messages for a trip (Group Chat)
 export const getTripMessages = async (req, res, next) => {
@@ -57,10 +58,10 @@ export const getTripMessages = async (req, res, next) => {
 export const sendTripMessage = async (req, res, next) => {
     try {
         const { tripId } = req.params;
-        const { content } = req.body;
+        const { content, imageUrl } = req.body;
 
-        if (!content || content.trim() === '') {
-            return res.status(400).json({ error: 'Message content is required.' });
+        if ((!content || content.trim() === '') && !imageUrl) {
+            return res.status(400).json({ error: 'Message content or image is required.' });
         }
 
         // Check if user is a participant
@@ -79,7 +80,8 @@ export const sendTripMessage = async (req, res, next) => {
 
         const message = await prisma.message.create({
             data: {
-                content: content.trim(),
+                content: content?.trim() ?? '',
+                imageUrl: imageUrl,
                 senderId: req.user.userId,
                 tripId,
             },
@@ -136,8 +138,11 @@ export const sendTripMessage = async (req, res, next) => {
             const title = `ข้อความใหม่ในทริป ${trip?.title || 'Group Chat'}`;
             const body = `${req.user.name || 'เพื่อน'}: ${content.substring(0, 50)}`;
 
-            // Create Notifications & Send Push
+            // Create Notifications, Send Push, and Send WebSockets
             await Promise.all(recipients.map(async (recipient) => {
+                // Send WebSocket Realtime Message
+                sendMessageToUser(recipient.id, message);
+                
                 // 1. DB Notification
                 try {
                     await prisma.notification.create({
@@ -248,10 +253,10 @@ export const getPrivateMessages = async (req, res, next) => {
 export const sendPrivateMessage = async (req, res, next) => {
     try {
         const { userId } = req.params; // Recipient ID
-        const { content } = req.body;
+        const { content, imageUrl } = req.body;
 
-        if (!content || content.trim() === '') {
-            return res.status(400).json({ error: 'Message content is required.' });
+        if ((!content || content.trim() === '') && !imageUrl) {
+            return res.status(400).json({ error: 'Message content or image is required.' });
         }
 
         // Check if recipient exists
@@ -266,7 +271,8 @@ export const sendPrivateMessage = async (req, res, next) => {
 
         const message = await prisma.message.create({
             data: {
-                content: content.trim(),
+                content: content?.trim() ?? '',
+                imageUrl: imageUrl,
                 senderId: req.user.userId,
                 receiverId: userId,
             },
@@ -297,6 +303,9 @@ export const sendPrivateMessage = async (req, res, next) => {
         const body = content.length > 50 ? content.substring(0, 50) + '...' : content;
 
         try {
+            // Send WebSocket Realtime Message
+            sendMessageToUser(userId, message);
+
             // 1. DB Notification
             await prisma.notification.create({
                 data: {
@@ -414,6 +423,16 @@ export const deleteConversation = async (req, res, next) => {
                             { senderId: userId, receiverId: currentUserId }
                         ]
                     }
+                ]
+            }
+        });
+
+        // Also delete the match record so they are fully unmatched
+        await prisma.userMatch.deleteMany({
+            where: {
+                OR: [
+                    { likerId: currentUserId, likedId: userId },
+                    { likerId: userId, likedId: currentUserId }
                 ]
             }
         });

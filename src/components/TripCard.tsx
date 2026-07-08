@@ -72,23 +72,16 @@ export const TripCard: React.FC<TripCardProps> = ({ trip, onClick }) => {
         />
 
         {/* Match Score Badge */}
-        {(() => {
-          const score = trip.matchScore !== undefined 
-            ? trip.matchScore 
-            : 40 + (Math.abs(trip.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % 61);
-
-          const tier =
-            score >= 76 ? { bg: 'bg-green-50', text: 'text-green-700' } :
-            score >= 51 ? { bg: 'bg-blue-50', text: 'text-blue-700' } :
-            score >= 26 ? { bg: 'bg-amber-50', text: 'text-amber-700' } :
-                          { bg: 'bg-red-50', text: 'text-red-700' };
-
-          return (
-            <div className={`absolute top-1.5 left-1.5 md:top-2 md:left-2 ${tier.bg} ${tier.text} px-1.5 py-0.5 md:px-2 md:py-1 rounded-md md:rounded-lg text-[11px] md:text-xs font-black shadow-sm border border-white/50 flex items-center z-10 backdrop-blur-sm bg-opacity-90`}>
-              <span>{score}% Match</span>
-            </div>
-          );
-        })()}
+        {trip.matchScore !== undefined && (
+          <div className={`absolute top-1.5 left-1.5 md:top-2 md:left-2 ${
+            trip.matchScore >= 76 ? 'bg-green-50 text-green-700' :
+            trip.matchScore >= 51 ? 'bg-blue-50 text-blue-700' :
+            trip.matchScore >= 26 ? 'bg-amber-50 text-amber-700' :
+            'bg-red-50 text-red-700'
+          } px-1.5 py-0.5 md:px-2 md:py-1 rounded-md md:rounded-lg text-[11px] md:text-xs font-black shadow-sm border border-white/50 flex items-center z-10 backdrop-blur-sm bg-opacity-90`}>
+            <span>{trip.matchScore}% Match</span>
+          </div>
+        )}
 
         {/* Category Badge */}
         {trip.category && (

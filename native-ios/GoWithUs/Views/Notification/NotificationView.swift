@@ -212,14 +212,17 @@ class NotificationViewModel: ObservableObject {
     }
     
     func deleteNotification(id: String) async {
+        // 1. ลบจาก UI ทันที (Optimistic Delete) เพื่อป้องกันแอปเด้งตอน Swipe
+        await MainActor.run {
+            withAnimation {
+                notifications.removeAll(where: { $0.id == id })
+            }
+        }
+        LocalNotificationStore.shared.remove(id: id)
+        
+        // 2. ลบจาก Server
         do {
             try await NotificationService.shared.deleteNotification(id: id)
-            await MainActor.run {
-                withAnimation {
-                    notifications.removeAll(where: { $0.id == id })
-                }
-            }
-            LocalNotificationStore.shared.remove(id: id)
         } catch {
             print("Error deleting notification: \(error)")
         }

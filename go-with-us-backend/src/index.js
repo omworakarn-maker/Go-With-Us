@@ -55,11 +55,20 @@ app.use('/api/ai', aiRoutes);
 // Error handler (must be last)
 app.use(errorHandler);
 
+import { createServer } from 'http';
+import { initWebSocketServer } from './utils/websocket.js';
+
 // Start server if not running on Vercel
 if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
-  app.listen(port, '0.0.0.0', () => {
+  const server = createServer(app);
+  
+  // Initialize WebSocket server
+  initWebSocketServer(server);
+  
+  server.listen(port, '0.0.0.0', () => {
     console.log(`🚀 Server is running on port ${port}`);
     console.log(`📍 http://localhost:${port}`);
+    console.log(`🔌 WebSocket server is active`);
   });
 }
 

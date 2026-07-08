@@ -10,6 +10,8 @@ struct Message: Codable, Identifiable, Equatable {
     let createdAt: Date
     let sender: ChatUser?
     let recipient: ChatUser?
+    var isRead: Bool?
+    var imageUrl: String?
     
     // Equatable for UI updates
     static func == (lhs: Message, rhs: Message) -> Bool {

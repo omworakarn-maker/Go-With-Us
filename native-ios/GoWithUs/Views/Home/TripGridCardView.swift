@@ -19,6 +19,30 @@ struct TripGridCardView: View {
                         .clipped()
                 }
                 
+                // Match Score Overlay
+                if let score = trip.matchScore {
+                    VStack {
+                        Spacer()
+                        HStack {
+                            Spacer()
+                            Text("เข้ากันได้ \(score)%")
+                                .font(.system(size: 8, weight: .black))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 4)
+                                .background(
+                                    LinearGradient(
+                                        colors: [Color.green.opacity(0.9), Color.blue.opacity(0.9)],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .cornerRadius(8)
+                                .padding(8)
+                        }
+                    }
+                }
+                
                 // Category Badge (Mini)
                 Text(trip.category.rawValue)
                     .font(.system(size: 8, weight: .bold))
@@ -73,6 +97,8 @@ struct TripGridCardView: View {
         )
         .cornerRadius(20)
         .shadow(color: Color.black.opacity(0.03), radius: 8, x: 0, y: 2)
+        .grayscale(trip.isExpired ? 1.0 : 0.0)
+        .opacity(trip.isExpired ? 0.6 : 1.0)
     }
 }
 

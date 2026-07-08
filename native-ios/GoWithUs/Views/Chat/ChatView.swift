@@ -113,9 +113,13 @@ struct ChatView: View {
 
             .refreshable {
                 await viewModel.loadConversations()
+                await viewModel.loadMutualMatches()
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("NewNotificationReceived"))) { _ in
-                Task { await viewModel.loadConversations() }
+                Task { 
+                    await viewModel.loadConversations()
+                    await viewModel.loadMutualMatches()
+                }
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("NewMessageReceived"))) { _ in
                 Task { await viewModel.loadConversations() }

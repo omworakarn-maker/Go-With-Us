@@ -86,52 +86,66 @@ const mapTripBudgetToRating = (budgetVal) => {
 
 // Helper to calculate exact user-to-trip compatibility percentage
 export const calculateTripCompatibility = (user, trip) => {
+    const result = calculateTripCompatibilityDetailed(user, trip);
+    return result.total;
+};
+
+// Detailed version that returns per-factor scores for UI breakdown
+export const calculateTripCompatibilityDetailed = (user, trip) => {
     const styleU = normalizeTravelStyle(user.travelStyle);
+    const styleC = normalizeTravelStyle(trip.creator && trip.creator.travelStyle ? trip.creator.travelStyle : null);
 
     let scores = [];
+    const breakdown = {
+        budget: null,
+        activityStyle: null,
+        category: null,
+        timeOfDay: null
+    };
 
-    // 1. Budget — always calculate from actual trip budget (THB), not the default budgetRating
-    // mapTripBudgetToRating converts actual THB amount to 1-10 scale
+    // 1. Budget — always calculate from actual trip budget (THB)
     const tripBudgetRating = mapTripBudgetToRating(trip.budget);
     if (styleU && styleU.budget !== null) {
         const score = 1.0 - (Math.abs(styleU.budget - tripBudgetRating) / 9.0);
         scores.push(score);
+        breakdown.budget = Math.round(score * 100);
     }
 
-    // 2. Activity Style — use trip.activityStyle only if explicitly set (not default 5)
-    // A stored activityStyle of 5 = default, so skip it to avoid false equality
-    const styleC = normalizeTravelStyle(trip.creator && trip.creator.travelStyle ? trip.creator.travelStyle : null);
+    // 2. Activity Style — skip if trip uses default (5)
     const hasExplicitPace = trip.activityStyle != null && trip.activityStyle !== 5;
     const tripPace = hasExplicitPace ? trip.activityStyle : (styleC ? styleC.activityStyle : null);
     if (styleU && styleU.activityStyle !== null && tripPace !== null) {
         const score = 1.0 - (Math.abs(styleU.activityStyle - tripPace) / 9.0);
         scores.push(score);
+        breakdown.activityStyle = Math.round(score * 100);
     }
 
-    // 3. Time of Day — only use if trip has explicitly set timeOfDay
+    // 3. Time of Day
     const tripTime = (trip.timeOfDay && trip.timeOfDay.length > 0) ? trip.timeOfDay : (styleC ? styleC.timeOfDay : []);
     if (styleU && styleU.timeOfDay && styleU.timeOfDay.length > 0 && tripTime && tripTime.length > 0) {
         const intersect = styleU.timeOfDay.filter(x => tripTime.includes(x)).length;
         const union = styleU.timeOfDay.length + tripTime.length - intersect;
         const score = union > 0 ? (intersect / union) : 0.0;
         scores.push(score);
+        breakdown.timeOfDay = Math.round(score * 100);
     }
 
-    // 4. Category — check if trip category matches user interests
+    // 4. Category
     const userInterests = Array.isArray(user.interests) ? user.interests : [];
     if (trip.category) {
         if (userInterests.includes(trip.category)) {
             scores.push(1.0);
+            breakdown.category = 100;
         } else if (userInterests.length > 0) {
             scores.push(0.0);
+            breakdown.category = 0;
         }
     }
 
-    if (scores.length === 0) return 50;
-
-    const finalScore = scores.reduce((sum, s) => sum + s, 0) / scores.length;
-    return Math.round(finalScore * 100);
+    const total = scores.length === 0 ? 50 : Math.round(scores.reduce((sum, s) => sum + s, 0) / scores.length * 100);
+    return { total, breakdown };
 };
+
 
 
 // Match Buddies (Find similar users)

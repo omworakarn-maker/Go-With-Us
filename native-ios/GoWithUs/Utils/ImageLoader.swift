@@ -10,6 +10,11 @@ class ImageLoader: ObservableObject {
         guard let urlString = urlString, !urlString.isEmpty else {
             return
         }
+        // Check cache first
+        if let cachedImage = Self.cache.object(forKey: urlString as NSString) {
+            self.image = cachedImage
+            return
+        }
         
         // Check for Base64 string (either with data:image prefix or pure base64)
         var possibleBase64 = urlString
@@ -19,19 +24,20 @@ class ImageLoader: ObservableObject {
         
         // If it's a very long string without http/https, it's likely pure base64
         if !possibleBase64.hasPrefix("http") && possibleBase64.count > 100 {
-            let cleaned = possibleBase64.replacingOccurrences(of: " ", with: "")
-                                        .replacingOccurrences(of: "\n", with: "")
-                                        .replacingOccurrences(of: "\r", with: "")
-            if let data = Data(base64Encoded: cleaned, options: .ignoreUnknownCharacters),
-               let uiImage = UIImage(data: data) {
-                self.image = uiImage
-                return
+            DispatchQueue.global(qos: .userInitiated).async {
+                let cleaned = possibleBase64.replacingOccurrences(of: " ", with: "")
+                                            .replacingOccurrences(of: "\n", with: "")
+                                            .replacingOccurrences(of: "\r", with: "")
+                if let data = Data(base64Encoded: cleaned, options: .ignoreUnknownCharacters),
+                   let uiImage = UIImage(data: data) {
+                    
+                    Self.cache.setObject(uiImage, forKey: urlString as NSString)
+                    
+                    DispatchQueue.main.async { [weak self] in
+                        self?.image = uiImage
+                    }
+                }
             }
-        }
-        
-        // Check cache
-        if let cachedImage = Self.cache.object(forKey: urlString as NSString) {
-            self.image = cachedImage
             return
         }
         

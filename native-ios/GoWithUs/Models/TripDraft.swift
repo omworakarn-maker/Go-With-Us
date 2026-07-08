@@ -10,4 +10,5 @@ struct TripDraft: Codable {
     let maxParticipants: Int
     let category: String
     let tags: [String]?
+    let itinerary: [DayPlan]?
 }

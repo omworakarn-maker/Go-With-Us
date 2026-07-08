@@ -1,11 +1,23 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { matchAPI, MatchUser } from "../services/matchService";
+import { messagesAPI } from "../services/api";
 import { UserCircleIcon, ChatBubbleLeftIcon, ArrowPathIcon, SparklesIcon } from "@heroicons/react/24/outline";
 
 export const FindBuddy: React.FC = () => {
     const [matches, setMatches] = useState<MatchUser[]>([]);
     const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
+
+    const handleGreet = async (userId: string) => {
+        try {
+            await matchAPI.likeUser(userId, 'like');
+            // Visual feedback (like a toast or button state change) can go here
+            console.log("Liked user:", userId);
+        } catch (error) {
+            console.error("Failed to like user:", error);
+        }
+    };
 
     useEffect(() => {
         fetchMatches();
@@ -107,7 +119,10 @@ export const FindBuddy: React.FC = () => {
                                         </div>
                                         
                                         {/* Action */}
-                                        <button className="mt-auto w-full py-2.5 bg-black text-white rounded-2xl text-xs font-bold hover:bg-gray-800 transition-colors shadow-md active:scale-95 flex items-center justify-center gap-2 group-hover:bg-gray-800">
+                                        <button 
+                                            onClick={() => handleGreet(user.id)}
+                                            className="mt-auto w-full py-2.5 bg-black text-white rounded-2xl text-xs font-bold hover:bg-gray-800 transition-colors shadow-md active:scale-95 flex items-center justify-center gap-2 group-hover:bg-gray-800"
+                                        >
                                             <ChatBubbleLeftIcon className="w-4 h-4" /> ทักทาย
                                         </button>
                                     </div>

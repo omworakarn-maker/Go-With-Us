@@ -43,6 +43,7 @@ struct CreateTripView: View {
             _description = State(initialValue: draft.description)
             _budget = State(initialValue: String(draft.budget))
             _maxParticipants = State(initialValue: String(draft.maxParticipants))
+            _itinerary = State(initialValue: draft.itinerary)
             
             // Date Parsing
             let formatter = DateFormatter()

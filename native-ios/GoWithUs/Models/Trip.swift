@@ -107,6 +107,13 @@ struct Trip: Codable, Identifiable, Hashable {
         currentParticipants >= maxParticipants
     }
     
+    var isExpired: Bool {
+        if let endDate = endDate {
+            return endDate < Date()
+        }
+        return startDate < Date()
+    }
+    
     var formattedDateRange: String {
         let formatter = DateFormatter()
         formatter.dateFormat = "d MMM"

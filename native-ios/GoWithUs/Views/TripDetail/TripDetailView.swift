@@ -363,7 +363,7 @@ struct TripDetailView: View {
                 }
                 
                 // Factor list
-                VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: 14) {
                     let bd = trip.matchBreakdown
                     compatibilityRow(icon: "banknote", label: "งบประมาณ", color: Color(hex: "#3B82F6"), score: bd?.budget)
                     compatibilityRow(icon: "figure.walk", label: "ไลฟ์สไตล์", color: Color(hex: "#8B5CF6"), score: bd?.activityStyle)
@@ -385,25 +385,40 @@ struct TripDetailView: View {
     
     @ViewBuilder
     private func compatibilityRow(icon: String, label: String, color: Color, score: Int?) -> some View {
-        HStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundColor(color)
-                .frame(width: 18)
-            Text(label)
-                .font(.system(size: 12, weight: .medium))
-                .foregroundColor(.adaptiveSecondaryText)
-            
-            Spacer(minLength: 8)
+        VStack(spacing: 6) {
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(color)
+                    .frame(width: 18)
+                Text(label)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.adaptiveSecondaryText)
+                
+                Spacer(minLength: 8)
+                
+                if let s = score {
+                    Text("\(s)%")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(scoreColor(score: s))
+                } else {
+                    Text("ไม่มีข้อมูล")
+                        .font(.system(size: 10))
+                        .foregroundColor(.gray.opacity(0.5))
+                }
+            }
             
             if let s = score {
-                Text("\(s)%")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(scoreColor(score: s))
-            } else {
-                Text("-")
-                    .font(.system(size: 12))
-                    .foregroundColor(.gray.opacity(0.5))
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(Color.gray.opacity(0.15))
+                            .frame(height: 4)
+                        Capsule().fill(scoreColor(score: s))
+                            .frame(width: geo.size.width * CGFloat(s) / 100.0, height: 4)
+                    }
+                }
+                .frame(height: 4)
+                .padding(.leading, 26)
             }
         }
     }

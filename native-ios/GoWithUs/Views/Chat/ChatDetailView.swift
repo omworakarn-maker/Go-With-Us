@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 
 struct ChatDetailView: View {
     @StateObject private var viewModel = ChatViewModel()
@@ -6,9 +7,11 @@ struct ChatDetailView: View {
     let tripId: String? // If set, it's a group chat
     let partnerId: String? // If set, it's a private chat
     @State private var messageText = ""
-    @State private var pollingTask: Task<Void, Never>?
     @State private var showPartnerProfile = false
     @State private var partnerUser: User? = nil
+    @State private var selectedItem: PhotosPickerItem? = nil
+    @State private var selectedImageData: Data? = nil
+    @State private var isSendingImage = false
     @Environment(\.dismiss) private var dismiss
     
     init(chatTitle: String, tripId: String? = nil, partnerId: String? = nil, initialPartnerUser: User? = nil) {
@@ -154,7 +157,51 @@ struct ChatDetailView: View {
             
             // Input Bar
             VStack(spacing: 0) {
+                if let imageData = selectedImageData, let uiImage = UIImage(data: imageData) {
+                    HStack {
+                        ZStack(alignment: .topTrailing) {
+                            Image(uiImage: uiImage)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 80, height: 80)
+                                .cornerRadius(8)
+                                .clipped()
+                            
+                            Button(action: {
+                                selectedImageData = nil
+                                selectedItem = nil
+                            }) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundColor(.gray)
+                                    .background(Color.white.clipShape(Circle()))
+                            }
+                            .offset(x: 8, y: -8)
+                        }
+                        Spacer()
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 8)
+                }
+                
                 HStack(alignment: .bottom, spacing: 12) {
+                    PhotosPicker(selection: $selectedItem, matching: .images) {
+                        Image(systemName: "photo")
+                            .font(.system(size: 24))
+                            .foregroundColor(.gray)
+                    }
+                    .padding(.bottom, 10)
+                    .onChange(of: selectedItem) { _, newItem in
+                        Task {
+                            if let data = try? await newItem?.loadTransferable(type: Data.self) {
+                                // Compress image for base64
+                                if let uiImage = UIImage(data: data),
+                                   let compressedData = uiImage.jpegData(compressionQuality: 0.5) {
+                                    selectedImageData = compressedData
+                                }
+                            }
+                        }
+                    }
+
                     TextField("พิมพ์ข้อความ...", text: $messageText, axis: .vertical)
                         .lineLimit(1...5)
                         .padding(.horizontal, 16)
@@ -169,20 +216,37 @@ struct ChatDetailView: View {
 
                     Button(action: {
                         let content = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
-                        guard !content.isEmpty else { return }
+                        let base64Image = selectedImageData?.base64EncodedString()
+                        
+                        guard !content.isEmpty || base64Image != nil else { return }
+                        
+                        isSendingImage = true
                         messageText = ""
-                        Task { await sendMessageWithContent(content) }
+                        selectedItem = nil
+                        let dataToSend = selectedImageData
+                        selectedImageData = nil
+                        
+                        Task {
+                            let img64 = dataToSend?.base64EncodedString()
+                            await sendMessage(content: content, imageUrl: img64)
+                            isSendingImage = false
+                        }
                     }) {
-                        Image(systemName: "paperplane.fill")
-                            .font(.system(size: 18, weight: .bold))
-                            .foregroundColor(.white)
-                            .frame(width: 44, height: 44)
-                            .background(messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 
-                                        Color.gray.opacity(0.3) : Color.appPrimary) // Use appPrimary instead of black
-                            .clipShape(Circle())
-                            .shadow(color: messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? .clear : Color.appPrimary.opacity(0.3), radius: 4, x: 0, y: 2)
+                        if isSendingImage {
+                            ProgressView()
+                                .frame(width: 44, height: 44)
+                        } else {
+                            Image(systemName: "paperplane.fill")
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundColor(.white)
+                                .frame(width: 44, height: 44)
+                                .background((messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && selectedImageData == nil) ? 
+                                            Color.gray.opacity(0.3) : Color.appPrimary)
+                                .clipShape(Circle())
+                                .shadow(color: (messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && selectedImageData == nil) ? .clear : Color.appPrimary.opacity(0.3), radius: 4, x: 0, y: 2)
+                        }
                     }
-                    .disabled(messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .disabled(messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && selectedImageData == nil || isSendingImage)
                     .padding(.bottom, 2)
                 }
                 .padding(.horizontal, 16)
@@ -210,24 +274,19 @@ struct ChatDetailView: View {
                         partnerUser = user
                     }
                 }
-            }
-            
-            // Start polling for new messages every 1.5 seconds
-            pollingTask = Task {
-                while !Task.isCancelled {
-                    try? await Task.sleep(nanoseconds: 1_500_000_000)
-                    
-                    if let tripId = tripId {
-                        await viewModel.refreshTripMessages(tripId: tripId)
-                    } else if let partnerId = partnerId {
-                        await viewModel.refreshPrivateMessages(userId: partnerId)
-                    }
+            // WebSocket automatically pushes new messages via NSNotification "WebSocketNewMessage"
+            // No more polling required!
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("WebSocketNewMessage"))) { notification in
+            if let message = notification.userInfo?["message"] as? Message {
+                // Ensure the message belongs to this chat before appending
+                let isForThisChat = (tripId != nil && message.tripId == tripId) ||
+                                    (partnerId != nil && (message.senderId == partnerId || message.recipientId == partnerId))
+                
+                if isForThisChat && !viewModel.messages.contains(where: { $0.id == message.id }) {
+                    viewModel.messages.append(message)
                 }
             }
-        }
-        .onDisappear {
-            pollingTask?.cancel()
-            pollingTask = nil
         }
         .sheet(isPresented: $showPartnerProfile) {
             if let user = partnerUser {
@@ -236,26 +295,11 @@ struct ChatDetailView: View {
         }
     }
     
-    private func sendMessage() {
-        guard !messageText.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-        
-        let content = messageText
-        messageText = ""
-        
-        Task {
-            if let tripId = tripId {
-                await viewModel.sendTripMessage(tripId: tripId, content: content)
-            } else if let partnerId = partnerId {
-                await viewModel.sendPrivateMessage(userId: partnerId, content: content)
-            }
-        }
-    }
-
-    private func sendMessageWithContent(_ content: String) async {
+    private func sendMessage(content: String, imageUrl: String?) async {
         if let tripId = tripId {
-            await viewModel.sendTripMessage(tripId: tripId, content: content)
+            await viewModel.sendTripMessage(tripId: tripId, content: content, imageUrl: imageUrl)
         } else if let partnerId = partnerId {
-            await viewModel.sendPrivateMessage(userId: partnerId, content: content)
+            await viewModel.sendPrivateMessage(userId: partnerId, content: content, imageUrl: imageUrl)
         }
     }
 }
@@ -306,22 +350,37 @@ struct MessageBubble: View {
                     }
                 }
                 
-                Text(message.content)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                    .background(
-                        isCurrentUser ?
-                        AnyShapeStyle(Color.black) :
-                            AnyShapeStyle(Color.adaptiveCardBackground)
-                    )
-                    .foregroundColor(isCurrentUser ? .white : .adaptiveText)
-                    .clipShape(
-                        RoundedCorner(
-                            radius: 20,
-                            corners: isCurrentUser ? [.topLeft, .topRight, .bottomLeft] : [.topLeft, .topRight, .bottomRight]
+                
+                if let base64String = message.imageUrl,
+                   let data = Data(base64Encoded: base64String),
+                   let uiImage = UIImage(data: data) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(maxWidth: 220)
+                        .cornerRadius(12)
+                        .padding(.horizontal, isCurrentUser ? 0 : 8)
+                        .padding(.vertical, 4)
+                }
+
+                if !message.content.isEmpty {
+                    Text(message.content)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .background(
+                            isCurrentUser ?
+                            AnyShapeStyle(Color.black) :
+                                AnyShapeStyle(Color.adaptiveCardBackground)
                         )
-                    )
-                    .shadow(color: Color.black.opacity(0.04), radius: 2, x: 0, y: 1)
+                        .foregroundColor(isCurrentUser ? .white : .adaptiveText)
+                        .clipShape(
+                            RoundedCorner(
+                                radius: 20,
+                                corners: isCurrentUser ? [.topLeft, .topRight, .bottomLeft] : [.topLeft, .topRight, .bottomRight]
+                            )
+                        )
+                        .shadow(color: Color.black.opacity(0.04), radius: 2, x: 0, y: 1)
+                }
             }
             
             if !isCurrentUser {
@@ -333,10 +392,21 @@ struct MessageBubble: View {
                 
                 Spacer()
             } else {
-                let senderUser = message.sender.map { chatUser in
-                    User(id: chatUser.id, name: chatUser.name, email: chatUser.email, profileImage: chatUser.profileImage ?? chatUser.avatarUrl)
+                VStack(alignment: .trailing, spacing: 2) {
+                    // Current User Avatar 
+                    let senderUser = message.sender.map { chatUser in
+                        User(id: chatUser.id, name: chatUser.name, email: chatUser.email, profileImage: chatUser.profileImage ?? chatUser.avatarUrl)
+                    }
+                    UserAvatarView(user: senderUser, size: 32)
+                    
+                    // Read receipt
+                    if message.isRead == true {
+                        Text("อ่านแล้ว")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(.gray)
+                            .padding(.top, 2)
+                    }
                 }
-                UserAvatarView(user: senderUser, size: 32)
             }
         }
     }

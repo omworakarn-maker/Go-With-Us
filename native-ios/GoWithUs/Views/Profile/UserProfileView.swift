@@ -203,53 +203,7 @@ struct UserProfileView: View {
                                 .shadow(color: .black.opacity(0.03), radius: 6, x: 0, y: 2)
                             }
                             
-                            // Travel Style
-                            if let style = displayUser.travelStyle {
-                                VStack(alignment: .leading, spacing: 10) {
-                                    HStack(spacing: 6) {
-                                        Image(systemName: "airplane")
-                                            .font(.system(size: 12))
-                                            .foregroundColor(Color(hex: "#0EA5E9"))
-                                        Text("สไตล์การเดินทาง")
-                                            .font(.system(size: 12, weight: .bold))
-                                            .foregroundColor(.adaptiveSecondaryText)
-                                            .textCase(.uppercase)
-                                    }
-                                    
-                                    let tags = [
-                                        style.budget, style.pace, style.social, style.accommodation,
-                                        style.food, style.nightlife, style.transport, style.photography
-                                    ].compactMap { $0?.replacingOccurrences(of: "_", with: " ").capitalized }
-                                    
-                                    if !tags.isEmpty {
-                                        FlowLayout(spacing: 8) {
-                                            ForEach(tags, id: \.self) { tag in
-                                                Text(tag)
-                                                    .font(.system(size: 12, weight: .bold))
-                                                    .foregroundColor(.white)
-                                                    .padding(.horizontal, 12)
-                                                    .padding(.vertical, 6)
-                                                    .background(
-                                                        LinearGradient(
-                                                            colors: [Color.appPrimary, Color.appSecondary],
-                                                            startPoint: .leading, endPoint: .trailing
-                                                        )
-                                                    )
-                                                    .cornerRadius(20)
-                                            }
-                                        }
-                                    } else {
-                                        Text("ยังไม่ได้ระบุสไตล์การเดินทาง")
-                                            .font(.system(size: 14))
-                                            .foregroundColor(.adaptiveSecondaryText)
-                                    }
-                                }
-                                .padding(16)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .background(Color.adaptiveCardBackground)
-                                .cornerRadius(16)
-                                .shadow(color: .black.opacity(0.03), radius: 6, x: 0, y: 2)
-                            }
+                            // Travel Style section removed
                             
                             // Interests
                             if let interests = displayUser.interests, !interests.isEmpty {

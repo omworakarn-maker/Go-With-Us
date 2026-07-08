@@ -125,6 +125,7 @@ model Message {
   tripId     String?  @map("trip_id") // For group chat
   createdAt  DateTime @default(now()) @map("created_at")
   isRead     Boolean  @default(false) @map("is_read")
+  imageUrl   String?  @db.Text
   
   // Relations
   sender   User  @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
