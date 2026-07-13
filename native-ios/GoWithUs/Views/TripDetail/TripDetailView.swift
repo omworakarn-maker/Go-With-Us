@@ -371,9 +371,6 @@ struct TripDetailView: View {
                     compatibilityRow(icon: "figure.walk", label: "ไลฟ์สไตล์", color: Color(hex: "#8B5CF6"), score: bd?.activityStyle)
                     compatibilityRow(icon: "tag.fill", label: "ความชอบ", color: Color(hex: "#F59E0B"), score: bd?.category)
                     compatibilityRow(icon: "clock.fill", label: "ช่วงเวลา", color: Color(hex: "#EF4444"), score: bd?.timeOfDay)
-                    if let groupScore = bd?.groupMatch {
-                        compatibilityRow(icon: "person.2.fill", label: "ผู้ร่วมทริป", color: Color(hex: "#10B981"), score: groupScore)
-                    }
                 }
             }
             .padding(18)
@@ -463,10 +460,8 @@ struct TripDetailView: View {
             VStack(spacing: 6) {
                 ZStack {
                     Circle()
-                        .fill(LinearGradient(colors: [Color.appPrimary, Color.appSecondary],
-                                             startPoint: .topLeading, endPoint: .bottomTrailing))
+                        .fill(Color.black)
                         .frame(width: 40, height: 40)
-                        .shadow(color: Color.appPrimary.opacity(0.3), radius: 6, x: 0, y: 3)
                     Image(systemName: "banknote")
                         .font(.system(size: 17, weight: .medium))
                         .foregroundColor(.white)
@@ -487,10 +482,8 @@ struct TripDetailView: View {
             VStack(spacing: 6) {
                 ZStack {
                     Circle()
-                        .fill(LinearGradient(colors: [Color.appPrimary, Color.appSecondary],
-                                             startPoint: .topLeading, endPoint: .bottomTrailing))
+                        .fill(Color.black)
                         .frame(width: 40, height: 40)
-                        .shadow(color: Color.appPrimary.opacity(0.3), radius: 6, x: 0, y: 3)
                     Image(systemName: "person.2")
                         .font(.system(size: 17, weight: .medium))
                         .foregroundColor(.white)
@@ -511,10 +504,8 @@ struct TripDetailView: View {
             VStack(spacing: 6) {
                 ZStack {
                     Circle()
-                        .fill(LinearGradient(colors: [Color.appPrimary, Color.appSecondary],
-                                             startPoint: .topLeading, endPoint: .bottomTrailing))
+                        .fill(Color.black)
                         .frame(width: 40, height: 40)
-                        .shadow(color: Color.appPrimary.opacity(0.3), radius: 6, x: 0, y: 3)
                     Image(systemName: "calendar")
                         .font(.system(size: 17, weight: .medium))
                         .foregroundColor(.white)

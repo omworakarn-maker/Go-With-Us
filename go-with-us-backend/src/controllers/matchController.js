@@ -130,13 +130,15 @@ export const calculateTripCompatibilityDetailed = (user, trip) => {
         groupMatch: null
     };
 
-    // 1. Budget — always calculate from actual trip budget (THB) (Weight = 3)
+    // 1. Budget — calculate from THB (Weight = 3)
     if (styleU && styleU.budget !== null) {
-        const tripBudgetRating = trip.budget ? mapBudgetToRating(trip.budget) : 5;
-        const diff = Math.abs(styleU.budget - tripBudgetRating);
+        const userBudgetTHB = mapRatingToBudget(styleU.budget);
+        const tripBudgetTHB = trip.budget || 1000;
+        const diffTHB = Math.abs(userBudgetTHB - tripBudgetTHB);
+        
         let score = 1.0;
-        if (diff > 2) {
-            score = 1.0 - ((diff - 2) / 7.0);
+        if (diffTHB > 500) {
+            score = Math.max(0.0, 1.0 - ((diffTHB - 500) / 3500.0));
         }
         
         totalScore += score * 3;
@@ -175,7 +177,7 @@ export const calculateTripCompatibilityDetailed = (user, trip) => {
             totalScore += 1.0;
             totalWeight += 1;
             breakdown.category = 100;
-        } else if (userInterests.length > 0) {
+        } else {
             totalScore += 0.0;
             totalWeight += 1;
             breakdown.category = 0;
@@ -184,26 +186,7 @@ export const calculateTripCompatibilityDetailed = (user, trip) => {
 
     const tripTotal = totalWeight === 0 ? 0 : Math.round((totalScore / totalWeight) * 100);
 
-    // 5. Group Match Score (Participants)
-    let groupScore = null;
-    let finalTotal = tripTotal;
-
-    if (trip.participants && trip.participants.length > 0) {
-        const participantScores = trip.participants
-            .filter(p => p.user && p.user.id !== user.id) // exclude self
-            .map(p => calculateDetailedCompatibility(user, p.user))
-            .filter(score => score !== null); // exclude participants with empty profiles
-        
-        if (participantScores.length > 0) {
-            groupScore = Math.round(participantScores.reduce((sum, s) => sum + s, 0) / participantScores.length);
-            // Blend Trip Match and Group Match (50/50)
-            finalTotal = Math.round((tripTotal * 0.5) + (groupScore * 0.5));
-        }
-    }
-    
-    breakdown.groupMatch = groupScore;
-    
-    return { total: finalTotal, breakdown, tripMatch: tripTotal };
+    return { total: tripTotal, breakdown, tripMatch: tripTotal };
 };
 
 

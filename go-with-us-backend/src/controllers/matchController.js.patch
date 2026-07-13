@@ -1,0 +1,72 @@
+--- go-with-us-backend/src/controllers/matchController.js
++++ go-with-us-backend/src/controllers/matchController.js
+@@ -127,21 +127,20 @@
+         activityStyle: null,
+         category: null,
+-        timeOfDay: null,
+-        groupMatch: null
++        timeOfDay: null
+     };
+ 
+     // 1. Budget — always calculate from actual trip budget (THB) (Weight = 3)
+     if (styleU && styleU.budget !== null) {
+-        const tripBudgetRating = trip.budget ? mapBudgetToRating(trip.budget) : 5;
+-        const diff = Math.abs(styleU.budget - tripBudgetRating);
+-        let score = 1.0;
+-        if (diff > 2) {
+-            score = 1.0 - ((diff - 2) / 7.0);
+-        }
++        const userBudgetTHB = mapRatingToBudget(styleU.budget);
++        const tripBudgetTHB = trip.budget || 1000;
++        const diffTHB = Math.abs(userBudgetTHB - tripBudgetTHB);
+         
++        let score = 1.0;
++        if (diffTHB > 500) {
++            // Drop to 0% if diff is 4000
++            score = Math.max(0.0, 1.0 - ((diffTHB - 500) / 3500.0));
++        }
++
+         totalScore += score * 3;
+         totalWeight += 3;
+         breakdown.budget = Math.round(score * 100);
+@@ -176,34 +175,22 @@
+             totalScore += 1.0;
+             totalWeight += 1;
+             breakdown.category = 100;
+-        } else if (userInterests.length > 0) {
++        } else {
+             totalScore += 0.0;
+             totalWeight += 1;
+             breakdown.category = 0;
+         }
+     }
+ 
+     const tripTotal = totalWeight === 0 ? 0 : Math.round((totalScore / totalWeight) * 100);
+ 
+-    // 5. Group Match Score (Participants)
+-    let groupScore = null;
+-    let finalTotal = tripTotal;
+-
+-    if (trip.participants && trip.participants.length > 0) {
+-        const participantScores = trip.participants
+-            .filter(p => p.user && p.user.id !== user.id) // exclude self
+-            .map(p => calculateDetailedCompatibility(user, p.user))
+-            .filter(score => score !== null); // exclude participants with empty profiles
+-        
+-        if (participantScores.length > 0) {
+-            groupScore = Math.round(participantScores.reduce((sum, s) => sum + s, 0) / participantScores.length);
+-            // Blend Trip Match and Group Match (50/50)
+-            finalTotal = Math.round((tripTotal * 0.5) + (groupScore * 0.5));
+-        }
+-    }
+-
+     return {
+-        total: finalTotal,
+-        breakdown: {
+-            ...breakdown,
+-            groupMatch: groupScore
+-        }
++        total: tripTotal,
++        breakdown
+     };
+ };
