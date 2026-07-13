@@ -25,6 +25,16 @@ struct CreateTripView: View {
     @State private var itinerary: [DayPlan]?
     @State private var showDeleteAlert = false
     @State private var specificLocation = ""
+    @State private var activityStyle: Double = 5.0
+    @State private var timeOfDay: [String] = []
+    @State private var aiPrompt: String = ""
+    
+    let timeSlots = [
+        ("morning", "เช้า", "ตื่นแต่เช้า สูดอากาศสด"),
+        ("noon", "กลางวัน", "ท่องเที่ยวระหว่างวัน"),
+        ("evening", "เย็น", "ชมวิว ดูพระอาทิตย์ตก"),
+        ("night", "มืด/ราตรี", "แฮงเอาต์ ปาร์ตี้")
+    ]
     
 
     
@@ -62,6 +72,14 @@ struct CreateTripView: View {
             if let draftTags = draft.tags {
                 _tags = State(initialValue: draftTags)
             }
+            
+            if let draftActivityStyle = draft.activityStyle {
+                _activityStyle = State(initialValue: Double(draftActivityStyle))
+            }
+            
+            if let draftTimeOfDay = draft.timeOfDay {
+                _timeOfDay = State(initialValue: draftTimeOfDay)
+            }
         }
     }
     
@@ -81,6 +99,8 @@ struct CreateTripView: View {
         _imageUrl = State(initialValue: trip.imageUrl ?? "")
         _isPublic = State(initialValue: trip.isPublic)
         _itinerary = State(initialValue: trip.itinerary)
+        _activityStyle = State(initialValue: Double(trip.activityStyle ?? 5))
+        _timeOfDay = State(initialValue: trip.timeOfDay ?? [])
         
         // Parse province and specific location from destination
         let dest = trip.destination
@@ -244,6 +264,19 @@ struct CreateTripView: View {
                                     .disabled(isGeneratingAI)
                                 }
                                 
+                                if !aiPrompt.isEmpty || true {
+                                    TextField("ความต้องการพิเศษให้ AI (เช่น เน้นคาเฟ่, สายมู)...", text: $aiPrompt)
+                                        .font(.system(size: 13))
+                                        .padding(10)
+                                        .background(Color.gray.opacity(0.05))
+                                        .cornerRadius(8)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 8).stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                                        )
+                                        .padding(.bottom, 4)
+                                }
+                                
+
                                 TextEditor(text: $description)
                                     .foregroundColor(.adaptiveText)
                                     .tint(.adaptiveText)
@@ -356,6 +389,71 @@ struct CreateTripView: View {
                                 
                                 FormField(label: "จำนวนคน", placeholder: "10", text: $maxParticipants)
                                     .keyboardType(.numberPad)
+                            }
+                            
+                            // Activity Style & Time of Day
+                            VStack(alignment: .leading, spacing: 16) {
+                                Text("สไตล์กิจกรรม")
+                                    .font(.system(size: 15, weight: .bold))
+                                    .foregroundColor(.adaptiveText)
+                                
+                                VStack(spacing: 8) {
+                                    HStack {
+                                        Text("ชิลล์ๆ (1)")
+                                            .font(.caption).foregroundColor(.secondary)
+                                        Spacer()
+                                        Text("\(Int(activityStyle))")
+                                            .font(.system(size: 18, weight: .bold))
+                                        Spacer()
+                                        Text("ลุยเต็มพิกัด (10)")
+                                            .font(.caption).foregroundColor(.secondary)
+                                    }
+                                    Slider(value: $activityStyle, in: 1...10, step: 1)
+                                        .tint(.adaptiveText)
+                                }
+                                
+                                Text("ช่วงเวลาของทริป")
+                                    .font(.system(size: 15, weight: .bold))
+                                    .foregroundColor(.adaptiveText)
+                                    .padding(.top, 8)
+                                
+                                VStack(spacing: 8) {
+                                    ForEach(timeSlots, id: \.0) { slot in
+                                        let (key, label, desc) = slot
+                                        let isSelected = timeOfDay.contains(key)
+                                        
+                                        Button {
+                                            if isSelected {
+                                                timeOfDay.removeAll { $0 == key }
+                                            } else {
+                                                timeOfDay.append(key)
+                                            }
+                                        } label: {
+                                            HStack {
+                                                VStack(alignment: .leading, spacing: 2) {
+                                                    Text(label)
+                                                        .font(.system(size: 14, weight: .bold))
+                                                        .foregroundColor(isSelected ? .white : .adaptiveText)
+                                                    Text(desc)
+                                                        .font(.system(size: 12))
+                                                        .foregroundColor(isSelected ? .white.opacity(0.8) : .gray)
+                                                }
+                                                Spacer()
+                                                if isSelected {
+                                                    Image(systemName: "checkmark.circle.fill")
+                                                        .foregroundColor(.white)
+                                                } else {
+                                                    Image(systemName: "circle")
+                                                        .foregroundColor(.gray)
+                                                }
+                                            }
+                                            .padding()
+                                            .background(isSelected ? Color.adaptiveText : Color.gray.opacity(0.05))
+                                            .cornerRadius(12)
+                                        }
+                                        .buttonStyle(PlainButtonStyle())
+                                    }
+                                }
                             }
                             
                             // Itinerary Section
@@ -564,7 +662,9 @@ struct CreateTripView: View {
                         isPublic: isPublic,
                         imageUrl: mainImageUrl,
                         gallery: galleryImages,
-                        itinerary: itinerary
+                        itinerary: itinerary,
+                        activityStyle: Int(activityStyle),
+                        timeOfDay: timeOfDay
                     )
                 } else {
                     // Create
@@ -580,7 +680,9 @@ struct CreateTripView: View {
                         isPublic: isPublic,
                         imageUrl: mainImageUrl,
                         gallery: galleryImages,
-                        itinerary: itinerary
+                        itinerary: itinerary,
+                        activityStyle: Int(activityStyle),
+                        timeOfDay: timeOfDay
                     )
                 }
                 
@@ -640,6 +742,7 @@ struct CreateTripView: View {
         จำนวนคน: \(maxParticipants)
         จำนวนวัน: \(totalDays) วัน
         งบประมาณ: \(budgetValue == 0 ? "ไม่ได้ระบุ" : "\(budgetValue) บาท")
+        \(aiPrompt.isEmpty ? "" : "คำสั่งเพิ่มเติม: \(aiPrompt)")
         ตอบกลับเป็น JSON format ตามโครงสร้างนี้ ห้ามใส่ Markdown block เนื้อหาแบบ text/plain เท่านั้น:
         { 
           "title": "...", 

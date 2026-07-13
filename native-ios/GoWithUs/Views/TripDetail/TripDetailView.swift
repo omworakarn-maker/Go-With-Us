@@ -184,7 +184,11 @@ struct TripDetailView: View {
         } message: {
             Text("ต้องการนำ \(kickParticipantName) ออกจากทริปนี้ใช่หรือไม่?")
         }
-        .sheet(isPresented: $showEditSheet) {
+        .sheet(isPresented: $showEditSheet, onDismiss: {
+            Task {
+                await viewModel.loadTrip()
+            }
+        }) {
             if let trip = viewModel.trip { CreateTripView(trip: trip) }
         }
         .sheet(isPresented: $viewModel.showLeaveSheet) { LeaveTripSheet(viewModel: viewModel) }
@@ -259,17 +263,15 @@ struct TripDetailView: View {
     @ViewBuilder
     private func badgesRow(trip: Trip) -> some View {
         HStack(spacing: 8) {
-            // Category — gradient pill
+            // Category
             HStack(spacing: 5) {
-                Image(systemName: "airplane").font(.system(size: 10, weight: .bold))
+                let iconName = INTEREST_CATEGORIES.first(where: { $0.id == trip.category.rawValue })?.icon ?? "airplane"
+                Image(systemName: iconName).font(.system(size: 10, weight: .bold))
                 Text(trip.category.rawValue).font(.system(size: 12, weight: .bold))
             }
             .foregroundColor(.white)
             .padding(.horizontal, 14).padding(.vertical, 7)
-            .background(
-                LinearGradient(colors: [Color.appPrimary, Color.appSecondary],
-                               startPoint: .leading, endPoint: .trailing)
-            )
+            .background(Color.black)
             .clipShape(Capsule())
             
             Spacer()
@@ -454,12 +456,11 @@ struct TripDetailView: View {
     @ViewBuilder
     private func infoCards(trip: Trip) -> some View {
         HStack(spacing: 12) {
-            // Budget card — blue gradient
+            // Budget card
             VStack(spacing: 6) {
                 ZStack {
                     Circle()
-                        .fill(LinearGradient(colors: [Color(hex: "#3B82F6"), Color(hex: "#60A5FA")],
-                                             startPoint: .topLeading, endPoint: .bottomTrailing))
+                        .fill(Color.black)
                         .frame(width: 40, height: 40)
                     Image(systemName: "banknote")
                         .font(.system(size: 17, weight: .medium))
@@ -476,14 +477,12 @@ struct TripDetailView: View {
             .padding(.vertical, 18)
             .background(Color.adaptiveCardBackground)
             .cornerRadius(18)
-            .shadow(color: Color(hex: "#3B82F6").opacity(0.08), radius: 10, x: 0, y: 4)
             
-            // People card — rose gradient
+            // People card
             VStack(spacing: 6) {
                 ZStack {
                     Circle()
-                        .fill(LinearGradient(colors: [Color(hex: "#F43F5E"), Color(hex: "#FB7185")],
-                                             startPoint: .topLeading, endPoint: .bottomTrailing))
+                        .fill(Color.black)
                         .frame(width: 40, height: 40)
                     Image(systemName: "person.2")
                         .font(.system(size: 17, weight: .medium))
@@ -500,14 +499,12 @@ struct TripDetailView: View {
             .padding(.vertical, 18)
             .background(Color.adaptiveCardBackground)
             .cornerRadius(18)
-            .shadow(color: Color(hex: "#F43F5E").opacity(0.08), radius: 10, x: 0, y: 4)
 
-            // Dates card — purple gradient
+            // Dates card
             VStack(spacing: 6) {
                 ZStack {
                     Circle()
-                        .fill(LinearGradient(colors: [Color(hex: "#8B5CF6"), Color(hex: "#A78BFA")],
-                                             startPoint: .topLeading, endPoint: .bottomTrailing))
+                        .fill(Color.black)
                         .frame(width: 40, height: 40)
                     Image(systemName: "calendar")
                         .font(.system(size: 17, weight: .medium))
@@ -525,7 +522,6 @@ struct TripDetailView: View {
             .padding(.vertical, 18)
             .background(Color.adaptiveCardBackground)
             .cornerRadius(18)
-            .shadow(color: Color(hex: "#8B5CF6").opacity(0.08), radius: 10, x: 0, y: 4)
         }
     }
     

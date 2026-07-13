@@ -38,52 +38,64 @@ const calculateDetailedCompatibility = (userA, userB) => {
     const styleA = normalizeTravelStyle(userA.travelStyle);
     const styleB = normalizeTravelStyle(userB.travelStyle);
 
-    let scores = [];
+    let totalScore = 0;
+    let totalWeight = 0;
     
-    // 1. Budget Level
+    // 1. Budget Level (Weight = 3)
     if (styleA && styleA.budget !== null && styleB && styleB.budget !== null) {
-        const score = 1.0 - (Math.abs(styleA.budget - styleB.budget) / 9.0);
-        scores.push(score);
+        const budgetA_THB = mapRatingToBudget(styleA.budget);
+        const budgetB_THB = mapRatingToBudget(styleB.budget);
+        const diff = Math.abs(budgetA_THB - budgetB_THB);
+        const score = Math.max(0, 1.0 - (diff / 300.0));
+        totalScore += score * 3;
+        totalWeight += 3;
     }
 
-    // 2. Activity Style
+    // 2. Activity Style (With Flexibility +/- 2) (Weight = 1)
     if (styleA && styleA.activityStyle !== null && styleB && styleB.activityStyle !== null) {
-        const score = 1.0 - (Math.abs(styleA.activityStyle - styleB.activityStyle) / 9.0);
-        scores.push(score);
+        const diff = Math.abs(styleA.activityStyle - styleB.activityStyle);
+        let score = 1.0;
+        if (diff > 2) {
+            score = 1.0 - ((diff - 2) / 7.0);
+        }
+        totalScore += score;
+        totalWeight += 1;
     }
 
-    // 3. Time of Day
+    // 3. Time of Day (Weight = 1)
     if (styleA && styleA.timeOfDay && styleA.timeOfDay.length > 0 && styleB && styleB.timeOfDay && styleB.timeOfDay.length > 0) {
         const intersect = styleA.timeOfDay.filter(x => styleB.timeOfDay.includes(x)).length;
         const union = styleA.timeOfDay.length + styleB.timeOfDay.length - intersect;
         const score = union > 0 ? (intersect / union) : 0.0;
-        scores.push(score);
+        totalScore += score;
+        totalWeight += 1;
     }
 
-    // 4. Interests (Always evaluated if at least one has it)
+    // 4. Interests (Always evaluated if at least one has it) (Weight = 1)
     const intA = Array.isArray(userA.interests) ? userA.interests : [];
     const intB = Array.isArray(userB.interests) ? userB.interests : [];
     if (intA.length > 0 || intB.length > 0) {
         const intersect = intA.filter(x => intB.includes(x)).length;
         const union = intA.length + intB.length - intersect;
         const score = union > 0 ? (intersect / union) : 0.0;
-        scores.push(score);
+        totalScore += score;
+        totalWeight += 1;
     }
 
-    if (scores.length === 0) return 50; // Fallback if no matching fields are found
+    if (totalWeight === 0) return 50; // Fallback if no matching fields are found
 
-    const finalScore = scores.reduce((sum, s) => sum + s, 0) / scores.length;
+    const finalScore = totalScore / totalWeight;
     return Math.round(finalScore * 100);
 };
 
-// Helper to map trip budget in THB to a 1-10 score equivalent
-const mapTripBudgetToRating = (budgetVal) => {
-    const val = Number(budgetVal) || 0;
-    if (val <= 1000) return 2;
-    if (val <= 2000) return 4;
-    if (val <= 4000) return 6;
-    if (val <= 7000) return 8;
-    return 10;
+// Helper to map rating (1-10) to THB
+const mapRatingToBudget = (rating) => {
+    const r = Number(rating) || 5;
+    if (r <= 2) return 500;
+    if (r <= 4) return 1000;
+    if (r <= 6) return 2000;
+    if (r <= 8) return 5000;
+    return 8000;
 };
 
 // Helper to calculate exact user-to-trip compatibility percentage
@@ -97,55 +109,87 @@ export const calculateTripCompatibilityDetailed = (user, trip) => {
     const styleU = normalizeTravelStyle(user.travelStyle);
     const styleC = normalizeTravelStyle(trip.creator && trip.creator.travelStyle ? trip.creator.travelStyle : null);
 
-    let scores = [];
+    let totalScore = 0;
+    let totalWeight = 0;
     const breakdown = {
         budget: null,
         activityStyle: null,
         category: null,
-        timeOfDay: null
+        timeOfDay: null,
+        groupMatch: null
     };
 
-    // 1. Budget — always calculate from actual trip budget (THB)
-    const tripBudgetRating = mapTripBudgetToRating(trip.budget);
+    // 1. Budget — always calculate from actual trip budget (THB) (Weight = 3)
     if (styleU && styleU.budget !== null) {
-        const score = 1.0 - (Math.abs(styleU.budget - tripBudgetRating) / 9.0);
-        scores.push(score);
+        const userBudget_THB = mapRatingToBudget(styleU.budget);
+        const tripBudget_THB = trip.budget || 1000;
+        const diff = Math.abs(userBudget_THB - tripBudget_THB);
+        const score = Math.max(0, 1.0 - (diff / 300.0));
+        
+        totalScore += score * 3;
+        totalWeight += 3;
         breakdown.budget = Math.round(score * 100);
     }
 
-    // 2. Activity Style — skip if trip uses default (5)
-    const hasExplicitPace = trip.activityStyle != null && trip.activityStyle !== 5;
-    const tripPace = hasExplicitPace ? trip.activityStyle : (styleC ? styleC.activityStyle : null);
+    // 2. Activity Style (With Flexibility +/- 2) (Weight = 1)
+    const tripPace = trip.activityStyle != null ? trip.activityStyle : (styleC ? styleC.activityStyle : null);
     if (styleU && styleU.activityStyle !== null && tripPace !== null) {
-        const score = 1.0 - (Math.abs(styleU.activityStyle - tripPace) / 9.0);
-        scores.push(score);
+        const diff = Math.abs(styleU.activityStyle - tripPace);
+        let score = 1.0;
+        if (diff > 2) {
+            score = 1.0 - ((diff - 2) / 7.0);
+        }
+        totalScore += score;
+        totalWeight += 1;
         breakdown.activityStyle = Math.round(score * 100);
     }
 
-    // 3. Time of Day
+    // 3. Time of Day (Weight = 1)
     const tripTime = (trip.timeOfDay && trip.timeOfDay.length > 0) ? trip.timeOfDay : (styleC ? styleC.timeOfDay : []);
     if (styleU && styleU.timeOfDay && styleU.timeOfDay.length > 0 && tripTime && tripTime.length > 0) {
         const intersect = styleU.timeOfDay.filter(x => tripTime.includes(x)).length;
         const union = styleU.timeOfDay.length + tripTime.length - intersect;
         const score = union > 0 ? (intersect / union) : 0.0;
-        scores.push(score);
+        totalScore += score;
+        totalWeight += 1;
         breakdown.timeOfDay = Math.round(score * 100);
     }
 
-    // 4. Category
+    // 4. Category (Weight = 1)
     const userInterests = Array.isArray(user.interests) ? user.interests : [];
     if (trip.category) {
         if (userInterests.includes(trip.category)) {
-            scores.push(1.0);
+            totalScore += 1.0;
+            totalWeight += 1;
             breakdown.category = 100;
         } else if (userInterests.length > 0) {
-            scores.push(0.0);
+            totalScore += 0.0;
+            totalWeight += 1;
             breakdown.category = 0;
         }
     }
 
-    const total = scores.length === 0 ? 50 : Math.round(scores.reduce((sum, s) => sum + s, 0) / scores.length * 100);
-    return { total, breakdown };
+    const tripTotal = totalWeight === 0 ? 50 : Math.round((totalScore / totalWeight) * 100);
+
+    // 5. Group Match Score (Participants)
+    let groupScore = null;
+    let finalTotal = tripTotal;
+
+    if (trip.participants && trip.participants.length > 0) {
+        const participantScores = trip.participants
+            .filter(p => p.user && p.user.id !== user.id) // exclude self
+            .map(p => calculateDetailedCompatibility(user, p.user));
+        
+        if (participantScores.length > 0) {
+            groupScore = Math.round(participantScores.reduce((sum, s) => sum + s, 0) / participantScores.length);
+            // Blend Trip Match and Group Match (50/50)
+            finalTotal = Math.round((tripTotal * 0.5) + (groupScore * 0.5));
+        }
+    }
+    
+    breakdown.groupMatch = groupScore;
+    
+    return { total: finalTotal, breakdown, tripMatch: tripTotal };
 };
 
 
