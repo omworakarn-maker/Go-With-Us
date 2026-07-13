@@ -11,4 +11,6 @@ struct TripDraft: Codable {
     let category: String
     let tags: [String]?
     let itinerary: [DayPlan]?
+    let activityStyle: Int?
+    let timeOfDay: [String]?
 }

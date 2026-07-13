@@ -88,37 +88,8 @@ struct UserProfileView: View {
                     VStack(spacing: 28) {
                         // ── Profile Header ──
                         VStack(spacing: 16) {
-                            // Photo Carousel
                             let allImages = getGalleryImages(user: displayUser)
-                            if !allImages.isEmpty {
-                                TabView {
-                                    ForEach(0..<allImages.count, id: \.self) { index in
-                                        if let uiImage = ProfileView.decodeBase64Image(allImages[index]) {
-                                            Image(uiImage: uiImage)
-                                                .resizable()
-                                                .scaledToFill()
-                                                .frame(width: 320, height: 400)
-                                                .clipShape(RoundedRectangle(cornerRadius: 24))
-                                                .clipped()
-                                        }
-                                    }
-                                }
-                                .frame(height: 400)
-                                .tabViewStyle(PageTabViewStyle(indexDisplayMode: .always))
-                                .padding(.top, 16)
-                            } else {
-                                // Fallback Avatar
-                                ZStack {
-                                    Circle()
-                                        .strokeBorder(Color.adaptiveText.opacity(0.1), lineWidth: 4)
-                                        .frame(width: 110, height: 110)
-                                        .background(Circle().fill(Color.adaptiveBackground))
-                                    
-                                    UserAvatarView(user: displayUser, size: 100)
-                                        .background(Circle().fill(Color.adaptiveBackground))
-                                }
-                                .padding(.top, 16)
-                            }
+                            LoopingGalleryAvatar(images: allImages, user: displayUser)
                             
                             VStack(spacing: 5) {
                                 Text(displayUser.name)
@@ -610,5 +581,113 @@ struct UserActionSheet: View {
             .padding(.bottom, 32)
         }
         .background(Color.adaptiveBackground.ignoresSafeArea())
+    }
+}
+
+struct LoopingGalleryAvatar: View {
+    let images: [String]
+    let user: User
+    
+    @State private var currentIndex = 0
+    @State private var showingFullScreenGallery = false
+    @State private var timer: Timer? = nil
+    
+    var body: some View {
+        ZStack {
+            if images.isEmpty {
+                // Fallback Avatar
+                ZStack {
+                    Circle()
+                        .strokeBorder(Color.adaptiveText.opacity(0.1), lineWidth: 4)
+                        .frame(width: 110, height: 110)
+                        .background(Circle().fill(Color.adaptiveBackground))
+                    
+                    UserAvatarView(user: user, size: 100)
+                        .background(Circle().fill(Color.adaptiveBackground))
+                }
+            } else {
+                // Loop avatar
+                ZStack {
+                    Circle()
+                        .strokeBorder(Color.adaptiveText.opacity(0.1), lineWidth: 4)
+                        .frame(width: 110, height: 110)
+                        .background(Circle().fill(Color.adaptiveBackground))
+                    
+                    if let uiImage = ProfileView.decodeBase64Image(images[currentIndex]) {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 100, height: 100)
+                            .clipShape(Circle())
+                            .animation(.easeInOut, value: currentIndex)
+                    }
+                }
+                .onTapGesture {
+                    showingFullScreenGallery = true
+                }
+                .onAppear {
+                    startLoop()
+                }
+                .onDisappear {
+                    timer?.invalidate()
+                }
+            }
+        }
+        .padding(.top, 16)
+        .fullScreenCover(isPresented: $showingFullScreenGallery) {
+            FullScreenGalleryView(images: images, initialIndex: currentIndex)
+        }
+    }
+    
+    private func startLoop() {
+        guard images.count > 1 else { return }
+        var loopCount = 0
+        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { t in
+            if loopCount < images.count - 1 {
+                currentIndex += 1
+                loopCount += 1
+            } else {
+                currentIndex = 0 // return to first image after 1 full loop
+                t.invalidate()
+            }
+        }
+    }
+}
+
+struct FullScreenGalleryView: View {
+    let images: [String]
+    @State var initialIndex: Int
+    @Environment(\.dismiss) var dismiss
+    
+    var body: some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
+            
+            TabView(selection: $initialIndex) {
+                ForEach(0..<images.count, id: \.self) { index in
+                    if let uiImage = ProfileView.decodeBase64Image(images[index]) {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .scaledToFit()
+                            .tag(index)
+                    }
+                }
+            }
+            .tabViewStyle(PageTabViewStyle(indexDisplayMode: .always))
+            
+            // Close Button
+            VStack {
+                HStack {
+                    Spacer()
+                    Button(action: { dismiss() }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 30))
+                            .foregroundColor(.white)
+                            .padding()
+                    }
+                }
+                Spacer()
+            }
+        }
     }
 }

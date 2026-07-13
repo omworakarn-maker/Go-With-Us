@@ -371,6 +371,9 @@ struct TripDetailView: View {
                     compatibilityRow(icon: "figure.walk", label: "ไลฟ์สไตล์", color: Color(hex: "#8B5CF6"), score: bd?.activityStyle)
                     compatibilityRow(icon: "tag.fill", label: "ความชอบ", color: Color(hex: "#F59E0B"), score: bd?.category)
                     compatibilityRow(icon: "clock.fill", label: "ช่วงเวลา", color: Color(hex: "#EF4444"), score: bd?.timeOfDay)
+                    if let groupScore = bd?.groupMatch {
+                        compatibilityRow(icon: "person.2.fill", label: "ผู้ร่วมทริป", color: Color(hex: "#10B981"), score: groupScore)
+                    }
                 }
             }
             .padding(18)

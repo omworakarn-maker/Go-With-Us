@@ -29,7 +29,7 @@ struct TripCardView: View {
                 
                 HStack(alignment: .top) {
                     if let score = trip.matchScore {
-                        Text("\(score)% Match")
+                        Text(SettingsManager.shared.currentLanguage == .thai ? "เข้ากันได้ \(score)%" : "\(score)% Match")
                             .font(.system(size: 10, weight: .heavy))
                             .foregroundColor(.white)
                             .padding(.horizontal, 10)

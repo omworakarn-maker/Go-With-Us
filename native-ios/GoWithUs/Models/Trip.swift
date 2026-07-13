@@ -18,6 +18,8 @@ struct Trip: Codable, Identifiable, Hashable {
     let creator: User
     let participants: [Participant]?
     let itinerary: [DayPlan]?
+    let activityStyle: Int?
+    let timeOfDay: [String]?
     let aiAnalysis: AIAnalysis?
     let matchScore: Int?
     let matchBreakdown: MatchBreakdown?
@@ -40,6 +42,8 @@ struct Trip: Codable, Identifiable, Hashable {
         creator: User,
         participants: [Participant]? = nil,
         itinerary: [DayPlan]? = nil,
+        activityStyle: Int? = nil,
+        timeOfDay: [String]? = nil,
         creatorId: String? = nil,
         aiAnalysis: AIAnalysis? = nil,
         matchScore: Int? = nil,
@@ -62,6 +66,8 @@ struct Trip: Codable, Identifiable, Hashable {
         self.creator = creator
         self.participants = participants
         self.itinerary = itinerary
+        self.activityStyle = activityStyle
+        self.timeOfDay = timeOfDay
         self.creatorId = creatorId ?? creator.id
         self.aiAnalysis = aiAnalysis
         self.matchScore = matchScore
@@ -71,7 +77,7 @@ struct Trip: Codable, Identifiable, Hashable {
     }
     
     enum CodingKeys: String, CodingKey {
-        case id, title, destination, description, startDate, endDate, budget, maxParticipants, category, isPublic, imageUrl, gallery, creatorId, creator, participants, itinerary, aiAnalysis, matchScore, matchBreakdown, createdAt, updatedAt
+        case id, title, destination, description, startDate, endDate, budget, maxParticipants, category, isPublic, imageUrl, gallery, creatorId, creator, participants, itinerary, activityStyle, timeOfDay, aiAnalysis, matchScore, matchBreakdown, createdAt, updatedAt
     }
     
     init(from decoder: Decoder) throws {
@@ -92,6 +98,8 @@ struct Trip: Codable, Identifiable, Hashable {
         creator = try container.decode(User.self, forKey: .creator)
         participants = try container.decodeIfPresent([Participant].self, forKey: .participants)
         itinerary = try container.decodeIfPresent([DayPlan].self, forKey: .itinerary)
+        activityStyle = try container.decodeIfPresent(Int.self, forKey: .activityStyle)
+        timeOfDay = try container.decodeIfPresent([String].self, forKey: .timeOfDay)
         aiAnalysis = try container.decodeIfPresent(AIAnalysis.self, forKey: .aiAnalysis)
         matchScore = try container.decodeIfPresent(Int.self, forKey: .matchScore)
         matchBreakdown = try container.decodeIfPresent(MatchBreakdown.self, forKey: .matchBreakdown)
@@ -117,6 +125,7 @@ struct Trip: Codable, Identifiable, Hashable {
     var formattedDateRange: String {
         let formatter = DateFormatter()
         formatter.dateFormat = "d MMM"
+        formatter.locale = Locale(identifier: SettingsManager.shared.currentLanguage == .thai ? "th_TH" : "en_US")
         if let endDate = endDate {
             return "\(formatter.string(from: startDate)) - \(formatter.string(from: endDate))"
         } else {
@@ -207,4 +216,5 @@ struct MatchBreakdown: Codable, Hashable {
     let activityStyle: Int?
     let category: Int?
     let timeOfDay: Int?
+    let groupMatch: Int?
 }

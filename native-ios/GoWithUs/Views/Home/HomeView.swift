@@ -235,11 +235,10 @@ extension HomeView {
             Spacer()
                 .frame(height: 150) // Push down as requested
             ProgressView()
-                .scaleEffect(1.5)
-                .tint(.appPrimary)
+                .tint(.adaptiveText)
             Text(SettingsManager.shared.localizedString(for: "loading_trips"))
                 .font(.system(size: 14))
-                .foregroundColor(.gray)
+                .foregroundColor(.adaptiveText)
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

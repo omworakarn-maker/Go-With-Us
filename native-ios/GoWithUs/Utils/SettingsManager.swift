@@ -96,6 +96,24 @@ class SettingsManager: ObservableObject {
             "not_verified": [.thai: "ยังไม่ยืนยันตัวตน", .english: "Not Verified"],
             "verified": [.thai: "ยืนยันตัวตนแล้ว", .english: "Verified"],
             
+            // Edit Profile
+            "username_available": [.thai: "ชื่อผู้ใช้นี้สามารถใช้ได้", .english: "Username is available"],
+            "username_taken": [.thai: "ชื่อผู้ใช้ต้องไม่ซ้ำกับผู้อื่น", .english: "Username must be unique"],
+            "lifestyle_header": [.thai: "ไลฟ์สไตล์และสไตล์การท่องเที่ยว", .english: "Lifestyle & Travel Style"],
+            
+            // Find Buddy
+            "like": [.thai: "สนใจ", .english: "LIKE"],
+            "nope": [.thai: "ผ่าน", .english: "NOPE"],
+            "match_success": [.thai: "แมตช์แล้ว! 🎉", .english: "It's a Match! 🎉"],
+            
+            // Questionnaire
+            "step_prefix": [.thai: "ขั้นตอนที่", .english: "Step"],
+            "step_suffix": [.thai: "จาก", .english: "of"],
+            
+            // Other
+            "guest_user": [.thai: "ผู้เยี่ยมชม", .english: "Guest"],
+            "email_placeholder": [.thai: "อีเมลของคุณ@email.com", .english: "your@email.com"],
+            
             // Alerts
             "logout_confirm": [.thai: "คุณต้องการออกจากระบบใช่หรือไม่?", .english: "Are you sure you want to logout?"],
             "language_change_title": [.thai: "เปลี่ยนภาษาสำเร็จ", .english: "Language Changed"],

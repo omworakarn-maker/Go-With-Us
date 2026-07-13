@@ -46,7 +46,7 @@ export const CreateTripModal: React.FC = () => {
         startDate: '',
         endDate: '',
         category: TRIP_CATEGORIES[0].label,
-        budget: 1000,
+        budget: 500,
         maxParticipants: 10,
         imageUrl: '',
         activityStyle: 5,
@@ -129,7 +129,7 @@ export const CreateTripModal: React.FC = () => {
                 setNewTrip({
                     title: '', destination: PROVINCES[1], description: '',
                     startDate: '', endDate: '', category: TRIP_CATEGORIES[0].label,
-                    budget: 1000, maxParticipants: 10, imageUrl: '',
+                    budget: 500, maxParticipants: 10, imageUrl: '',
                     activityStyle: 5, timeOfDay: [], budgetRating: 5
                 });
                 setImagePreview('');
@@ -360,9 +360,9 @@ export const CreateTripModal: React.FC = () => {
                                                 <label className="text-sm font-bold text-gray-700">ระดับงบประมาณทริป (ใช้จับคู่)</label>
                                                 <div className="grid grid-cols-3 gap-2">
                                                     {[
-                                                        { value: 2, label: 'ประหยัด' },
-                                                        { value: 5, label: 'ปานกลาง' },
-                                                        { value: 8, label: 'หรูหรา' }
+                                                        { value: 2, label: 'ประหยัด (100-500฿)' },
+                                                        { value: 5, label: 'ปานกลาง (500-2000฿)' },
+                                                        { value: 8, label: 'หรูหรา (2000฿+)' }
                                                     ].map(level => (
                                                         <button
                                                             key={level.value}

@@ -50,7 +50,7 @@ struct LoginView: View {
                             
                             TextField("", text: $viewModel.email)
                                 .placeholder(when: viewModel.email.isEmpty) {
-                                    Text("your@email.com")
+                                    Text(SettingsManager.shared.localizedString(for: "email_placeholder"))
                                         .foregroundColor(.gray.opacity(0.1))
                                 }
                                 .foregroundColor(.adaptiveText)

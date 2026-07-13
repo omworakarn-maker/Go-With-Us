@@ -25,7 +25,7 @@ struct SideMenuView: View {
                     .zIndex(1)
             }
         }
-        .frame(width: UIScreen.main.bounds.width * 0.8)
+        .frame(width: min(UIScreen.main.bounds.width * 0.8, 320))
         .background(Color.adaptiveBackground)
         .ignoresSafeArea(.all)
         .sheet(isPresented: $showLogoutAlert) {
@@ -73,7 +73,7 @@ struct SideMenuView: View {
                         .resizable()
                         .frame(width: 70, height: 70)
                         .foregroundColor(.adaptiveSecondaryText)
-                    Text("Guest")
+                    Text(SettingsManager.shared.localizedString(for: "guest_user"))
                         .font(.title3)
                         .fontWeight(.bold)
                         .foregroundColor(.adaptiveText)

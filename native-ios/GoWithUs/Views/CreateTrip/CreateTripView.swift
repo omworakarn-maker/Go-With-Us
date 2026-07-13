@@ -530,6 +530,31 @@ struct CreateTripView: View {
             if description.isEmpty {
                 description = "-"
             }
+            
+            // Synchronize state when view appears (fixes SwiftUI state retention bug in sheets)
+            if let t = editingTrip {
+                title = t.title
+                destination = t.destination
+                if let d = t.description, !d.isEmpty { description = d }
+                startDate = t.startDate
+                if let e = t.endDate { endDate = e }
+                budget = String(t.budget)
+                maxParticipants = String(t.maxParticipants)
+                selectedCategoryRaw = t.category.rawValue
+                isPublic = t.isPublic
+                if let itin = t.itinerary { itinerary = itin }
+                activityStyle = Double(t.activityStyle ?? 5)
+                timeOfDay = t.timeOfDay ?? []
+            } else if let d = draft {
+                title = d.title
+                destination = d.destination
+                description = d.description
+                budget = String(d.budget)
+                maxParticipants = String(d.maxParticipants)
+                if let itin = d.itinerary { itinerary = itin }
+                if let a = d.activityStyle { activityStyle = Double(a) }
+                if let tod = d.timeOfDay { timeOfDay = tod }
+            }
         }
         .sheet(isPresented: $showAddCategory) {
             NavigationView {

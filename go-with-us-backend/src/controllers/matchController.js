@@ -83,7 +83,7 @@ const calculateDetailedCompatibility = (userA, userB) => {
         totalWeight += 1;
     }
 
-    if (totalWeight === 0) return 0; // Fallback if no matching fields are found
+    if (totalWeight === 0) return null; // Fallback if no matching fields are found
 
     const finalScore = totalScore / totalWeight;
     return Math.round(finalScore * 100);
@@ -191,7 +191,8 @@ export const calculateTripCompatibilityDetailed = (user, trip) => {
     if (trip.participants && trip.participants.length > 0) {
         const participantScores = trip.participants
             .filter(p => p.user && p.user.id !== user.id) // exclude self
-            .map(p => calculateDetailedCompatibility(user, p.user));
+            .map(p => calculateDetailedCompatibility(user, p.user))
+            .filter(score => score !== null); // exclude participants with empty profiles
         
         if (participantScores.length > 0) {
             groupScore = Math.round(participantScores.reduce((sum, s) => sum + s, 0) / participantScores.length);

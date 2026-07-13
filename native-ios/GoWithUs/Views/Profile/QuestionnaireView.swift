@@ -35,7 +35,7 @@ struct QuestionnaireView: View {
                     .padding(.horizontal)
                     .tint(.black)
                 
-                Text("Step \(currentStep + 1) of 4")
+                Text("\(SettingsManager.shared.localizedString(for: "step_prefix")) \(currentStep + 1) \(SettingsManager.shared.localizedString(for: "step_suffix")) 4")
                     .font(.caption)
                     .foregroundColor(.secondary)
                 
@@ -66,9 +66,9 @@ struct QuestionnaireView: View {
                                 }
                                 
                                 VStack(alignment: .leading, spacing: 10) {
-                                    QuestionnaireInfoRow(range: "1-3", label: "ประหยัด (Budget) - เน้นคุ้มค่า โฮสเทล สตรีทฟู้ด")
-                                    QuestionnaireInfoRow(range: "4-7", label: "ปานกลาง (Standard) - โรงแรมทั่วไป ร้านอาหารปานกลาง สบายๆ")
-                                    QuestionnaireInfoRow(range: "8-10", label: "หรูหรา (Luxury) - รีสอร์ทห้าดาว ดินเนอร์หรู สะดวกสบาย")
+                                    QuestionnaireInfoRow(range: "1-3", label: "ประหยัด (Budget) - เน้นคุ้มค่า โฮสเทล (100-500฿)")
+                                    QuestionnaireInfoRow(range: "4-7", label: "ปานกลาง (Standard) - โรงแรมทั่วไป สบายๆ (500-2000฿)")
+                                    QuestionnaireInfoRow(range: "8-10", label: "หรูหรา (Luxury) - รีสอร์ทห้าดาว ดินเนอร์หรู (2000฿+)")
                                 }
                                 .padding()
                                 .background(Color.gray.opacity(0.1))

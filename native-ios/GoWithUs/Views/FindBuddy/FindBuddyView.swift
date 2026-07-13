@@ -12,7 +12,8 @@ struct FindBuddyView: View {
                 
                 if viewModel.isLoading {
                     ProgressView(SettingsManager.shared.localizedString(for: "loading_buddies"))
-                        .tint(.appAccent)
+                        .tint(.adaptiveText)
+                        .foregroundColor(.adaptiveText)
                 } else if let error = viewModel.errorMessage {
                     VStack(spacing: 16) {
                         Image(systemName: "exclamationmark.triangle")
@@ -266,7 +267,7 @@ struct BuddySwipeCard: View {
                 
                 // Labels for swipe status
                 HStack {
-                    Text("LIKE")
+                    Text(SettingsManager.shared.localizedString(for: "like"))
                         .font(.system(size: 40, weight: .black))
                         .foregroundColor(.green)
                         .padding()
@@ -277,7 +278,7 @@ struct BuddySwipeCard: View {
                     
                     Spacer()
                     
-                    Text("NOPE")
+                    Text(SettingsManager.shared.localizedString(for: "nope"))
                         .font(.system(size: 40, weight: .black))
                         .foregroundColor(.red)
                         .padding()
@@ -321,7 +322,7 @@ struct MatchCelebrationView: View {
             Color.black.opacity(0.9).ignoresSafeArea()
             
             VStack(spacing: 30) {
-                Text("It's a Match! 🎉")
+                Text(SettingsManager.shared.localizedString(for: "match_success"))
                     .font(.system(size: 40, weight: .black))
                     .foregroundColor(.white)
                 

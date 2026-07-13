@@ -25,7 +25,7 @@ struct TripGridCardView: View {
                         Spacer()
                         HStack {
                             Spacer()
-                            Text("เข้ากันได้ \(score)%")
+                            Text(SettingsManager.shared.currentLanguage == .thai ? "เข้ากันได้ \(score)%" : "\(score)% Match")
                                 .font(.system(size: 8, weight: .black))
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 6)

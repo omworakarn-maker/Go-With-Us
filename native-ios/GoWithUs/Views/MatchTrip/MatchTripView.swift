@@ -49,7 +49,6 @@ struct MatchTripView: View {
                             Spacer()
                             ProgressView()
                                 .tint(.adaptiveText)
-                                .scaleEffect(1.5)
                             Spacer()
                         } else if let error = viewModel.errorMessage {
                             Spacer()

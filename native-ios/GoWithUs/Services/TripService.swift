@@ -80,7 +80,9 @@ class TripService {
         isPublic: Bool = true,
         imageUrl: String? = nil,
         gallery: [String]? = nil,
-        itinerary: [DayPlan]? = nil
+        itinerary: [DayPlan]? = nil,
+        activityStyle: Int? = nil,
+        timeOfDay: [String]? = nil
     ) async throws -> Trip {
         struct CreateTripRequest: Encodable {
             let title: String
@@ -95,6 +97,8 @@ class TripService {
             let imageUrl: String?
             let gallery: [String]?
             let itinerary: [DayPlan]?
+            let activityStyle: Int?
+            let timeOfDay: [String]?
         }
         
         struct CreateTripResponse: Decodable {
@@ -114,7 +118,9 @@ class TripService {
             isPublic: isPublic,
             imageUrl: imageUrl,
             gallery: gallery,
-            itinerary: itinerary
+            itinerary: itinerary,
+            activityStyle: activityStyle,
+            timeOfDay: timeOfDay
         )
         
         let response: CreateTripResponse = try await APIService.shared.request(
@@ -137,10 +143,12 @@ class TripService {
         budget: Int,
         maxParticipants: Int,
         category: String,
-        isPublic: Bool = true,
+        isPublic: Bool? = nil,
         imageUrl: String? = nil,
         gallery: [String]? = nil,
-        itinerary: [DayPlan]? = nil
+        itinerary: [DayPlan]? = nil,
+        activityStyle: Int? = nil,
+        timeOfDay: [String]? = nil
     ) async throws -> Trip {
         struct UpdateTripRequest: Encodable {
             let title: String
@@ -155,6 +163,8 @@ class TripService {
             let imageUrl: String?
             let gallery: [String]?
             let itinerary: [DayPlan]?
+            let activityStyle: Int?
+            let timeOfDay: [String]?
         }
         
         let request = UpdateTripRequest(
@@ -166,10 +176,12 @@ class TripService {
             budget: budget,
             maxParticipants: maxParticipants,
             category: category,
-            isPublic: isPublic,
+            isPublic: isPublic ?? true,
             imageUrl: imageUrl,
             gallery: gallery,
-            itinerary: itinerary
+            itinerary: itinerary,
+            activityStyle: activityStyle,
+            timeOfDay: timeOfDay
         )
         
         struct UpdateTripResponse: Decodable {

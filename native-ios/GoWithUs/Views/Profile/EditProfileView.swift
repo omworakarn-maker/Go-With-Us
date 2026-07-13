@@ -223,12 +223,12 @@ struct EditProfileView: View {
                             case .invalid(let msg):
                                 Text(msg).foregroundColor(.red)
                             case .available:
-                                Text("Username นี้ใช้ได้").foregroundColor(.green)
+                                Text(SettingsManager.shared.localizedString(for: "username_available")).foregroundColor(.green)
                             case .idle:
                                 if authViewModel.currentUser?.username != nil {
                                     Text("สามารถเปลี่ยนได้ทุก 30 วัน").foregroundColor(.gray)
                                 } else {
-                                    Text("Username ต้องไม่ซ้ำกับผู้อื่น").foregroundColor(.gray)
+                                    Text(SettingsManager.shared.localizedString(for: "username_taken")).foregroundColor(.gray)
                                 }
                             default:
                                 EmptyView()
@@ -270,7 +270,7 @@ struct EditProfileView: View {
                             .foregroundColor(.adaptiveSecondaryText)
                 }
                 
-                Section(header: Text("Lifestyle & Travel Style")) {
+                Section(header: Text(SettingsManager.shared.localizedString(for: "lifestyle_header"))) {
                     Button(action: { showQuiz = true }) {
                         HStack {
                             Image(systemName: "pencil.and.outline")

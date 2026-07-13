@@ -123,11 +123,10 @@ struct HomeGridView: View {
                             VStack {
                                 Spacer()
                                 ProgressView()
-                                    .scaleEffect(1.5)
-                                    .tint(.appPrimary)
+                                    .tint(.adaptiveText)
                                 Text(SettingsManager.shared.localizedString(for: "loading_trips"))
                                     .font(.system(size: 14))
-                                    .foregroundColor(.gray)
+                                    .foregroundColor(.adaptiveText)
                                     .padding(.top, 8)
                                 Spacer()
                             }

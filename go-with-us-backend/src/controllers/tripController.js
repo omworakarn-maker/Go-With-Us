@@ -100,7 +100,9 @@ export const getAllTrips = async (req, res, next) => {
                                 name: true,
                                 email: true,
                                 role: true,
-                                profileImage: true
+                                profileImage: true,
+                                travelStyle: true,
+                                interests: true
                             }
                         }
                     }
@@ -168,7 +170,9 @@ export const getTripById = async (req, res, next) => {
                                 name: true,
                                 email: true,
                                 role: true,
-                                profileImage: true
+                                profileImage: true,
+                                travelStyle: true,
+                                interests: true
                             }
                         }
                     }
@@ -220,6 +224,8 @@ export const createTrip = async (req, res, next) => {
             imageUrl,
             gallery,
             itinerary,
+            activityStyle,
+            timeOfDay,
             isPublic
         } = req.body;
 
@@ -251,6 +257,8 @@ export const createTrip = async (req, res, next) => {
                 imageUrl: (imageUrl !== undefined && imageUrl !== null) ? imageUrl : null,
                 gallery: Array.isArray(gallery) ? gallery : (gallery ? [gallery] : []),
                 itinerary: itinerary || [],
+                activityStyle: activityStyle !== undefined ? Number(activityStyle) : 5,
+                timeOfDay: Array.isArray(timeOfDay) ? timeOfDay : [],
                 isPublic: isPublic !== undefined ? isPublic : true,
                 creatorId: req.user.userId,
                 embedding: await generateEmbedding(`${title} ${description || ''} ${category || ''} ${destination}`),
@@ -300,6 +308,8 @@ export const updateTrip = async (req, res, next) => {
             imageUrl,
             gallery,
             itinerary,
+            activityStyle,
+            timeOfDay,
             summary,
             groupAnalysis,
             isPublic
@@ -339,6 +349,8 @@ export const updateTrip = async (req, res, next) => {
                 ...(isPublic !== undefined && { isPublic }),
                 ...(gallery !== undefined && { gallery }),
                 ...(itinerary !== undefined && { itinerary }),
+                ...(activityStyle !== undefined && { activityStyle: Number(activityStyle) }),
+                ...(timeOfDay !== undefined && { timeOfDay: Array.isArray(timeOfDay) ? timeOfDay : [] }),
                 ...(summary !== undefined && { summary }),
                 ...(groupAnalysis !== undefined && { groupAnalysis }),
                 // Regenerate embedding if key fields change
