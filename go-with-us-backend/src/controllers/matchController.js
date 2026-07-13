@@ -83,7 +83,7 @@ const calculateDetailedCompatibility = (userA, userB) => {
         totalWeight += 1;
     }
 
-    if (totalWeight === 0) return 50; // Fallback if no matching fields are found
+    if (totalWeight === 0) return 0; // Fallback if no matching fields are found
 
     const finalScore = totalScore / totalWeight;
     return Math.round(finalScore * 100);
@@ -182,7 +182,7 @@ export const calculateTripCompatibilityDetailed = (user, trip) => {
         }
     }
 
-    const tripTotal = totalWeight === 0 ? 50 : Math.round((totalScore / totalWeight) * 100);
+    const tripTotal = totalWeight === 0 ? 0 : Math.round((totalScore / totalWeight) * 100);
 
     // 5. Group Match Score (Participants)
     let groupScore = null;

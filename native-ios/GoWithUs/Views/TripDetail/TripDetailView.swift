@@ -427,28 +427,28 @@ struct TripDetailView: View {
     
     private func scoreColor(score: Int) -> Color {
         switch score {
-        case 80...100: return Color(hex: "#10B981")
-        case 60...79:  return Color(hex: "#3B82F6")
-        case 40...59:  return Color(hex: "#F59E0B")
-        default:       return Color(hex: "#EF4444")
+        case 75...100: return Color(hex: "#10B981") // Green
+        case 50...74:  return Color(hex: "#3B82F6") // Blue
+        case 25...49:  return Color(hex: "#F59E0B") // Orange
+        default:       return Color(hex: "#EF4444") // Red
         }
     }
     
     private func scoreGradientColors(score: Int) -> [Color] {
         switch score {
-        case 80...100: return [Color(hex: "#10B981"), Color(hex: "#34D399")]
-        case 60...79:  return [Color(hex: "#3B82F6"), Color(hex: "#60A5FA")]
-        case 40...59:  return [Color(hex: "#F59E0B"), Color(hex: "#FCD34D")]
+        case 75...100: return [Color(hex: "#10B981"), Color(hex: "#34D399")]
+        case 50...74:  return [Color(hex: "#3B82F6"), Color(hex: "#60A5FA")]
+        case 25...49:  return [Color(hex: "#F59E0B"), Color(hex: "#FCD34D")]
         default:       return [Color(hex: "#EF4444"), Color(hex: "#F87171")]
         }
     }
     
     private func scoreLabel(score: Int) -> String {
         switch score {
-        case 80...100: return "🎉 เข้ากันมากๆ! ทริปนี้ตรงกับรสนิยมของคุณเป๊ะ ทั้งงบ สไตล์ และประเภทกิจกรรม"
-        case 60...79:  return "👍 เข้ากันดี! ส่วนใหญ่ตรงกับความชอบของคุณ ลองดูรายละเอียดเพิ่มเติมได้เลย"
-        case 40...59:  return "🤔 เข้ากันปานกลาง บางส่วนอาจไม่ตรงกับสไตล์คุณ แต่ก็น่าลองดู!"
-        default:       return "😅 อาจไม่ค่อยตรงกับสไตล์ของคุณนัก แต่ใครๆ ก็เซอร์ไพรส์ตัวเองได้!"
+        case 75...100: return "🎉 ไปได้แน่นอนไปกันรอด"
+        case 50...74:  return "👍 โอเคไปกันได้"
+        case 25...49:  return "🤔 พอได้แต่ไม่แนะนำ"
+        default:       return "😅 เข้าไม่ได้"
         }
     }
 
