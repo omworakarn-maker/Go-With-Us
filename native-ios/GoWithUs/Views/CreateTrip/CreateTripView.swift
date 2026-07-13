@@ -750,6 +750,8 @@ struct CreateTripView: View {
           "description": "...", 
           "tags": ["..."], 
           "category": "...",
+          "activityStyle": 5,
+          "timeOfDay": ["morning", "noon"],
           "itinerary": [
             {
               "day": 1,
@@ -759,6 +761,8 @@ struct CreateTripView: View {
             }
           ]
         }
+        - activityStyle: ตัวเลข 1 ถึง 10 (1=ชิลล์มากพักผ่อนเยอะ, 10=ลุยหนักมากกิจกรรมอัดแน่น)
+        - timeOfDay: เลือกเวลาที่เหมาะสมกับทริปจาก array นี้เท่านั้น: ["morning", "noon", "evening", "night"] (เลือกได้หลายช่วงเวลา)
         จัดตารางกิจกรรมให้ครบ \(totalDays) วัน
         *คำเตือน*: ในส่วน "description" ให้เขียนอธิบายภาพรวม จุดเด่น และความน่าสนใจของทริปนี้ให้น่าดึงดูด โดยไม่ต้องระบุวันเดินทางหรือวันที่ (เช่น วันที่ 1, วันที่ 2) ในคำอธิบายนี้ เพราะรายละเอียดรายวันจะไปอยู่ในส่วน "itinerary" อยู่แล้ว
         """
@@ -789,6 +793,12 @@ struct CreateTripView: View {
                                let itin = try? JSONDecoder().decode([DayPlan].self, from: data) {
                                 self.itinerary = itin
                             }
+                        }
+                        if let actStyle = dict["activityStyle"] as? Int {
+                            self.activityStyle = Double(actStyle)
+                        }
+                        if let timeArr = dict["timeOfDay"] as? [String] {
+                            self.timeOfDay = timeArr
                         }
                         self.isGeneratingAI = false
                     }

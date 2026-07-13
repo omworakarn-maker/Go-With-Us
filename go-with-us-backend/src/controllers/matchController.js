@@ -43,10 +43,11 @@ const calculateDetailedCompatibility = (userA, userB) => {
     
     // 1. Budget Level (Weight = 3)
     if (styleA && styleA.budget !== null && styleB && styleB.budget !== null) {
-        const budgetA_THB = mapRatingToBudget(styleA.budget);
-        const budgetB_THB = mapRatingToBudget(styleB.budget);
-        const diff = Math.abs(budgetA_THB - budgetB_THB);
-        const score = Math.max(0, 1.0 - (diff / 300.0));
+        const diff = Math.abs(styleA.budget - styleB.budget);
+        let score = 1.0;
+        if (diff > 2) {
+            score = 1.0 - ((diff - 2) / 7.0);
+        }
         totalScore += score * 3;
         totalWeight += 3;
     }
@@ -98,6 +99,16 @@ const mapRatingToBudget = (rating) => {
     return 8000;
 };
 
+// Helper to map THB to rating (1-10)
+const mapBudgetToRating = (thb) => {
+    if (!thb) return 5;
+    if (thb <= 500) return 2;
+    if (thb <= 1000) return 4;
+    if (thb <= 2000) return 6;
+    if (thb <= 5000) return 8;
+    return 10;
+};
+
 // Helper to calculate exact user-to-trip compatibility percentage
 export const calculateTripCompatibility = (user, trip) => {
     const result = calculateTripCompatibilityDetailed(user, trip);
@@ -121,10 +132,12 @@ export const calculateTripCompatibilityDetailed = (user, trip) => {
 
     // 1. Budget — always calculate from actual trip budget (THB) (Weight = 3)
     if (styleU && styleU.budget !== null) {
-        const userBudget_THB = mapRatingToBudget(styleU.budget);
-        const tripBudget_THB = trip.budget || 1000;
-        const diff = Math.abs(userBudget_THB - tripBudget_THB);
-        const score = Math.max(0, 1.0 - (diff / 300.0));
+        const tripBudgetRating = trip.budget ? mapBudgetToRating(trip.budget) : 5;
+        const diff = Math.abs(styleU.budget - tripBudgetRating);
+        let score = 1.0;
+        if (diff > 2) {
+            score = 1.0 - ((diff - 2) / 7.0);
+        }
         
         totalScore += score * 3;
         totalWeight += 3;
