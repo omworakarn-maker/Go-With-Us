@@ -463,8 +463,10 @@ struct TripDetailView: View {
             VStack(spacing: 6) {
                 ZStack {
                     Circle()
-                        .fill(Color.black)
+                        .fill(LinearGradient(colors: [Color.appPrimary, Color.appSecondary],
+                                             startPoint: .topLeading, endPoint: .bottomTrailing))
                         .frame(width: 40, height: 40)
+                        .shadow(color: Color.appPrimary.opacity(0.3), radius: 6, x: 0, y: 3)
                     Image(systemName: "banknote")
                         .font(.system(size: 17, weight: .medium))
                         .foregroundColor(.white)
@@ -485,8 +487,10 @@ struct TripDetailView: View {
             VStack(spacing: 6) {
                 ZStack {
                     Circle()
-                        .fill(Color.black)
+                        .fill(LinearGradient(colors: [Color.appPrimary, Color.appSecondary],
+                                             startPoint: .topLeading, endPoint: .bottomTrailing))
                         .frame(width: 40, height: 40)
+                        .shadow(color: Color.appPrimary.opacity(0.3), radius: 6, x: 0, y: 3)
                     Image(systemName: "person.2")
                         .font(.system(size: 17, weight: .medium))
                         .foregroundColor(.white)
@@ -507,8 +511,10 @@ struct TripDetailView: View {
             VStack(spacing: 6) {
                 ZStack {
                     Circle()
-                        .fill(Color.black)
+                        .fill(LinearGradient(colors: [Color.appPrimary, Color.appSecondary],
+                                             startPoint: .topLeading, endPoint: .bottomTrailing))
                         .frame(width: 40, height: 40)
+                        .shadow(color: Color.appPrimary.opacity(0.3), radius: 6, x: 0, y: 3)
                     Image(systemName: "calendar")
                         .font(.system(size: 17, weight: .medium))
                         .foregroundColor(.white)
