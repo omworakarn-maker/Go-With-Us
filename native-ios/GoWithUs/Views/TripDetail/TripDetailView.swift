@@ -460,11 +460,11 @@ struct TripDetailView: View {
             VStack(spacing: 6) {
                 ZStack {
                     Circle()
-                        .fill(Color.gray.opacity(0.12))
+                        .fill(Color(hex: "#3B82F6").opacity(0.15))
                         .frame(width: 40, height: 40)
                     Image(systemName: "banknote")
-                        .font(.system(size: 17, weight: .medium))
-                        .foregroundColor(.primary)
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundColor(Color(hex: "#3B82F6"))
                 }
                 Text("งบประมาณ")
                     .font(.system(size: 11, weight: .medium))
@@ -482,11 +482,11 @@ struct TripDetailView: View {
             VStack(spacing: 6) {
                 ZStack {
                     Circle()
-                        .fill(Color.gray.opacity(0.12))
+                        .fill(Color(hex: "#F43F5E").opacity(0.15))
                         .frame(width: 40, height: 40)
                     Image(systemName: "person.2")
-                        .font(.system(size: 17, weight: .medium))
-                        .foregroundColor(.primary)
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundColor(Color(hex: "#F43F5E"))
                 }
                 Text("จำนวนคน")
                     .font(.system(size: 11, weight: .medium))
@@ -504,11 +504,11 @@ struct TripDetailView: View {
             VStack(spacing: 6) {
                 ZStack {
                     Circle()
-                        .fill(Color.gray.opacity(0.12))
+                        .fill(Color(hex: "#8B5CF6").opacity(0.15))
                         .frame(width: 40, height: 40)
                     Image(systemName: "calendar")
-                        .font(.system(size: 17, weight: .medium))
-                        .foregroundColor(.primary)
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundColor(Color(hex: "#8B5CF6"))
                 }
                 Text("ระยะเวลา")
                     .font(.system(size: 11, weight: .medium))
