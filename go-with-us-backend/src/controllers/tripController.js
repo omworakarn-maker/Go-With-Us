@@ -23,12 +23,8 @@ export const getAllTrips = async (req, res, next) => {
         }
         // --------------------------
 
-        const { destination, category, startDate, endDate, type, limit, page } = req.query;
+        const { destination, category, startDate, endDate, type, limit } = req.query;
         const userId = req.user?.userId; // Optional, might be available if using verifyToken optionally or passed
-
-        const pageNumber = parseInt(page) || 1;
-        const limitNumber = parseInt(limit) || 20; // Default limit 20
-        const skip = (pageNumber - 1) * limitNumber;
 
         const where = {};
 
@@ -113,17 +109,10 @@ export const getAllTrips = async (req, res, next) => {
                 },
             },
             orderBy,
-            take: limitNumber,
-            skip: skip
+            take: limit ? parseInt(limit) : undefined
         });
 
-        // Strip heavy fields from list response to improve performance
-        const cleanTrips = trips.map(trip => {
-            const { gallery, itinerary, embedding, ...cleanTrip } = trip;
-            return cleanTrip;
-        });
-
-        let responseTrips = cleanTrips;
+        let responseTrips = trips;
         
         if (userId) {
             console.log("User is logged in for getAllTrips, calculating matchScore for userId:", userId);
@@ -134,7 +123,7 @@ export const getAllTrips = async (req, res, next) => {
                 });
                 
                 if (currentUser) {
-                    responseTrips = cleanTrips.map(trip => {
+                    responseTrips = trips.map(trip => {
                         const { total, breakdown } = calculateTripCompatibilityDetailed(currentUser, trip);
                         return { ...trip, matchScore: total, matchBreakdown: breakdown };
                     });
@@ -149,17 +138,7 @@ export const getAllTrips = async (req, res, next) => {
             console.log("No userId found in getAllTrips. Auth header might be missing.");
         }
 
-        const totalTrips = await prisma.trip.count({ where });
-
-        res.json({ 
-            trips: responseTrips, 
-            pagination: {
-                page: pageNumber,
-                limit: limitNumber,
-                total: totalTrips,
-                totalPages: Math.ceil(totalTrips / limitNumber)
-            }
-        });
+        res.json({ trips: responseTrips, count: responseTrips.length });
     } catch (error) {
         next(error);
     }

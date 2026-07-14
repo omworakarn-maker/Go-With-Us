@@ -495,9 +495,7 @@ struct UserTripsSectionView: View {
             async let createdTask = TripService.shared.getAllTrips(creatorId: user.id)
             async let joinedTask = TripService.shared.getAllTrips(participantId: user.id)
             
-            let (createdResult, joinedResult) = try await (createdTask, joinedTask)
-            let created = createdResult.trips
-            let joined = joinedResult.trips
+            let (created, joined) = try await (createdTask, joinedTask)
             
             await MainActor.run {
                 self.createdTrips = created

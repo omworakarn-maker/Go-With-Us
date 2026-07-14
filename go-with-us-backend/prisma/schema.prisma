@@ -96,8 +96,6 @@ budgetRating    Int?     @default(5) @map("budget_rating")
   @@index([creatorId])
   @@index([category])
   @@index([destination])
-  @@index([startDate])
-  @@index([createdAt])
 }
 
 // Participant model (users who joined a trip)

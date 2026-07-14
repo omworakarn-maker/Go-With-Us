@@ -6,14 +6,8 @@ import Combine
 class TripListViewModel: ObservableObject {
     @Published var trips: [Trip] = []
     @Published var isLoading = false
-    @Published var isLoadingMore = false
     @Published var errorMessage: String?
     @Published var searchText = ""
-    
-    // Pagination
-    private var currentPage = 1
-    private var hasMorePages = true
-    private let limit = 20
     
     // Filters
     @Published var activeTab: String = "แนะนำ" {
@@ -58,27 +52,46 @@ class TripListViewModel: ObservableObject {
             if showLoading {
                 isLoading = true
                 errorMessage = nil
+                trips = [] 
             }
             
-            currentPage = 1
-            hasMorePages = true
-            
             do {
-                let type = getTabType()
+                // Map tab to API type
+                let type: String
+                switch activeTab {
+                case "ยอดนิยม", "มาแรง": type = "popular"
+                case "แนะนำ": type = "recommended"
+                case "มาใหม่": type = "new"
+                default: type = "recommended"
+                }
                 
-                let fetchedResult = try await TripService.shared.getAllTrips(
+                // Fetch with filters
+                let fetchedTrips = try await TripService.shared.getAllTrips(
                     type: type,
                     destination: selectedProvince == "ทุกจังหวัด" ? nil : selectedProvince,
                     startDate: selectedDate,
-                    category: selectedCategory,
-                    page: currentPage,
-                    limit: limit
+                    category: selectedCategory
                 )
                 
                 if Task.isCancelled { return }
                 
-                self.hasMorePages = fetchedResult.hasMore
-                self.trips = filterTrips(fetchedResult.trips)
+                var filtered = fetchedTrips
+                
+                // Local Filtering for End Date
+                if let userSelectionEnd = selectedEndDate {
+                     filtered = filtered.filter { $0.startDate <= userSelectionEnd }
+                }
+                
+                // Local search filtering
+                if !searchText.isEmpty {
+                    filtered = filtered.filter { trip in
+                        trip.title.localizedCaseInsensitiveContains(searchText) ||
+                        trip.destination.localizedCaseInsensitiveContains(searchText) ||
+                        (trip.description?.localizedCaseInsensitiveContains(searchText) ?? false)
+                    }
+                }
+                
+                self.trips = filtered
                 
             } catch let error as URLError where error.code == .cancelled {
                 return 
@@ -95,72 +108,6 @@ class TripListViewModel: ObservableObject {
         
         currentLoadTask = task
         await task.value
-    }
-    
-    func loadMoreTrips() async {
-        guard !isLoadingMore, hasMorePages, !isLoading else { return }
-        
-        isLoadingMore = true
-        currentPage += 1
-        
-        do {
-            let type = getTabType()
-            
-            let fetchedResult = try await TripService.shared.getAllTrips(
-                type: type,
-                destination: selectedProvince == "ทุกจังหวัด" ? nil : selectedProvince,
-                startDate: selectedDate,
-                category: selectedCategory,
-                page: currentPage,
-                limit: limit
-            )
-            
-            self.hasMorePages = fetchedResult.hasMore
-            
-            // Append new filtered trips
-            let newTrips = filterTrips(fetchedResult.trips)
-            
-            // Filter out duplicates
-            let existingIds = Set(self.trips.map { $0.id })
-            let uniqueNewTrips = newTrips.filter { !existingIds.contains($0.id) }
-            
-            self.trips.append(contentsOf: uniqueNewTrips)
-            
-        } catch {
-            print("Error loading more trips: \(error)")
-            // If failed, revert page count
-            currentPage -= 1
-        }
-        
-        isLoadingMore = false
-    }
-    
-    private func getTabType() -> String {
-        switch activeTab {
-        case "ยอดนิยม", "มาแรง": return "popular"
-        case "แนะนำ": return "recommended"
-        case "มาใหม่": return "new"
-        default: return "recommended"
-        }
-    }
-    
-    private func filterTrips(_ fetchedTrips: [Trip]) -> [Trip] {
-        var filtered = fetchedTrips
-        
-        // Local Filtering for End Date
-        if let userSelectionEnd = selectedEndDate {
-             filtered = filtered.filter { $0.startDate <= userSelectionEnd }
-        }
-        
-        // Local search filtering
-        if !searchText.isEmpty {
-            filtered = filtered.filter { trip in
-                trip.title.localizedCaseInsensitiveContains(searchText) ||
-                trip.destination.localizedCaseInsensitiveContains(searchText) ||
-                (trip.description?.localizedCaseInsensitiveContains(searchText) ?? false)
-            }
-        }
-        return filtered
     }
     
     func refresh() async {

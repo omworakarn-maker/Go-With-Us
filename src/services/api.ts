@@ -146,7 +146,7 @@ export interface CreateTripData {
     destination: string;
     description?: string;
     startDate: string;
-    endDate?: string; page?: number; limit?: number;
+    endDate?: string;
     budget?: string | number;
     maxParticipants?: number;
     category?: string;
@@ -175,7 +175,7 @@ export const tripsAPI = {
         destination?: string;
         category?: string;
         startDate?: string;
-        endDate?: string; page?: number; limit?: number;
+        endDate?: string;
     }) => {
         const params = new URLSearchParams();
 
