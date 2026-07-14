@@ -264,7 +264,7 @@ struct VerificationStatusView: View {
             .cornerRadius(20)
         } else {
             let verificationURL: URL = {
-                let base = "https://go-with-us.onrender.com/verify"
+                let base = "https://go-with-us-1.onrender.com/verify"
                 guard let token = KeychainService.shared.getToken(),
                       var components = URLComponents(string: base) else {
                     return URL(string: base)!
