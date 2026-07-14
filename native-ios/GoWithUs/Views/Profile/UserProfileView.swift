@@ -486,7 +486,9 @@ struct ReportUserSheet: View {
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 24)
+            Spacer()
         }
+        .presentationDetents([.height(280)])
     }
 }
 
