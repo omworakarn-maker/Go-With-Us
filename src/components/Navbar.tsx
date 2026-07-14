@@ -194,6 +194,13 @@ const Navbar: React.FC<NavbarProps> = ({ onCreateActivity }) => {
                                 >
                                   ตรวจสอบยืนยันตัวตน (Admin)
                                 </Link>
+                                <Link
+                                  to="/admin/alerts"
+                                  onClick={() => setShowProfileMenu(false)}
+                                  className="block px-4 py-2.5 text-sm font-bold text-green-600 hover:bg-green-50 transition-colors"
+                                >
+                                  ส่งแจ้งเตือนระบบ (Admin)
+                                </Link>
                               </>
                             )}
                             <Link
