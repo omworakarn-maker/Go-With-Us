@@ -5,6 +5,8 @@ struct MyTripsView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @Binding var showSideMenu: Bool
     
+    @State private var selectedTab: Int = 0
+    
     var body: some View {
         ZStack {
             Color.adaptiveBackground.ignoresSafeArea()
@@ -39,34 +41,45 @@ struct MyTripsView: View {
                     .padding()
                     .background(Color.adaptiveBackground)
                     
+                    Picker("หมวดหมู่", selection: $selectedTab) {
+                        Text("สร้างเอง").tag(0)
+                        Text("เข้าร่วมแล้ว").tag(1)
+                        Text("รายการโปรด").tag(2)
+                    }
+                    .pickerStyle(SegmentedPickerStyle())
+                    .padding(.horizontal)
+                    .padding(.bottom, 10)
+                    
                     Group {
                         if viewModel.isLoading {
                             Spacer()
                             ProgressView()
                             Spacer()
-                        } else if viewModel.myTrips.isEmpty {
+                        } else if selectedTrips.isEmpty {
                             Spacer()
                             VStack(spacing: 16) {
-                                Image(systemName: "airplane.departure")
+                                Image(systemName: selectedTab == 2 ? "heart.fill" : "airplane.departure")
                                     .font(.system(size: 60))
                                     .foregroundColor(.gray.opacity(0.3))
-                                Text(SettingsManager.shared.currentLanguage == .thai ? "คุณยังไม่มีทริปที่สร้างไว้" : "You haven't created any trips yet")
+                                Text(emptyStateMessage)
                                     .font(.headline)
                                 
-                                NavigationLink(destination: CreateTripView()) {
-                                     Text(SettingsManager.shared.localizedString(for: "create"))
-                                        .font(.headline)
-                                        .foregroundColor(.white)
-                                        .padding()
-                                        .background(Color.black)
-                                        .cornerRadius(12)
+                                if selectedTab == 0 {
+                                    NavigationLink(destination: CreateTripView()) {
+                                         Text(SettingsManager.shared.localizedString(for: "create"))
+                                            .font(.headline)
+                                            .foregroundColor(.white)
+                                            .padding()
+                                            .background(Color.black)
+                                            .cornerRadius(12)
+                                    }
                                 }
                             }
                             Spacer()
                         } else {
                             ScrollView {
                                 LazyVStack(spacing: 20) {
-                                    ForEach(viewModel.myTrips) { trip in
+                                    ForEach(selectedTrips) { trip in
                                         NavigationLink(destination: TripDetailView(tripId: trip.id)) {
                                             TripCardView(trip: trip)
                                         }
@@ -91,10 +104,30 @@ struct MyTripsView: View {
             }
         }
     }
+    
+    private var selectedTrips: [Trip] {
+        switch selectedTab {
+        case 0: return viewModel.createdTrips
+        case 1: return viewModel.joinedTrips
+        case 2: return viewModel.interestedTrips
+        default: return []
+        }
+    }
+    
+    private var emptyStateMessage: String {
+        switch selectedTab {
+        case 0: return SettingsManager.shared.currentLanguage == .thai ? "คุณยังไม่มีทริปที่สร้างไว้" : "You haven't created any trips yet"
+        case 1: return SettingsManager.shared.currentLanguage == .thai ? "คุณยังไม่ได้เข้าร่วมทริปใดเลย" : "You haven't joined any trips yet"
+        case 2: return SettingsManager.shared.currentLanguage == .thai ? "ยังไม่มีทริปในรายการโปรด" : "No favorite trips yet"
+        default: return ""
+        }
+    }
 }
 
 class MyTripsViewModel: ObservableObject {
-    @Published var myTrips: [Trip] = []
+    @Published var createdTrips: [Trip] = []
+    @Published var joinedTrips: [Trip] = []
+    @Published var interestedTrips: [Trip] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
     
@@ -103,10 +136,14 @@ class MyTripsViewModel: ObservableObject {
         
         do {
             let response: TripListResponse = try await APIService.shared.request(endpoint: "/trips", method: .get)
-            let filtered = response.trips.filter { $0.creatorId == userId }
+            let created = response.trips.filter { $0.creatorId == userId }
+            let joined = response.trips.filter { $0.participants?.contains(where: { $0.userId == userId && $0.status == "going" }) == true }
+            let interested = response.trips.filter { $0.participants?.contains(where: { $0.userId == userId && $0.status == "interested" }) == true }
             
             await MainActor.run {
-                self.myTrips = filtered
+                self.createdTrips = created
+                self.joinedTrips = joined
+                self.interestedTrips = interested
                 self.isLoading = false
             }
         } catch {

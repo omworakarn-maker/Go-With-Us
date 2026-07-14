@@ -14,6 +14,7 @@ const MyTrips: React.FC = () => {
   const { openCreateModal } = useModal(); // Use global modal
   const [loading, setLoading] = useState(true);
   const [trips, setTrips] = useState<Trip[]>([]);
+  const [activeTab, setActiveTab] = useState<'created' | 'joined' | 'interested'>('created');
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
   const [error, setError] = useState('');
 
@@ -29,8 +30,7 @@ const MyTrips: React.FC = () => {
     try {
       setLoading(true);
       const response = await tripsAPI.getAll();
-      const myCreatedTrips = (response.trips || []).filter((trip: Trip) => trip.creatorId === user?.id);
-      setTrips(myCreatedTrips);
+      setTrips(response.trips || []);
     } catch (err) {
       console.error('Failed to fetch my trips:', err);
       setError('ไม่สามารถโหลดข้อมูลทริปของคุณได้');
@@ -43,18 +43,53 @@ const MyTrips: React.FC = () => {
     return <TripDetails trip={selectedTrip} onBack={() => setSelectedTrip(null)} />;
   }
 
+  const filteredTrips = trips.filter(trip => {
+    if (activeTab === 'created') return trip.creatorId === user?.id;
+    if (activeTab === 'joined') return trip.participants?.some(p => p.userId === user?.id && p.status === 'going');
+    if (activeTab === 'interested') return trip.participants?.some(p => p.userId === user?.id && p.status === 'interested');
+    return false;
+  });
+
+  const getEmptyMessage = () => {
+    if (activeTab === 'created') return 'คุณยังไม่มีทริปที่สร้าง';
+    if (activeTab === 'joined') return 'คุณยังไม่ได้เข้าร่วมทริปใดเลย';
+    return 'ยังไม่มีทริปในรายการโปรด';
+  };
+
   return (
     <div className="min-h-screen bg-[#FFFFFF] flex flex-col text-[#121212]">
 
 
       <main className="flex-1 w-full max-w-6xl mx-auto px-6 pt-8 pb-24">
-        <header className="mb-12">
-          <div className="inline-block px-3 py-1 bg-black text-white text-[10px] font-bold rounded uppercase tracking-widest mb-4">Creator Mode</div>
+        <header className="mb-8">
+          <div className="inline-block px-3 py-1 bg-black text-white text-[10px] font-bold rounded uppercase tracking-widest mb-4">My Trips</div>
           <h1 className="text-5xl font-black tracking-tight text-black mb-4">ทริปของฉัน.</h1>
           <p className="text-gray-400 text-lg font-medium max-w-xl">
-            จัดการทริปและกิจกรรมที่คุณสร้างขึ้น ติดตามผู้เข้าร่วม และอัปเดตรายละเอียดต่างๆ ได้ที่นี่
+            จัดการทริปและกิจกรรมของคุณ ติดตามผู้เข้าร่วม และดูทริปที่น่าสนใจ
           </p>
         </header>
+
+        {/* Tabs */}
+        <div className="flex gap-4 mb-8 overflow-x-auto pb-2 scrollbar-hide">
+          <button 
+            onClick={() => setActiveTab('created')}
+            className={`px-6 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all ${activeTab === 'created' ? 'bg-black text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+          >
+            สร้างเอง
+          </button>
+          <button 
+            onClick={() => setActiveTab('joined')}
+            className={`px-6 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all ${activeTab === 'joined' ? 'bg-black text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+          >
+            เข้าร่วมแล้ว
+          </button>
+          <button 
+            onClick={() => setActiveTab('interested')}
+            className={`px-6 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all ${activeTab === 'interested' ? 'bg-black text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+          >
+            รายการโปรด
+          </button>
+        </div>
 
         {loading ? (
           <Loader variant="dots" />
@@ -68,9 +103,9 @@ const MyTrips: React.FC = () => {
               ลองอีกครั้ง
             </button>
           </div>
-        ) : trips.length > 0 ? (
+        ) : filteredTrips.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-12">
-            {trips.map((trip) => (
+            {filteredTrips.map((trip) => (
               <TripCard key={trip.id} trip={trip} />
             ))}
           </div>
@@ -81,16 +116,24 @@ const MyTrips: React.FC = () => {
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
               </svg>
             </div>
-            <h3 className="text-2xl font-bold text-black mb-3">คุณยังไม่มีทริปที่สร้าง</h3>
-            <p className="text-gray-400 max-w-md mx-auto mb-8">
-              เริ่มสร้างทริปแรกของคุณและชวนเพื่อนใหม่ๆ มาร่วมเดินทางไปด้วยกัน
-            </p>
-            <button
-              onClick={openCreateModal} // Use global modal
-              className="px-8 py-3 bg-black text-white text-sm font-bold rounded-full hover:bg-gray-800 transition-all shadow-lg shadow-black/20"
-            >
-              สร้างทริปเลย
-            </button>
+            <h3 className="text-2xl font-bold text-black mb-3">{getEmptyMessage()}</h3>
+            {activeTab === 'created' ? (
+              <>
+                <p className="text-gray-400 max-w-md mx-auto mb-8">
+                  เริ่มสร้างทริปแรกของคุณและชวนเพื่อนใหม่ๆ มาร่วมเดินทางไปด้วยกัน
+                </p>
+                <button
+                  onClick={openCreateModal} // Use global modal
+                  className="px-8 py-3 bg-black text-white text-sm font-bold rounded-full hover:bg-gray-800 transition-all shadow-lg shadow-black/20"
+                >
+                  สร้างทริปเลย
+                </button>
+              </>
+            ) : (
+              <p className="text-gray-400 max-w-md mx-auto mb-8">
+                ค้นหาทริปที่คุณสนใจในหน้าแรกและกดเข้าร่วมเพื่อเริ่มการเดินทาง
+              </p>
+            )}
           </div>
         )}
       </main>
