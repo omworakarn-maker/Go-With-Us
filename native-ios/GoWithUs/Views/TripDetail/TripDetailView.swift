@@ -460,11 +460,11 @@ struct TripDetailView: View {
             VStack(spacing: 6) {
                 ZStack {
                     Circle()
-                        .fill(Color.black)
+                        .fill(Color.gray.opacity(0.12))
                         .frame(width: 40, height: 40)
                     Image(systemName: "banknote")
                         .font(.system(size: 17, weight: .medium))
-                        .foregroundColor(.white)
+                        .foregroundColor(.primary)
                 }
                 Text("งบประมาณ")
                     .font(.system(size: 11, weight: .medium))
@@ -482,11 +482,11 @@ struct TripDetailView: View {
             VStack(spacing: 6) {
                 ZStack {
                     Circle()
-                        .fill(Color.black)
+                        .fill(Color.gray.opacity(0.12))
                         .frame(width: 40, height: 40)
                     Image(systemName: "person.2")
                         .font(.system(size: 17, weight: .medium))
-                        .foregroundColor(.white)
+                        .foregroundColor(.primary)
                 }
                 Text("จำนวนคน")
                     .font(.system(size: 11, weight: .medium))
@@ -504,11 +504,11 @@ struct TripDetailView: View {
             VStack(spacing: 6) {
                 ZStack {
                     Circle()
-                        .fill(Color.black)
+                        .fill(Color.gray.opacity(0.12))
                         .frame(width: 40, height: 40)
                     Image(systemName: "calendar")
                         .font(.system(size: 17, weight: .medium))
-                        .foregroundColor(.white)
+                        .foregroundColor(.primary)
                 }
                 Text("ระยะเวลา")
                     .font(.system(size: 11, weight: .medium))
@@ -765,7 +765,7 @@ struct TripDetailView: View {
                     Image(systemName: "person.3") // Minimal
                         .font(.system(size: 13))
                         .foregroundColor(Color(hex: "#0EA5E9"))
-                    Text("ผู้เข้าร่วม (\(participants.count))")
+                    Text("จำนวนคน (\(participants.count))")
                         .font(.system(size: 16, weight: .bold))
                         .foregroundColor(.adaptiveText)
                 }
