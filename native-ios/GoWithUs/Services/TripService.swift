@@ -13,10 +13,20 @@ class TripService {
         startDate: Date? = nil,
         category: TripCategory? = nil,
         creatorId: String? = nil,
-        participantId: String? = nil
-    ) async throws -> [Trip] {
+        participantId: String? = nil,
+        page: Int = 1,
+        limit: Int = 20
+    ) async throws -> (trips: [Trip], hasMore: Bool) {
+        struct PaginationInfo: Decodable {
+            let page: Int
+            let limit: Int
+            let total: Int
+            let totalPages: Int
+        }
+        
         struct TripsResponse: Decodable {
             let trips: [Trip]
+            let pagination: PaginationInfo?
         }
         
         var queryItems: [URLQueryItem] = []
@@ -41,6 +51,9 @@ class TripService {
             queryItems.append(URLQueryItem(name: "category", value: category.rawValue))
         }
         
+        queryItems.append(URLQueryItem(name: "page", value: String(page)))
+        queryItems.append(URLQueryItem(name: "limit", value: String(limit)))
+        
         // Cache buster to bypass iOS aggressive caching
         queryItems.append(URLQueryItem(name: "cb", value: String(Date().timeIntervalSince1970)))
         
@@ -50,7 +63,8 @@ class TripService {
             queryItems: queryItems
         )
         
-        return response.trips
+        let hasMore = (response.pagination?.page ?? 1) < (response.pagination?.totalPages ?? 1)
+        return (trips: response.trips, hasMore: hasMore)
     }
     
     // MARK: - Get Trip by ID

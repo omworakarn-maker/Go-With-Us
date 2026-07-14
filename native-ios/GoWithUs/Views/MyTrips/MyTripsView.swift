@@ -140,10 +140,17 @@ class MyTripsViewModel: ObservableObject {
         await MainActor.run { isLoading = true }
         
         do {
-            let response: TripListResponse = try await APIService.shared.request(endpoint: "/trips", method: .get)
-            let created = response.trips.filter { $0.creatorId == userId }
-            let joined = response.trips.filter { $0.participants?.contains(where: { $0.userId == userId && $0.status == "going" }) == true }
-            let interested = response.trips.filter { $0.participants?.contains(where: { $0.userId == userId && $0.status == "interested" }) == true }
+            async let createdFetch = TripService.shared.getAllTrips(creatorId: userId, limit: 100)
+            async let participatedFetch = TripService.shared.getAllTrips(participantId: userId, limit: 100)
+            
+            let createdResult = try await createdFetch
+            let participatedResult = try await participatedFetch
+            
+            let created = createdResult.trips
+            let participated = participatedResult.trips
+            
+            let joined = participated.filter { $0.participants?.contains(where: { $0.userId == userId && $0.status == "going" }) == true }
+            let interested = participated.filter { $0.participants?.contains(where: { $0.userId == userId && $0.status == "interested" }) == true }
             
             await MainActor.run {
                 self.createdTrips = created
@@ -159,8 +166,4 @@ class MyTripsViewModel: ObservableObject {
             }
         }
     }
-}
-
-struct TripListResponse: Decodable {
-    let trips: [Trip]
 }

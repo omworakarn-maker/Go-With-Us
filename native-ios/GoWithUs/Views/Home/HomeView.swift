@@ -198,6 +198,18 @@ struct HomeView: View {
                                             .staggeredAppear(index: viewModel.trips.firstIndex(where: { $0.id == trip.id }) ?? 0)
                                     }
                                     .buttonStyle(ScaledButtonStyle())
+                                    .onAppear {
+                                        if trip.id == viewModel.trips.last?.id {
+                                            Task {
+                                                await viewModel.loadMoreTrips()
+                                            }
+                                        }
+                                    }
+                                }
+                                
+                                if viewModel.isLoadingMore {
+                                    ProgressView()
+                                        .padding(.vertical, 20)
                                 }
                             }
                             .padding()
