@@ -489,12 +489,13 @@ struct CreateTripView: View {
                         }
                     }
                     .padding(24)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        hideKeyboard()
+                    }
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
-            .onTapGesture {
-                hideKeyboard()
-            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("ยกเลิก") {
