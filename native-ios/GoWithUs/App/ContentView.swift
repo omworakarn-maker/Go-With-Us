@@ -31,8 +31,10 @@ struct ContentView: View {
                         ProfileView()
                     case .matchTrip:
                         MatchTripView(showSideMenu: $showSideMenu)
+                    case .favorites:
+                        MyTripsView(showSideMenu: $showSideMenu, initialTab: 2)
                     case .myTrips:
-                        MyTripsView(showSideMenu: $showSideMenu)
+                        MyTripsView(showSideMenu: $showSideMenu, initialTab: 0)
                     case .aiChat:
                         AIChatView(showSideMenu: $showSideMenu)
                     default:
@@ -193,6 +195,7 @@ struct ContentView: View {
                 switch currentScreen {
                 case .home, .homeGrid: return .home
                 case .matchTrip: return .matchTrip
+                case .favorites, .myTrips: return .home // Highlight home for side menu items
                 case .chat: return .chat
                 case .profile: return .profile
                 default: return .home // Default to home highlight for others

@@ -90,7 +90,7 @@ struct SideMenuView: View {
             // Menu Items
             VStack(alignment: .leading, spacing: 24) {
                 MenuButton(icon: "house", text: SettingsManager.shared.localizedString(for: "home"), targetScreen: SettingsManager.shared.homeLayoutPreference, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
-                MenuButton(icon: "arrow.triangle.2.circlepath", text: SettingsManager.shared.localizedString(for: "match"), targetScreen: .matchTrip, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
+                MenuButton(icon: "heart.fill", text: SettingsManager.shared.currentLanguage == .thai ? "รายการโปรด" : "Favorites", targetScreen: .favorites, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
                 MenuButton(icon: "person.2", text: SettingsManager.shared.currentLanguage == .thai ? "หาเพื่อน" : "Find Buddy", targetScreen: .findBuddy, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
                 MenuButton(icon: "suitcase", text: SettingsManager.shared.localizedString(for: "my_trips"), targetScreen: .myTrips, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
                 MenuButton(icon: "bubble.left.and.text.bubble.right", text: SettingsManager.shared.localizedString(for: "ai_chat"), targetScreen: .aiChat, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)

@@ -5,7 +5,12 @@ struct MyTripsView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @Binding var showSideMenu: Bool
     
-    @State private var selectedTab: Int = 0
+    @State private var selectedTab: Int
+    
+    init(showSideMenu: Binding<Bool>, initialTab: Int = 0) {
+        self._showSideMenu = showSideMenu
+        self._selectedTab = State(initialValue: initialTab)
+    }
     
     var body: some View {
         ZStack {
