@@ -22,6 +22,11 @@ let INTEREST_CATEGORIES: [InterestCategory] = [
     InterestCategory(id: "ช้อปปิ้ง", icon: "bag.fill", label: "ช้อปปิ้ง"),
     InterestCategory(id: "จิตอาสา", icon: "heart.fill", label: "จิตอาสา"),
     InterestCategory(id: "ครอบครัว", icon: "figure.2.and.child.holdinghands", label: "ครอบครัว"),
+    InterestCategory(id: "เมือง", icon: "building.2.fill", label: "เมือง"),
+    InterestCategory(id: "กินเที่ยว", icon: "fork.knife.circle.fill", label: "กินเที่ยว"),
+    InterestCategory(id: "เวิร์กชอป", icon: "paintpalette.fill", label: "เวิร์กชอป"),
+    InterestCategory(id: "คอนเสิร์ต", icon: "music.mic", label: "คอนเสิร์ต"),
+    InterestCategory(id: "พักผ่อน", icon: "bed.double.fill", label: "พักผ่อน"),
     InterestCategory(id: "อื่นๆ", icon: "sparkles", label: "อื่นๆ")
 ]
 

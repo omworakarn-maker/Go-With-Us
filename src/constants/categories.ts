@@ -14,5 +14,10 @@ export const TRIP_CATEGORIES = [
     { id: 'ช้อปปิ้ง', emoji: '🛍️', label: 'ช้อปปิ้ง' },
     { id: 'จิตอาสา', emoji: '🤝', label: 'จิตอาสา' },
     { id: 'ครอบครัว', emoji: '👨‍👩‍👧‍👦', label: 'ครอบครัว' },
+    { id: 'เมือง', emoji: '🏙️', label: 'เมือง' },
+    { id: 'กินเที่ยว', emoji: '🍽️', label: 'กินเที่ยว' },
+    { id: 'เวิร์กชอป', emoji: '🎨', label: 'เวิร์กชอป' },
+    { id: 'คอนเสิร์ต', emoji: '🎤', label: 'คอนเสิร์ต' },
+    { id: 'พักผ่อน', emoji: '🛌', label: 'พักผ่อน' },
     { id: 'อื่นๆ', emoji: '✨', label: 'อื่นๆ' },
 ];
