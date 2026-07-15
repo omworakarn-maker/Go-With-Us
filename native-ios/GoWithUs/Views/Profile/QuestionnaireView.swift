@@ -9,7 +9,7 @@ struct QuestionnaireView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     
     // State
-    @State private var budget: Double = 5
+    @State private var budget: Double = 1500
     @State private var activityStyle: Double = 5
     @State private var timeOfDay: [String] = []
     @State private var interests: [String] = []
@@ -44,31 +44,40 @@ struct QuestionnaireView: View {
                     VStack(alignment: .leading, spacing: 20) {
                         if currentStep == 0 {
                             // Budget Step
-                            Text("งบประมาณในการท่องเที่ยว (Budget Level)")
+                            Text("งบประมาณเฉลี่ยต่อวัน (บาท)")
                                 .font(.title2).bold()
-                            Text("ระดับงบประมาณเฉลี่ยที่คุณพึงพอใจในการใช้จ่ายระหว่างทริป")
+                            Text("ระบุงบประมาณที่คุณพึงพอใจในการใช้จ่ายระหว่างทริป (ต่อวัน)")
                                 .font(.subheadline).foregroundColor(.secondary)
                             
                             VStack(spacing: 30) {
-                                Text("\(Int(budget))")
-                                    .font(.system(size: 60, weight: .black))
-                                    .foregroundColor(.primary)
+                                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                                    TextField("1500", value: $budget, format: .number)
+                                        .font(.system(size: 60, weight: .black))
+                                        .foregroundColor(.primary)
+                                        .keyboardType(.numberPad)
+                                        .multilineTextAlignment(.center)
+                                        .frame(maxWidth: 200)
+                                    
+                                    Text("฿")
+                                        .font(.title)
+                                        .foregroundColor(.secondary)
+                                }
                                 
-                                Slider(value: $budget, in: 1...10, step: 1)
+                                Slider(value: $budget, in: 100...20000, step: 100)
                                     .tint(.black)
                                 
                                 HStack {
-                                    Text("ประหยัด (1)")
+                                    Text("ประหยัด (100฿)")
                                         .font(.caption).foregroundColor(.secondary)
                                     Spacer()
-                                    Text("หรูหรา (10)")
+                                    Text("หรูหรา (20,000฿+)")
                                         .font(.caption).foregroundColor(.secondary)
                                 }
                                 
                                 VStack(alignment: .leading, spacing: 10) {
-                                    QuestionnaireInfoRow(range: "1-3", label: "ประหยัด (Budget) - เน้นคุ้มค่า โฮสเทล (100-500฿)")
-                                    QuestionnaireInfoRow(range: "4-7", label: "ปานกลาง (Standard) - โรงแรมทั่วไป สบายๆ (500-2000฿)")
-                                    QuestionnaireInfoRow(range: "8-10", label: "หรูหรา (Luxury) - รีสอร์ทห้าดาว ดินเนอร์หรู (2000฿+)")
+                                    QuestionnaireInfoRow(range: "ต่ำกว่า 500฿", label: "สายประหยัด - เน้นโฮสเทล สตรีทฟู้ด")
+                                    QuestionnaireInfoRow(range: "500 - 2000฿", label: "สายปานกลาง - โรงแรมทั่วไป ร้านอาหารนั่งสบาย")
+                                    QuestionnaireInfoRow(range: "2000฿ ขึ้นไป", label: "สายหรูหรา - รีสอร์ทหรู ดินเนอร์มื้อพิเศษ")
                                 }
                                 .padding()
                                 .background(Color.gray.opacity(0.1))
