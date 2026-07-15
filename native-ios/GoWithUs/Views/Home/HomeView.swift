@@ -245,8 +245,7 @@ extension HomeView {
                 .foregroundColor(.adaptiveText)
             Spacer()
         }
-        .frame(maxWidth: .infinity)
-        .frame(height: 400)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 

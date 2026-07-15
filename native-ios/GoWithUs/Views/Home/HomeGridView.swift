@@ -118,38 +118,36 @@ struct HomeGridView: View {
                     .padding(.bottom, 8)
                     
                     // Grid Content
-                    ScrollView {
-                        if viewModel.isLoading && viewModel.trips.isEmpty {
-                            VStack(spacing: 12) {
-                                Spacer()
-                                ProgressView()
-                                    .tint(.adaptiveText)
-                                Text(SettingsManager.shared.localizedString(for: "loading_trips"))
-                                    .font(.system(size: 14))
-                                    .foregroundColor(.adaptiveText)
-                                Spacer()
-                            }
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 400)
-                        } else if viewModel.trips.isEmpty {
-                            VStack(spacing: 12) {
-                                Spacer()
-                                Circle()
-                                    .stroke(Color.gray.opacity(0.3), lineWidth: 2)
-                                    .frame(width: 80, height: 80)
-                                    .overlay(
-                                        Text("?")
-                                            .font(.system(size: 40, weight: .bold))
-                                            .foregroundColor(.gray.opacity(0.3))
-                                    )
-                                Text(SettingsManager.shared.localizedString(for: "no_trips_found"))
-                                    .font(.system(size: 18, weight: .bold))
-                                    .foregroundColor(.gray)
-                                Spacer()
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.top, 100)
-                        } else {
+                    if viewModel.isLoading && viewModel.trips.isEmpty {
+                        VStack(spacing: 12) {
+                            Spacer()
+                            ProgressView()
+                                .tint(.adaptiveText)
+                            Text(SettingsManager.shared.localizedString(for: "loading_trips"))
+                                .font(.system(size: 14))
+                                .foregroundColor(.adaptiveText)
+                            Spacer()
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else if viewModel.trips.isEmpty {
+                        VStack(spacing: 12) {
+                            Spacer()
+                            Circle()
+                                .stroke(Color.gray.opacity(0.3), lineWidth: 2)
+                                .frame(width: 80, height: 80)
+                                .overlay(
+                                    Text("?")
+                                        .font(.system(size: 40, weight: .bold))
+                                        .foregroundColor(.gray.opacity(0.3))
+                                )
+                            Text(SettingsManager.shared.localizedString(for: "no_trips_found"))
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundColor(.gray)
+                            Spacer()
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else {
+                        ScrollView {
                             LazyVGrid(columns: columns, spacing: 16) {
                                 ForEach(viewModel.trips) { trip in
                                     NavigationLink(destination: TripDetailView(tripId: trip.id)) {
@@ -162,9 +160,9 @@ struct HomeGridView: View {
                             .padding()
                             .padding(.bottom, 90)
                         }
-                    }
-                    .refreshable {
-                        await viewModel.refresh()
+                        .refreshable {
+                            await viewModel.refresh()
+                        }
                     }
                 }
             }
