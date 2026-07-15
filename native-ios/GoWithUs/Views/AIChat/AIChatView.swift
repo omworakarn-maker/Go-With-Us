@@ -26,7 +26,7 @@ struct AIChatView: View {
                     
                     VStack(spacing: 4) {
                         Text(SettingsManager.shared.localizedString(for: "ai_header"))
-                            .font(.system(size: 22, weight: .bold))
+                            .font(.system(size: 17, weight: .semibold))
                             .foregroundColor(.adaptiveText)
                     }
                     

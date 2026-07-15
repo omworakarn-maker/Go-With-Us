@@ -25,7 +25,7 @@ struct MatchTripView: View {
                         Spacer()
                         
                         Text("แมตช์ทริป")
-                            .font(.system(size: 24, weight: .black))
+                            .font(.system(size: 17, weight: .semibold))
                             .foregroundColor(.adaptiveText)
                         
                         Spacer()
@@ -46,10 +46,16 @@ struct MatchTripView: View {
                     
                     Group {
                         if viewModel.isLoading {
-                            Spacer()
-                            ProgressView()
-                                .tint(.adaptiveText)
-                            Spacer()
+                            VStack(spacing: 12) {
+                                Spacer().frame(height: 150)
+                                ProgressView()
+                                    .tint(.adaptiveText)
+                                Text("กำลังค้นหาทริป...")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.adaptiveText)
+                                Spacer()
+                            }
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
                         } else if let error = viewModel.errorMessage {
                             Spacer()
                             VStack(spacing: 16) {
