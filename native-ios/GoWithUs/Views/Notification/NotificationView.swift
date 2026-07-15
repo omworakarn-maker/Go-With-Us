@@ -191,23 +191,25 @@ class NotificationViewModel: ObservableObject {
     }
     
     func markAsRead(id: String) async {
+        // Optimistic UI update
+        if let index = notifications.firstIndex(where: { $0.id == id }) {
+            notifications[index] = AppNotification(
+                id: notifications[index].id,
+                title: notifications[index].title,
+                message: notifications[index].message,
+                type: notifications[index].type,
+                targetId: notifications[index].targetId,
+                createdAt: notifications[index].createdAt,
+                isRead: true
+            )
+        }
+        
         do {
             try await NotificationService.shared.markAsRead(id: id)
-            if let index = notifications.firstIndex(where: { $0.id == id }) {
-                notifications[index] = AppNotification(
-                    id: notifications[index].id,
-                    title: notifications[index].title,
-                    message: notifications[index].message,
-                    type: notifications[index].type,
-                    targetId: notifications[index].targetId,
-                    createdAt: notifications[index].createdAt,
-                    isRead: true
-                )
-                // also update local store if present
-                LocalNotificationStore.shared.markAsRead(id: id)
-            }
+            LocalNotificationStore.shared.markAsRead(id: id)
         } catch {
             print("Error marking as read: \(error)")
+            // Optionally revert the state here if needed
         }
     }
     
