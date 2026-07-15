@@ -53,6 +53,8 @@ struct MatchTripView: View {
                                 Spacer()
                             }
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .transition(.identity)
+                            .animation(nil, value: UUID())
                         } else if let error = viewModel.errorMessage {
                             Spacer()
                             VStack(spacing: 16) {

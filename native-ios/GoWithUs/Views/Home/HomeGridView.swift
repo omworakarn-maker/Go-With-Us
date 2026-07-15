@@ -130,6 +130,8 @@ struct HomeGridView: View {
                         }
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .offset(y: -50)
+                        .transition(.identity)
+                        .animation(nil, value: UUID())
                     } else if viewModel.trips.isEmpty {
                         VStack(spacing: 12) {
                             Spacer()

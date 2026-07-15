@@ -247,6 +247,8 @@ extension HomeView {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .offset(y: -50)
+        .transition(.identity)
+        .animation(nil, value: UUID())
     }
 }
 
