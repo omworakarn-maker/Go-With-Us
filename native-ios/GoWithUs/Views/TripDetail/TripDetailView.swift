@@ -514,8 +514,10 @@ struct TripDetailView: View {
                     .font(.system(size: 11, weight: .medium))
                     .foregroundColor(.adaptiveSecondaryText)
                 Text(trip.formattedDateRange)
-                    .font(.system(size: 12, weight: .bold))
+                    .font(.system(size: 15, weight: .black))
                     .foregroundColor(.adaptiveText)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
                     .multilineTextAlignment(.center)
             }
             .frame(maxWidth: .infinity)
