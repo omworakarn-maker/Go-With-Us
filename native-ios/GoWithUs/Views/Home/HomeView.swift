@@ -166,6 +166,7 @@ struct HomeView: View {
                             Spacer()
                         }
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .offset(y: -50)
                     } else if viewModel.trips.isEmpty && !viewModel.isLoading {
                         VStack(spacing: 12) {
                             Spacer()
@@ -189,6 +190,7 @@ struct HomeView: View {
                             Spacer()
                         }
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .offset(y: -50)
                     } else {
                         ScrollView {
                             LazyVStack(spacing: 16) {

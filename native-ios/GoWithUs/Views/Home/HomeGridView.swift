@@ -149,6 +149,7 @@ struct HomeGridView: View {
                             Spacer()
                         }
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .offset(y: -50)
                     } else {
                         ScrollView {
                             LazyVGrid(columns: columns, spacing: 16) {
