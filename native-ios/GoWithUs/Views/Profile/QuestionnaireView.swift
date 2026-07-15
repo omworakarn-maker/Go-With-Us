@@ -11,6 +11,25 @@ struct QuestionnaireView: View {
     // State
     @State private var budget: Double = 1500
     @State private var activityStyle: Double = 5
+    
+    // Non-linear budget steps
+    private let budgetSteps: [Double] = [
+        100, 300, 500, 800, 1000, 1500, 2000, 3000, 4000, 
+        5000, 6000, 8000, 10000, 12000, 15000, 20000, 30000
+    ]
+    
+    private var budgetSliderBinding: Binding<Double> {
+        Binding<Double>(
+            get: {
+                let closest = budgetSteps.enumerated().min(by: { abs($0.element - budget) < abs($1.element - budget) })?.offset ?? 0
+                return Double(closest)
+            },
+            set: { newValue in
+                let index = min(max(Int(newValue), 0), budgetSteps.count - 1)
+                budget = budgetSteps[index]
+            }
+        )
+    }
     @State private var timeOfDay: [String] = []
     @State private var interests: [String] = []
     
@@ -63,14 +82,14 @@ struct QuestionnaireView: View {
                                         .foregroundColor(.secondary)
                                 }
                                 
-                                Slider(value: $budget, in: 100...20000, step: 100)
+                                Slider(value: budgetSliderBinding, in: 0...Double(budgetSteps.count - 1), step: 1)
                                     .tint(.black)
                                 
                                 HStack {
                                     Text("ประหยัด (100฿)")
                                         .font(.caption).foregroundColor(.secondary)
                                     Spacer()
-                                    Text("หรูหรา (20,000฿+)")
+                                    Text("หรูหรา (30,000฿+)")
                                         .font(.caption).foregroundColor(.secondary)
                                 }
                                 
