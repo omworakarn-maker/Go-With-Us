@@ -362,8 +362,8 @@ class AIChatViewModel: ObservableObject {
             let responseText = try await GeminiService.shared.chat(message: text, history: history)
             
             // Check for JSON Block (Robust multiple lines & markdown support)
-            // Look for optional markdown fences, then curly braces
-            let pattern = "(\\{[\\s\\S]*?\\})"
+            // Use greedy regex to match from the first { to the last }
+            let pattern = "(\\{[\\s\\S]*\\})"
             if let regex = try? NSRegularExpression(pattern: pattern, options: []),
                let match = regex.firstMatch(in: responseText, options: [], range: NSRange(location: 0, length: responseText.utf16.count)) {
                 
