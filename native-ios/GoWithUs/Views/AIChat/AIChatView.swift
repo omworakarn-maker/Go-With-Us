@@ -61,14 +61,29 @@ struct AIChatView: View {
                                     Spacer()
                                 }
                                 .padding(.horizontal)
+                                .id("TypingIndicator")
                             }
                         }
                         .padding()
                     }
-                    .onChange(of: viewModel.messages) {
+                    .onTapGesture {
+                        hideKeyboard()
+                    }
+                    .onChange(of: viewModel.messages.count) { _ in
                         if let lastMessage = viewModel.messages.last {
-                            withAnimation {
-                                proxy.scrollTo(lastMessage.id, anchor: .bottom)
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                withAnimation {
+                                    proxy.scrollTo(lastMessage.id, anchor: .bottom)
+                                }
+                            }
+                        }
+                    }
+                    .onChange(of: viewModel.isLoading) { _ in
+                        if viewModel.isLoading {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                withAnimation {
+                                    proxy.scrollTo("TypingIndicator", anchor: .bottom)
+                                }
                             }
                         }
                     }
