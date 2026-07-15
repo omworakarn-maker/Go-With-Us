@@ -130,8 +130,7 @@ struct HomeGridView: View {
                                     .padding(.top, 8)
                                 Spacer()
                             }
-                            .frame(maxWidth: .infinity)
-                            .padding(.top, 100)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
                         } else if viewModel.trips.isEmpty {
                             VStack(spacing: 12) {
                                 Spacer()

@@ -233,7 +233,6 @@ extension HomeView {
     private func loadingView() -> some View {
         VStack(spacing: 12) {
             Spacer()
-                .frame(height: 150) // Push down as requested
             ProgressView()
                 .tint(.adaptiveText)
             Text(SettingsManager.shared.localizedString(for: "loading_trips"))

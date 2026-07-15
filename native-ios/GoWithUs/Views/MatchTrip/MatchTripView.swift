@@ -47,7 +47,7 @@ struct MatchTripView: View {
                     Group {
                         if viewModel.isLoading {
                             VStack(spacing: 12) {
-                                Spacer().frame(height: 150)
+                                Spacer()
                                 ProgressView()
                                     .tint(.adaptiveText)
                                 Text("กำลังค้นหาทริป...")
