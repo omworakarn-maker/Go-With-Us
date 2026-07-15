@@ -14,8 +14,7 @@ struct QuestionnaireView: View {
     
     // Non-linear budget steps
     private let budgetSteps: [Double] = [
-        100, 300, 500, 800, 1000, 1500, 2000, 3000, 4000, 
-        5000, 6000, 8000, 10000, 12000, 15000, 20000, 30000
+        100, 300, 500, 800, 1000, 1500, 2000, 3000, 4000, 5000
     ]
     
     private var budgetSliderBinding: Binding<Double> {
@@ -39,10 +38,10 @@ struct QuestionnaireView: View {
     
     // Time slots
     let timeSlots = [
-        ("morning", "เช้า", "ตื่นแต่เช้า สูดอากาศสด กิจกรรมยามเช้าตรู่"),
-        ("noon", "กลางวัน", "ท่องเที่ยวระหว่างวัน เดินเล่น ช็อปปิ้ง"),
-        ("evening", "เย็น", "ชมวิว ดูพระอาทิตย์ตก ดินเนอร์ริมทะเล"),
-        ("night", "มืด/ราตรี", "แฮงเอาต์ บาร์ ไนท์มาร์เก็ต ปาร์ตี้")
+        ("morning", "เช้า"),
+        ("noon", "กลางวัน"),
+        ("evening", "เย็น"),
+        ("night", "มืด/ราตรี")
     ]
     
     var body: some View {
@@ -76,6 +75,7 @@ struct QuestionnaireView: View {
                                         .keyboardType(.numberPad)
                                         .multilineTextAlignment(.center)
                                         .frame(maxWidth: 200)
+                                        .tint(.black)
                                     
                                     Text("฿")
                                         .font(.title)
@@ -89,18 +89,9 @@ struct QuestionnaireView: View {
                                     Text("ประหยัด (100฿)")
                                         .font(.caption).foregroundColor(.secondary)
                                     Spacer()
-                                    Text("หรูหรา (30,000฿+)")
+                                    Text("หรูหรา (5,000฿+)")
                                         .font(.caption).foregroundColor(.secondary)
                                 }
-                                
-                                VStack(alignment: .leading, spacing: 10) {
-                                    QuestionnaireInfoRow(range: "ต่ำกว่า 500฿", label: "สายประหยัด - เน้นโฮสเทล สตรีทฟู้ด")
-                                    QuestionnaireInfoRow(range: "500 - 2000฿", label: "สายปานกลาง - โรงแรมทั่วไป ร้านอาหารนั่งสบาย")
-                                    QuestionnaireInfoRow(range: "2000฿ ขึ้นไป", label: "สายหรูหรา - รีสอร์ทหรู ดินเนอร์มื้อพิเศษ")
-                                }
-                                .padding()
-                                .background(Color.gray.opacity(0.1))
-                                .cornerRadius(12)
                             }
                             .padding(.top, 20)
                             
@@ -126,15 +117,6 @@ struct QuestionnaireView: View {
                                     Text("ลุยเต็มพิกัด (10)")
                                         .font(.caption).foregroundColor(.secondary)
                                 }
-                                
-                                VStack(alignment: .leading, spacing: 10) {
-                                    QuestionnaireInfoRow(range: "1-3", label: "พักผ่อนชิลล์ๆ (Relaxing) - เดินเล่น ถ่ายรูป นั่งคาเฟ่ สบายๆ")
-                                    QuestionnaireInfoRow(range: "4-7", label: "ยืดหยุ่นปานกลาง (Standard) - เดินป่าสั้นๆ เที่ยวชมเมือง ทำกิจกรรมทั่วไป")
-                                    QuestionnaireInfoRow(range: "8-10", label: "ลุยเต็มพิกัด (Adventure) - ปีนเขา กางเต็นท์ แอดเวนเจอร์ กีฬาเอ็กซ์ตรีม")
-                                }
-                                .padding()
-                                .background(Color.gray.opacity(0.1))
-                                .cornerRadius(12)
                             }
                             .padding(.top, 20)
                             
@@ -212,6 +194,9 @@ struct QuestionnaireView: View {
                     }
                     .padding()
                 }
+                .onTapGesture {
+                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                }
                 
                 if !errorMessage.isEmpty {
                     Text(errorMessage)
@@ -223,7 +208,9 @@ struct QuestionnaireView: View {
                 HStack {
                     if currentStep > 0 {
                         Button("Back") {
-                            withAnimation { currentStep -= 1 }
+                            if currentStep > 0 {
+                                withAnimation { currentStep -= 1 }
+                            }
                         }
                         .padding()
                         .foregroundColor(.primary)
