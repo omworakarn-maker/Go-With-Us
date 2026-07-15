@@ -175,6 +175,11 @@ struct HomeGridView: View {
                     await viewModel.loadTrips() 
                 }
             }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("TripCreated"))) { _ in
+                Task {
+                    await viewModel.loadTrips()
+                }
+            }
         }
     }
 }

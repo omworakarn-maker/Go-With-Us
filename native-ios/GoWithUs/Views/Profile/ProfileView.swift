@@ -75,6 +75,11 @@ struct ProfileView: View {
             .onAppear {
                 loadLocalProfileImage()
             }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("TripCreated"))) { _ in
+                Task {
+                    await loadTrips()
+                }
+            }
         }
     }
     

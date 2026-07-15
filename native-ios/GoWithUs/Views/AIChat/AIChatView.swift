@@ -135,24 +135,15 @@ struct AIChatView: View {
                                         ProgressView()
                                             .tint(.white)
                                             .scaleEffect(0.8)
-                                    } else {
-                                        Image(systemName: "bolt.fill")
-                                            .font(.system(size: 12))
                                     }
                                     Text(SettingsManager.shared.localizedString(for: "ai_create_now"))
-                                        .font(.system(size: 14, weight: .bold))
+                                        .font(.system(size: 14, weight: .semibold))
                                 }
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 10)
-                                .background(
-                                    LinearGradient(
-                                        colors: [Color.appPrimary, Color.appSecondary],
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
-                                .cornerRadius(12)
+                                .background(Color.appPrimary)
+                                .cornerRadius(8)
                             }
                             .disabled(isAutoCreating)
                             
@@ -160,18 +151,19 @@ struct AIChatView: View {
                             Button(action: {
                                 showCreateTrip = true
                             }) {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "pencil")
-                                        .font(.system(size: 12))
-                                    Text(SettingsManager.shared.localizedString(for: "ai_edit_before"))
-                                        .font(.system(size: 14, weight: .bold))
-                                }
-                                .foregroundColor(.adaptiveText)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 10)
-                                .background(Color.gray.opacity(0.1))
-                                .cornerRadius(12)
+                                Text(SettingsManager.shared.localizedString(for: "ai_edit_before"))
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(.adaptiveText)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 10)
+                                    .background(Color.adaptiveCardBackground)
+                                    .cornerRadius(8)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                                    )
                             }
+                            .disabled(isAutoCreating)
                         }
                     }
                     .padding()
@@ -257,6 +249,7 @@ struct AIChatView: View {
                     isAutoCreating = false
                     viewModel.showDraftAlert = false
                     showAutoCreateSuccess = true
+                    NotificationCenter.default.post(name: NSNotification.Name("TripCreated"), object: nil)
                 }
             } catch {
                 await MainActor.run {

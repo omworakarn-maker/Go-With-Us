@@ -712,6 +712,7 @@ struct CreateTripView: View {
                     )
                 }
                 
+                NotificationCenter.default.post(name: NSNotification.Name("TripCreated"), object: nil)
                 isLoading = false
                 dismiss()
             } catch {
