@@ -120,13 +120,17 @@ struct HomeGridView: View {
                     // Grid Content
                     ScrollView {
                         if viewModel.isLoading && viewModel.trips.isEmpty {
-                            VStack {
+                            VStack(spacing: 12) {
                                 Spacer()
                                 ProgressView()
                                     .tint(.adaptiveText)
+                                Text(SettingsManager.shared.localizedString(for: "loading_trips"))
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.adaptiveText)
                                 Spacer()
                             }
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 400)
                         } else if viewModel.trips.isEmpty {
                             VStack(spacing: 12) {
                                 Spacer()
