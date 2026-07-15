@@ -56,6 +56,7 @@ struct MatchTripView: View {
                                 Spacer()
                             }
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .offset(y: -50)
                         } else if let error = viewModel.errorMessage {
                             Spacer()
                             VStack(spacing: 16) {

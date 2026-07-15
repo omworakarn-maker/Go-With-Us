@@ -246,6 +246,7 @@ extension HomeView {
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .offset(y: -50)
     }
 }
 
