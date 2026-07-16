@@ -13,7 +13,6 @@ struct ModernSplashView: View {
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(width: 150, height: 150)
-                    .clipShape(RoundedRectangle(cornerRadius: 35))
                     .shadow(color: Color.black.opacity(0.15), radius: 10, x: 0, y: 5)
                     .scaleEffect(size)
                     .opacity(opacity)
