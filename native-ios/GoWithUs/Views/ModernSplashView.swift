@@ -17,13 +17,6 @@ struct ModernSplashView: View {
                     .shadow(color: Color.black.opacity(0.15), radius: 10, x: 0, y: 5)
                     .scaleEffect(size)
                     .opacity(opacity)
-                
-                Text("GoWithUs")
-                    .font(.title2)
-                    .fontWeight(.bold)
-                    .foregroundColor(Color(hex: "#00B4DB")) // Primary color
-                    .opacity(opacity)
-                    .padding(.top, 16)
             }
             .onAppear {
                 // Phase 1: Spring animation for scale and fade

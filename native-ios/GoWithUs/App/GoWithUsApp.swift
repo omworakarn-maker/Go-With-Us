@@ -29,10 +29,10 @@ struct GoWithUsApp: App {
                 }
             }
             .ignoresSafeArea(edges: .top)
-            .animation(.easeInOut(duration: 0.8), value: showSplash)
+            .animation(.easeInOut(duration: 0.5), value: showSplash)
             .onAppear {
                 NotificationPoller.shared.startPolling()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
                     showSplash = false
                 }
             }
