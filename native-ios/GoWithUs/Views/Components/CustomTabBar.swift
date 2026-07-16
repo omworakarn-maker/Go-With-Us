@@ -45,7 +45,7 @@ struct CustomTabBar: View {
                     // ── Regular tab ────────────────────────────────────
                     let active = displayTab == tab
                     Button {
-                        HapticManager.shared.impact(style: .light)
+                        SettingsManager.shared.triggerSelection()
                         withAnimation(.interactiveSpring(response: 0.32, dampingFraction: 0.68)) {
                             selectedTab = tab
                         }
@@ -113,7 +113,7 @@ struct CustomTabBar: View {
                     let hovered = allTabs[idx]
                     guard hovered != .create else { return }
                     if previewTab != hovered {
-                        HapticManager.shared.impact(style: .light)
+                        SettingsManager.shared.triggerSelection()
                         withAnimation(.interactiveSpring(response: 0.25, dampingFraction: 0.65)) {
                             previewTab = hovered
                         }

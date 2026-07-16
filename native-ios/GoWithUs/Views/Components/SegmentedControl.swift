@@ -81,7 +81,7 @@ struct SegmentedControl: View {
         if index >= 0 && index < options.count {
             let newSelected = options[index]
             if selected != newSelected {
-                HapticManager.shared.impact(style: .light)
+                SettingsManager.shared.triggerSelection()
                 withAnimation(.interactiveSpring(response: 0.35, dampingFraction: 0.65, blendDuration: 0.5)) {
                     selected = newSelected
                 }
