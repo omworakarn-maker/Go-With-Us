@@ -81,6 +81,9 @@ struct ChatView: View {
                         }
                     }
                     .listStyle(.plain)
+                    .refreshable {
+                        await viewModel.loadInitialData(force: true)
+                    }
                 }
             }
             // Hidden navigation link activated when a conversation is set
@@ -106,9 +109,6 @@ struct ChatView: View {
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
                 Task { await viewModel.loadInitialData() }
-            }
-            .refreshable {
-                await viewModel.loadInitialData()
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("NewNotificationReceived"))) { _ in
                 Task { await viewModel.loadInitialData() }

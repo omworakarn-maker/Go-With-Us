@@ -69,7 +69,7 @@ struct JoinTripSheet: View {
             
             Spacer()
         }
-        .presentationDetents([.height(320)])
+        .presentationDetents([.height(280)])
         .alert("ไม่สามารถเข้าร่วมได้", isPresented: $showErrorAlert) {
             Button("ตรวจสอบ", role: .cancel) {}
         } message: {

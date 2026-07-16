@@ -66,7 +66,7 @@ struct LeaveTripSheet: View {
             
             Spacer()
         }
-        .presentationDetents([.height(300)])
+        .presentationDetents([.height(280)])
         .alert("ไม่สามารถออกจากทริปได้", isPresented: $showErrorAlert) {
             Button("ตกลง", role: .cancel) {}
         } message: {

@@ -295,76 +295,117 @@ struct UserInfoSectionView: View {
     @Binding var showQuestionnaire: Bool
     
     var body: some View {
-        VStack(spacing: 16) {
-            // Basic Info Cards
+        VStack(spacing: 14) {
+            // Gender & Age
             if user.gender != nil || user.age != nil {
                 HStack(spacing: 12) {
                     if let gender = user.gender {
-                        InfoCard(title: SettingsManager.shared.localizedString(for: "gender"),
-                                 value: gender == "male" ? (SettingsManager.shared.currentLanguage == .thai ? "ชาย" : "Male") : gender == "female" ? (SettingsManager.shared.currentLanguage == .thai ? "หญิง" : "Female") : (SettingsManager.shared.currentLanguage == .thai ? "อื่นๆ" : "Other"))
+                        infoCard(
+                            icon: "person.fill",
+                            iconColor: Color(hex: "#8B5CF6"),
+                            label: SettingsManager.shared.localizedString(for: "gender"),
+                            value: gender == "male" ? (SettingsManager.shared.currentLanguage == .thai ? "ชาย" : "Male") : gender == "female" ? (SettingsManager.shared.currentLanguage == .thai ? "หญิง" : "Female") : (SettingsManager.shared.currentLanguage == .thai ? "อื่นๆ" : "Other")
+                        )
                     }
+                    
                     if let age = user.age {
-                        InfoCard(title: SettingsManager.shared.localizedString(for: "age"),
-                                 value: "\(age) \(SettingsManager.shared.currentLanguage == .thai ? "ปี" : "Years")")
+                        infoCard(
+                            icon: "calendar",
+                            iconColor: Color(hex: "#3B82F6"),
+                            label: SettingsManager.shared.localizedString(for: "age"),
+                            value: "\(age) \(SettingsManager.shared.currentLanguage == .thai ? "ปี" : "Years")"
+                        )
                     }
                 }
             }
             
             // Bio Section
             if let bio = user.bio, !bio.trimmingCharacters(in: .whitespaces).isEmpty {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text(SettingsManager.shared.localizedString(for: "bio"))
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundColor(.adaptiveSecondaryText)
-                        .textCase(.uppercase)
-                        .tracking(1)
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "doc.text.fill")
+                            .font(.system(size: 12))
+                            .foregroundColor(Color(hex: "#EC4899"))
+                        Text(SettingsManager.shared.localizedString(for: "bio"))
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.adaptiveSecondaryText)
+                            .textCase(.uppercase)
+                    }
                     
                     Text(bio)
-                        .font(.system(size: 14, weight: .regular))
+                        .font(.system(size: 14))
                         .foregroundColor(.adaptiveText)
-                        .lineLimit(nil)
+                        .lineSpacing(4)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                .padding()
+                .padding(16)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Color.adaptiveCardBackground)
-                .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.adaptiveBorder, lineWidth: 1))
                 .cornerRadius(16)
+                .shadow(color: .black.opacity(0.03), radius: 6, x: 0, y: 2)
             }
             
-            // Travel Style section removed
-            
-            // Interests Section
+            // Interests
             if let interests = user.interests, !interests.isEmpty {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text(SettingsManager.shared.localizedString(for: "interests"))
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundColor(.adaptiveSecondaryText)
-                        .textCase(.uppercase)
-                        .tracking(1)
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "heart.fill")
+                            .font(.system(size: 12))
+                            .foregroundColor(Color(hex: "#F43F5E"))
+                        Text(SettingsManager.shared.localizedString(for: "interests"))
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.adaptiveSecondaryText)
+                            .textCase(.uppercase)
+                    }
                     
                     FlowLayout(spacing: 8) {
                         ForEach(interests, id: \.self) { interest in
                             Text(interest)
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundColor(.adaptiveText)
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 8)
-                                .background(Color.adaptiveCardTint)
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(.appPrimary)
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 7)
+                                .background(Color.appPrimary.opacity(0.08))
                                 .cornerRadius(20)
                         }
                     }
                 }
-                .padding()
+                .padding(16)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Color.adaptiveCardBackground)
-                .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.adaptiveBorder, lineWidth: 1))
                 .cornerRadius(16)
+                .shadow(color: .black.opacity(0.03), radius: 6, x: 0, y: 2)
             }
         }
     }
+    
+    // ── Info Card Helper ──
+    @ViewBuilder
+    private func infoCard(icon: String, iconColor: Color, label: String, value: String) -> some View {
+        VStack(spacing: 8) {
+            ZStack {
+                Circle()
+                    .fill(iconColor.opacity(0.1))
+                    .frame(width: 36, height: 36)
+                Image(systemName: icon)
+                    .font(.system(size: 14))
+                    .foregroundColor(iconColor)
+            }
+            Text(label)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundColor(.adaptiveSecondaryText)
+                .textCase(.uppercase)
+            Text(value)
+                .font(.system(size: 14, weight: .bold))
+                .foregroundColor(.adaptiveText)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 16)
+        .background(Color.adaptiveCardBackground)
+        .cornerRadius(14)
+        .shadow(color: .black.opacity(0.03), radius: 6, x: 0, y: 2)
+    }
 }
-
-// EmptyTravelStyleView removed
 
 struct AdminAlertButton: View {
     @Binding var showAdminAlert: Bool
@@ -392,33 +433,6 @@ struct LoadingView: View {
             Text(SettingsManager.shared.currentLanguage == .thai ? "กำลังโหลด..." : "Loading...")
                 .foregroundColor(.adaptiveSecondaryText)
         }
-    }
-}
-
-struct InfoCard: View {
-    let title: String
-    let value: String
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(.system(size: 11, weight: .bold))
-                .foregroundColor(.adaptiveSecondaryText)
-                .textCase(.uppercase)
-                .tracking(1)
-            
-            Text(value)
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundColor(.adaptiveText)
-        }
-        .padding()
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.adaptiveCardBackground)
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(Color.adaptiveBorder, lineWidth: 1)
-        )
-        .cornerRadius(16)
     }
 }
 

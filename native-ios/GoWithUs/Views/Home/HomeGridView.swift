@@ -4,6 +4,7 @@ struct HomeGridView: View {
     @StateObject private var viewModel = TripListViewModel()
     @ObservedObject private var notificationPoller = NotificationPoller.shared
     @State private var showNotifications = false
+
     @Binding var showSideMenu: Bool
     @Binding var currentScreen: AppScreen
     
@@ -24,7 +25,7 @@ struct HomeGridView: View {
                         ZStack {
                             // Center Title
                             Text("GoWithUs")
-                                .font(.system(size: 22, weight: .bold))
+                                .font(.system(size: 24, weight: .heavy, design: .rounded))
                                 .foregroundColor(.adaptiveText)
                             
                             HStack {
@@ -52,7 +53,7 @@ struct HomeGridView: View {
                                              .font(.system(size: 18))
                                              .foregroundColor(.adaptiveText)
                                              .padding(8)
-                                             .background(Color.gray.opacity(0.1))
+                                             .background(Color.adaptiveText.opacity(0.05))
                                              .clipShape(Circle())
                                     }
                                     
@@ -94,6 +95,15 @@ struct HomeGridView: View {
                             
                             TextField(SettingsManager.shared.localizedString(for: "search_placeholder"), text: $viewModel.searchText)
                                 .foregroundColor(.adaptiveText)
+                            
+                            if !viewModel.searchText.isEmpty {
+                                Button(action: {
+                                    viewModel.searchText = ""
+                                }) {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundColor(.gray.opacity(0.6))
+                                }
+                            }
                         }
                         .padding()
                         .background(Color.gray.opacity(0.05))

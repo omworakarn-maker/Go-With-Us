@@ -25,9 +25,17 @@ struct QuestionnaireView: View {
             },
             set: { newValue in
                 let index = min(max(Int(newValue), 0), budgetSteps.count - 1)
-                budget = budgetSteps[index]
+                let newBudget = budgetSteps[index]
+                if budget != newBudget {
+                    budget = newBudget
+                    triggerHapticFeedback()
+                }
             }
         )
+    }
+    
+    private func triggerHapticFeedback() {
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
     }
     @State private var timeOfDay: [String] = []
     @State private var interests: [String] = []
@@ -109,6 +117,9 @@ struct QuestionnaireView: View {
                                 
                                 Slider(value: $activityStyle, in: 1...10, step: 1)
                                     .tint(.black)
+                                    .onChange(of: activityStyle) { _ in
+                                        triggerHapticFeedback()
+                                    }
                                 
                                 HStack {
                                     Text("พักผ่อนชิลล์ๆ (1)")
@@ -129,10 +140,11 @@ struct QuestionnaireView: View {
                             
                             VStack(spacing: 12) {
                                 ForEach(timeSlots, id: \.0) { slot in
-                                    let (key, label, desc) = slot
+                                    let (key, label) = slot
                                     let isSelected = timeOfDay.contains(key)
                                     
                                     Button {
+                                        triggerHapticFeedback()
                                         if isSelected {
                                             timeOfDay.removeAll { $0 == key }
                                         } else {
@@ -144,10 +156,6 @@ struct QuestionnaireView: View {
                                                 Text(label)
                                                     .font(.headline)
                                                     .foregroundColor(isSelected ? .white : .primary)
-                                                Text(desc)
-                                                    .font(.caption)
-                                                    .foregroundColor(isSelected ? .white.opacity(0.8) : .secondary)
-                                                    .multilineTextAlignment(.leading)
                                             }
                                             Spacer()
                                             if isSelected {
@@ -181,6 +189,7 @@ struct QuestionnaireView: View {
                                         icon: cat.icon,
                                         isSelected: interests.contains(cat.label)
                                     ) {
+                                        triggerHapticFeedback()
                                         if interests.contains(cat.label) {
                                             interests.removeAll { $0 == cat.label }
                                         } else {
@@ -208,6 +217,7 @@ struct QuestionnaireView: View {
                 HStack {
                     if currentStep > 0 {
                         Button("Back") {
+                            triggerHapticFeedback()
                             if currentStep > 0 {
                                 withAnimation { currentStep -= 1 }
                             }
@@ -219,6 +229,8 @@ struct QuestionnaireView: View {
                     Spacer()
                     
                     Button {
+                        triggerHapticFeedback()
+                        
                         if currentStep == 2 && timeOfDay.isEmpty {
                             errorMessage = "โปรดเลือกอย่างน้อย 1 ช่วงเวลา"
                             return

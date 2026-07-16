@@ -52,11 +52,18 @@ const calculateDetailedCompatibility = (userA, userB) => {
     
     // 1. Budget Level (Weight = 3)
     if (styleA && styleA.budget !== null && styleB && styleB.budget !== null) {
-        const diff = Math.abs(styleA.budget - styleB.budget);
+        const userABudgetTHB = mapRatingToBudget(styleA.budget);
+        const userBBudgetTHB = mapRatingToBudget(styleB.budget);
+        const diffTHB = Math.abs(userABudgetTHB - userBBudgetTHB);
         let score = 1.0;
-        if (diff > 2) {
-            score = 1.0 - ((diff - 2) / 7.0);
+        
+        const maxBudget = Math.max(userABudgetTHB, userBBudgetTHB, 100);
+        const diffPercent = diffTHB / maxBudget;
+        
+        if (diffPercent > 0.3) {
+            score = Math.max(0.0, 1.0 - ((diffPercent - 0.3) / 0.7));
         }
+        
         totalScore += score * 3;
         totalWeight += 3;
     }
@@ -75,8 +82,8 @@ const calculateDetailedCompatibility = (userA, userB) => {
     // 3. Time of Day (Weight = 1)
     if (styleA && styleA.timeOfDay && styleA.timeOfDay.length > 0 && styleB && styleB.timeOfDay && styleB.timeOfDay.length > 0) {
         const intersect = styleA.timeOfDay.filter(x => styleB.timeOfDay.includes(x)).length;
-        const union = styleA.timeOfDay.length + styleB.timeOfDay.length - intersect;
-        const score = union > 0 ? (intersect / union) : 0.0;
+        const minLen = Math.min(styleA.timeOfDay.length, styleB.timeOfDay.length);
+        const score = minLen > 0 ? (intersect / minLen) : 0.0;
         totalScore += score;
         totalWeight += 1;
     }
@@ -86,8 +93,8 @@ const calculateDetailedCompatibility = (userA, userB) => {
     const intB = Array.isArray(userB.interests) ? userB.interests : [];
     if (intA.length > 0 || intB.length > 0) {
         const intersect = intA.filter(x => intB.includes(x)).length;
-        const union = intA.length + intB.length - intersect;
-        const score = union > 0 ? (intersect / union) : 0.0;
+        const minLen = Math.max(1, Math.min(intA.length, intB.length));
+        const score = intersect / minLen;
         totalScore += score;
         totalWeight += 1;
     }
@@ -100,6 +107,7 @@ const calculateDetailedCompatibility = (userA, userB) => {
 
 // Helper to map rating (1-10) to THB
 const mapRatingToBudget = (rating) => {
+    if (rating === 0 || rating === "0") return 0;
     const r = Number(rating) || 5;
     if (r > 10) return r; // Already in THB
     if (r <= 2) return 500;
@@ -143,17 +151,22 @@ export const calculateTripCompatibilityDetailed = (user, trip) => {
     // 1. Budget — calculate from THB (Weight = 3)
     if (styleU && styleU.budget !== null) {
         const userBudgetTHB = mapRatingToBudget(styleU.budget);
-        const tripBudgetTHB = trip.budget || 1000;
-        const diffTHB = Math.abs(userBudgetTHB - tripBudgetTHB);
-        
-        // Use percentage difference instead of absolute THB
-        const diffPercent = diffTHB / Math.max(userBudgetTHB, 100);
+        const tripBudgetTHB = (trip.budget !== undefined && trip.budget !== null) ? Number(trip.budget) : 1000;
         
         let score = 1.0;
-        // Accept up to 30% difference without penalty
-        if (diffPercent > 0.3) {
-            // Drop score to 0 linearly as difference approaches 100%
-            score = Math.max(0.0, 1.0 - ((diffPercent - 0.3) / 0.7));
+        
+        if (tripBudgetTHB === 0) {
+            score = 1.0; // 100% match if trip is Free (0 THB)
+        } else {
+            const diffTHB = Math.abs(userBudgetTHB - tripBudgetTHB);
+            // Use percentage difference instead of absolute THB
+            const diffPercent = diffTHB / Math.max(userBudgetTHB, 100);
+            
+            // Accept up to 30% difference without penalty
+            if (diffPercent > 0.3) {
+                // Drop score to 0 linearly as difference approaches 100%
+                score = Math.max(0.0, 1.0 - ((diffPercent - 0.3) / 0.7));
+            }
         }
         
         totalScore += score * 3;
@@ -178,8 +191,8 @@ export const calculateTripCompatibilityDetailed = (user, trip) => {
     const tripTime = (trip.timeOfDay && trip.timeOfDay.length > 0) ? trip.timeOfDay : (styleC ? styleC.timeOfDay : []);
     if (styleU && styleU.timeOfDay && styleU.timeOfDay.length > 0 && tripTime && tripTime.length > 0) {
         const intersect = styleU.timeOfDay.filter(x => tripTime.includes(x)).length;
-        const union = styleU.timeOfDay.length + tripTime.length - intersect;
-        const score = union > 0 ? (intersect / union) : 0.0;
+        const minLen = Math.min(styleU.timeOfDay.length, tripTime.length);
+        const score = minLen > 0 ? (intersect / minLen) : 0.0;
         totalScore += score;
         totalWeight += 1;
         breakdown.timeOfDay = Math.round(score * 100);

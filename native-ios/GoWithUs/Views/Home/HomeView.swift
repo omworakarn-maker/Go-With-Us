@@ -20,7 +20,7 @@ struct HomeView: View {
                         ZStack {
                             // Center Title
                             Text("GoWithUs")
-                                .font(.system(size: 22, weight: .bold))
+                                .font(.system(size: 24, weight: .heavy, design: .rounded))
                                 .foregroundColor(.adaptiveText)
                             
                             HStack {
@@ -52,7 +52,7 @@ struct HomeView: View {
                                             .font(.system(size: 18))
                                             .foregroundColor(.adaptiveText)
                                             .padding(8)
-                                            .background(Color.gray.opacity(0.1))
+                                            .background(Color.adaptiveText.opacity(0.05))
                                             .clipShape(Circle())
                                     }
                                     
@@ -93,11 +93,11 @@ struct HomeView: View {
                         // Search Bar
                         HStack(spacing: 12) {
                             Image(systemName: "magnifyingglass")
-                                .foregroundColor(.gray)
+                                .foregroundColor(isSearchFocused ? .appAccent : .gray)
                             
                             TextField(SettingsManager.shared.localizedString(for: "search_placeholder"), text: $viewModel.searchText)
                                 .foregroundColor(.adaptiveText)
-                                .accentColor(.black)
+                                .accentColor(.appAccent)
                                 .focused($isSearchFocused)
                             
                             if !viewModel.searchText.isEmpty {
@@ -111,10 +111,10 @@ struct HomeView: View {
                             }
                         }
                         .padding()
-                        .background(Color.gray.opacity(0.05))
+                        .background(isSearchFocused ? Color.appAccent.opacity(0.05) : Color.gray.opacity(0.05))
                         .overlay(
                             RoundedRectangle(cornerRadius: 12)
-                                .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                                .stroke(isSearchFocused ? Color.appAccent : Color.gray.opacity(0.2), lineWidth: 1)
                         )
                         .cornerRadius(12)
                         .padding(.horizontal)
@@ -253,6 +253,7 @@ extension HomeView {
         .animation(nil, value: UUID())
     }
 }
+
 
 #Preview {
     HomeView(showSideMenu: .constant(false), currentScreen: .constant(.home))

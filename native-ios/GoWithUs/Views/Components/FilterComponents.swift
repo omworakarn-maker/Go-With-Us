@@ -24,7 +24,7 @@ struct FilterButton: View {
             .background(isSelected ? Color.black : Color.adaptiveBackground)
             .overlay(
                 RoundedRectangle(cornerRadius: 20)
-                    .stroke(Color.gray.opacity(0.3), lineWidth: isSelected ? 0 : 1)
+                    .stroke(isSelected ? Color.black : Color.gray.opacity(0.3), lineWidth: 1)
             )
             .cornerRadius(20)
         }
@@ -71,6 +71,7 @@ struct ProvincePicker: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("ปิด") { dismiss() }
+                        .foregroundColor(.black)
                 }
             }
         }
@@ -151,7 +152,7 @@ struct DatePickerSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("ปิด") { dismiss() }
-                        .foregroundColor(.adaptiveText)
+                        .foregroundColor(.black)
                 }
             }
         }
@@ -189,6 +190,7 @@ struct CategoryPicker: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("ปิด") { dismiss() }
+                        .foregroundColor(.black)
                 }
             }
         }

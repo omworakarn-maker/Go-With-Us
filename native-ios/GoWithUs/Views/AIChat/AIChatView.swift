@@ -36,9 +36,9 @@ struct AIChatView: View {
                     Button(action: {
                         viewModel.clearChat()
                     }) {
-                        Image(systemName: "arrow.counterclockwise")
+                        Image(systemName: "trash")
                             .font(.system(size: 18, weight: .bold))
-                            .foregroundColor(.adaptiveSecondaryText)
+                            .foregroundColor(.red.opacity(0.8))
                     }
                 }
                 .padding()
@@ -176,32 +176,43 @@ struct AIChatView: View {
                 }
                 
                 // Input Bar (directly inline)
-                VStack(spacing: 0) {
-                    Divider()
-                    HStack(spacing: 12) {
-                        TextField(SettingsManager.shared.localizedString(for: "ai_input_placeholder"), text: $viewModel.inputText)
-                            .padding(12)
-                            .background(Color.gray.opacity(0.1))
-                            .cornerRadius(24)
-
+                HStack(alignment: .bottom, spacing: 0) {
+                    TextField(SettingsManager.shared.localizedString(for: "ai_input_placeholder"), text: $viewModel.inputText, axis: .vertical)
+                        .lineLimit(1...5)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .foregroundColor(.adaptiveText)
+                    
+                    if !viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isLoading {
                         Button(action: {
                             Task { await viewModel.sendMessage() }
                         }) {
-                            Circle()
-                                .fill(viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? Color.gray.opacity(0.3) : Color.adaptiveText)
-                                .frame(width: 44, height: 44)
-                                .overlay(
-                                    Image(systemName: "paperplane.fill")
-                                        .font(.system(size: 18))
-                                        .foregroundColor(Color.adaptiveBackground)
-                                        .offset(x: -2, y: 2)
-                                )
+                            if viewModel.isLoading {
+                                ProgressView()
+                                    .frame(width: 34, height: 34)
+                                    .padding(.trailing, 6)
+                                    .padding(.bottom, 6)
+                            } else {
+                                Image(systemName: "arrow.up.circle.fill")
+                                    .font(.system(size: 32))
+                                    .foregroundColor(Color.appPrimary)
+                                    .padding(.trailing, 6)
+                                    .padding(.bottom, 4)
+                                    .shadow(color: Color.appPrimary.opacity(0.3), radius: 3, x: 0, y: 2)
+                            }
                         }
-                        .disabled(viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        .disabled(viewModel.isLoading)
                     }
-                    .padding(12)
-                    .background(Color.adaptiveBackground)
                 }
+                .background(Color.adaptiveCardBackground)
+                .cornerRadius(22)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 22)
+                        .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                )
+                .shadow(color: Color.black.opacity(0.03), radius: 5, x: 0, y: 2)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
                 .background(Color.adaptiveBackground)
             }
             .navigationBarHidden(true)
@@ -294,10 +305,18 @@ struct ChatMessageView: View {
             if message.isUser {
                 Spacer()
                 Text(message.content)
-                    .padding()
-                    .background(Color.adaptiveText)
-                    .foregroundColor(Color.adaptiveBackground)
-                    .cornerRadius(16)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(
+                        LinearGradient(
+                            colors: [Color.appPrimary, Color.appPrimary.opacity(0.8)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .foregroundColor(.white)
+                    .clipShape(RoundedCorner(radius: 20, corners: [.topLeft, .topRight, .bottomLeft]))
+                    .shadow(color: Color.black.opacity(0.04), radius: 2, x: 0, y: 1)
                     .frame(maxWidth: UIScreen.main.bounds.width * 0.75, alignment: .trailing)
             } else {
                 VStack(alignment: .leading, spacing: 4) {
@@ -306,24 +325,25 @@ struct ChatMessageView: View {
                         Circle()
                             .fill(
                                 LinearGradient(
-                                    colors: [Color.appPrimary, Color.appSecondary],
+                                    colors: [Color.appAccent, Color.appAccent.opacity(0.8)],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 )
                             )
-                            .frame(width: 28, height: 28)
+                            .frame(width: 32, height: 32)
                             .overlay(
-                                Text("AI")
-                                    .font(.system(size: 10, weight: .black))
+                                Image(systemName: "sparkles")
+                                    .font(.system(size: 14, weight: .bold))
                                     .foregroundColor(.white)
                             )
                         
                         Text(message.content)
-                            .padding()
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 12)
                             .background(Color.adaptiveCardBackground)
                             .foregroundColor(.adaptiveText)
-                            .cornerRadius(16)
-                            .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
+                            .clipShape(RoundedCorner(radius: 20, corners: [.topLeft, .topRight, .bottomRight]))
+                            .shadow(color: Color.black.opacity(0.04), radius: 2, x: 0, y: 1)
                             .frame(maxWidth: UIScreen.main.bounds.width * 0.75, alignment: .leading)
                     }
                 }
@@ -334,12 +354,32 @@ struct ChatMessageView: View {
 }
 
 class AIChatViewModel: ObservableObject {
-    @Published var messages: [ChatMessage] = []
+    @Published var messages: [ChatMessage] = [] {
+        didSet { saveMessages() }
+    }
     @Published var inputText: String = ""
     @Published var isLoading = false
     
+    private let chatStorageKey = "AIChatHistory"
+    
     init() {
-        self.messages = [ChatMessage(id: UUID(), content: SettingsManager.shared.localizedString(for: "ai_welcome_message"), isUser: false, timestamp: Date())]
+        loadMessages()
+    }
+    
+    private func loadMessages() {
+        if let data = UserDefaults.standard.data(forKey: chatStorageKey),
+           let savedMessages = try? JSONDecoder().decode([ChatMessage].self, from: data),
+           !savedMessages.isEmpty {
+            self.messages = savedMessages
+        } else {
+            self.messages = [ChatMessage(id: UUID(), content: SettingsManager.shared.localizedString(for: "ai_welcome_message"), isUser: false, timestamp: Date())]
+        }
+    }
+    
+    private func saveMessages() {
+        if let encoded = try? JSONEncoder().encode(messages) {
+            UserDefaults.standard.set(encoded, forKey: chatStorageKey)
+        }
     }
     
     @Published var tripDraft: TripDraft?

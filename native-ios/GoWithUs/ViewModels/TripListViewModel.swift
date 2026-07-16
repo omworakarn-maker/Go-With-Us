@@ -11,24 +11,33 @@ class TripListViewModel: ObservableObject {
     
     // Filters
     @Published var activeTab: String = "แนะนำ" {
-        didSet { Task { await loadTrips() } }
+        didSet { Task { await loadTrips(force: true) } }
     }
     @Published var selectedProvince: String? {
-        didSet { Task { await loadTrips() } }
+        didSet { Task { await loadTrips(force: true) } }
     }
     @Published var selectedDate: Date? {
-        didSet { Task { await loadTrips() } }
+        didSet { Task { await loadTrips(force: true) } }
     }
     @Published var selectedEndDate: Date? {
-        didSet { Task { await loadTrips() } }
+        didSet { Task { await loadTrips(force: true) } }
     }
     @Published var selectedCategory: TripCategory? {
-        didSet { Task { await loadTrips() } }
+        didSet { Task { await loadTrips(force: true) } }
     }
     
     private var cancellables = Set<AnyCancellable>()
     
+    private static var lastLoaded: Date? = nil
+    private static var cachedTrips: [Trip] = []
+    
+    static func invalidateCache() {
+        lastLoaded = nil
+        cachedTrips = []
+    }
+    
     init() {
+        self.trips = Self.cachedTrips
         setupSearch()
     }
     
@@ -45,7 +54,23 @@ class TripListViewModel: ObservableObject {
     
     private var currentLoadTask: Task<Void, Never>?
 
-    func loadTrips(showLoading: Bool = true) async {
+    func loadTrips(showLoading: Bool = true, force: Bool = false) async {
+        if !force, let lastLoaded = Self.lastLoaded, Date().timeIntervalSince(lastLoaded) < 180, !Self.cachedTrips.isEmpty {
+            var filtered = Self.cachedTrips
+            
+            // Local search filtering on cached trips
+            if !searchText.isEmpty {
+                filtered = filtered.filter { trip in
+                    trip.title.localizedCaseInsensitiveContains(searchText) ||
+                    trip.destination.localizedCaseInsensitiveContains(searchText) ||
+                    (trip.description?.localizedCaseInsensitiveContains(searchText) ?? false)
+                }
+            }
+            
+            self.trips = filtered
+            return
+        }
+        
         currentLoadTask?.cancel()
         
         let task = Task {
@@ -82,6 +107,10 @@ class TripListViewModel: ObservableObject {
                      filtered = filtered.filter { $0.startDate <= userSelectionEnd }
                 }
                 
+                // Cache before search filtering
+                Self.cachedTrips = filtered
+                Self.lastLoaded = Date()
+                
                 // Local search filtering
                 if !searchText.isEmpty {
                     filtered = filtered.filter { trip in
@@ -111,6 +140,6 @@ class TripListViewModel: ObservableObject {
     }
     
     func refresh() async {
-        await loadTrips(showLoading: false)
+        await loadTrips(showLoading: false, force: true)
     }
 }

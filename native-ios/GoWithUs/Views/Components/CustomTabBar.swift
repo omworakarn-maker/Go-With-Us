@@ -13,108 +13,145 @@ struct CustomTabBar: View {
     var onCreateTap: () -> Void
     var bottomPadding: CGFloat = 0
     var badgeCounts: [Tab: Int] = [:]
-    
-    private var fillImage: String {
-        selectedTab.rawValue
-    }
-    
+
+    @Environment(\.colorScheme) var colorScheme
+    @Namespace private var tabNamespace
+    @State private var previewTab: Tab? = nil  // Visual-only during drag
+
+    private let allTabs: [Tab] = [.home, .matchTrip, .create, .chat, .profile]
+
+    /// Which tab the pill should highlight (drag preview or actual selection)
+    private var displayTab: Tab { previewTab ?? selectedTab }
+
     var body: some View {
-        VStack(spacing: 0) {
-            ZStack(alignment: .bottom) {
-                // Tab Bar Background & Items
-                HStack {
-                    ForEach(Tab.allCases, id: \.rawValue) { tab in
-                        Spacer()
-                        if tab == .create {
-                            // Invisible spacer for layout
-                            Color.clear
-                                .frame(width: 56, height: 44)
-                        } else {
-                            Button(action: {
-                                withAnimation(.spring()) {
-                                    selectedTab = tab
-                                }
-                            }) {
-                                VStack(spacing: 4) {
-                                    if let badgeCount = badgeCounts[tab], badgeCount > 0 {
-                                        Image(systemName: getImageName(for: tab))
-                                            .font(.system(size: 22))
-                                            .scaleEffect(selectedTab == tab ? 1.1 : 1.0)
-                                            .foregroundColor(selectedTab == tab ? .appAccent : .gray.opacity(0.6))
-                                            .overlay(
-                                                Text("\(min(badgeCount, 99))")
-                                                    .font(.system(size: 10, weight: .bold))
-                                                    .foregroundColor(.white)
-                                                    .padding(4)
-                                                    .background(Color.appAccent)
-                                                    .clipShape(Circle())
-                                                    .offset(x: 10, y: -10),
-                                                alignment: .topTrailing
-                                            )
-                                    } else {
-                                        Image(systemName: getImageName(for: tab))
-                                            .font(.system(size: 22))
-                                            .scaleEffect(selectedTab == tab ? 1.1 : 1.0)
-                                            .foregroundColor(selectedTab == tab ? .appAccent : .gray.opacity(0.6))
+        HStack(spacing: 0) {
+            ForEach(allTabs, id: \.rawValue) { tab in
+                if tab == .create {
+                    // ── FAB inside capsule ─────────────────────────────
+                    Button(action: onCreateTap) {
+                        ZStack {
+                            Circle()
+                                .fill(Color.appAccent)
+                                .frame(width: 44, height: 44)
+                            Image(systemName: "plus")
+                                .font(.system(size: 20, weight: .bold))
+                                .foregroundColor(.white)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                } else {
+                    // ── Regular tab ────────────────────────────────────
+                    let active = displayTab == tab
+                    Button {
+                        HapticManager.shared.impact(style: .light)
+                        withAnimation(.interactiveSpring(response: 0.32, dampingFraction: 0.68)) {
+                            selectedTab = tab
+                        }
+                    } label: {
+                        ZStack {
+                            if active {
+                                Capsule()
+                                    .fill(Color.appAccent.opacity(0.15))
+                                    .matchedGeometryEffect(id: "PILL", in: tabNamespace)
+                                    .frame(width: 62, height: 50)
+                            }
+
+                            VStack(spacing: 3) {
+                                ZStack(alignment: .topTrailing) {
+                                    Image(systemName: active ? iconFilled(tab) : iconOutline(tab))
+                                        .font(.system(size: 21, weight: active ? .semibold : .regular))
+                                        .foregroundColor(active ? .appAccent : .primary)
+                                        .opacity(active ? 1.0 : 0.6)
+                                        .scaleEffect(active ? 1.08 : 1.0)
+                                        .animation(.spring(response: 0.28, dampingFraction: 0.6), value: active)
+
+                                    if let count = badgeCounts[tab], count > 0 {
+                                        Text("\(min(count, 99))")
+                                            .font(.system(size: 9, weight: .bold))
+                                            .foregroundColor(.white)
+                                            .padding(.horizontal, 4).padding(.vertical, 2)
+                                            .background(Color.red)
+                                            .clipShape(Capsule())
+                                            .offset(x: 11, y: -7)
                                     }
-                                    
-                                    Text(getThaiTitle(for: tab))
-                                        .font(.system(size: 10, weight: .bold))
-                                        .foregroundColor(selectedTab == tab ? .appAccent : .gray.opacity(0.6))
                                 }
+
+                                Text(thaiTitle(for: tab))
+                                    .font(.system(size: 10, weight: active ? .bold : .medium))
+                                    .foregroundColor(active ? .appAccent : .primary)
+                                    .opacity(active ? 1.0 : 0.6)
                             }
                         }
-                        Spacer()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .contentShape(Rectangle())
                     }
+                    .buttonStyle(.plain)
                 }
-                .padding(.top, 12)
-                .padding(.bottom, 12)
-                .background(Color.adaptiveBackground)
-                .shadow(color: Color.adaptiveText.opacity(0.06), radius: 10, x: 0, y: -2)
-                
-                // Floating Create Button
-                Button(action: {
-                    onCreateTap()
-                }) {
-                    ZStack {
-                        Circle()
-                            .foregroundColor(.appAccent)
-                            .frame(width: 56, height: 56)
-                            .overlay(
-                                Circle()
-                                    .stroke(Color.adaptiveBackground, lineWidth: 4)
-                            )
-                            .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
-                        
-                        Image(systemName: "plus")
-                            .font(.system(size: 24, weight: .bold))
-                            .foregroundColor(.white)
-                    }
-                }
-                .offset(y: -28) // Center of the bar
             }
         }
-        .background(Color.adaptiveBackground)
-        .ignoresSafeArea(edges: .bottom)
-
+        .frame(height: 60)
+        // ── blur พื้นหลัง — ขุ่นๆ แต่ใส ─────────────────────────────────
+        .background(
+            Capsule()
+                .fill(.regularMaterial)
+        )
+        .overlay(
+            Capsule()
+                .stroke(Color.gray.opacity(0.25), lineWidth: 1.5)
+        )
+        .shadow(color: Color.adaptiveText.opacity(0.08), radius: 12, x: 0, y: -2)
+        .padding(.horizontal, 16)
+        // Drag to preview — commit on release
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 8)
+                .onChanged { val in
+                    let barW = UIScreen.main.bounds.width - 32 // minus horizontal padding
+                    let cellW = barW / CGFloat(allTabs.count)
+                    let idx = Int((val.location.x / cellW).clamped(to: 0...CGFloat(allTabs.count - 1)))
+                    let hovered = allTabs[idx]
+                    guard hovered != .create else { return }
+                    if previewTab != hovered {
+                        HapticManager.shared.impact(style: .light)
+                        withAnimation(.interactiveSpring(response: 0.25, dampingFraction: 0.65)) {
+                            previewTab = hovered
+                        }
+                    }
+                }
+                .onEnded { _ in
+                    // Commit: switch page to wherever the pill landed
+                    if let target = previewTab {
+                        withAnimation(.interactiveSpring(response: 0.32, dampingFraction: 0.68)) {
+                            selectedTab = target
+                            previewTab = nil
+                        }
+                    }
+                }
+        )
     }
-    
-    func getImageName(for tab: Tab) -> String {
+
+    private func iconFilled(_ tab: Tab) -> String {
         switch tab {
-        case .home:
-            return selectedTab == .home ? "house.fill" : "house"
-        case .matchTrip:
-            return selectedTab == .matchTrip ? "arrow.triangle.2.circlepath.circle.fill" : "arrow.triangle.2.circlepath.circle"
-        case .create:
-            return "plus"
-        case .chat:
-            return selectedTab == .chat ? "message.fill" : "message"
-        case .profile:
-            return selectedTab == .profile ? "person.fill" : "person"
+        case .home: return "house.fill"
+        case .matchTrip: return "arrow.triangle.2.circlepath.circle.fill"
+        case .chat: return "message.fill"
+        case .profile: return "person.fill"
+        case .create: return "plus"
         }
     }
-    
-    func getThaiTitle(for tab: Tab) -> String {
+
+    private func iconOutline(_ tab: Tab) -> String {
+        switch tab {
+        case .home: return "house"
+        case .matchTrip: return "arrow.triangle.2.circlepath.circle"
+        case .chat: return "message"
+        case .profile: return "person"
+        case .create: return "plus"
+        }
+    }
+
+    private func thaiTitle(for tab: Tab) -> String {
         switch tab {
         case .home: return SettingsManager.shared.localizedString(for: "home")
         case .matchTrip: return SettingsManager.shared.currentLanguage == .thai ? "แมตช์ทริป" : "Match Trip"
@@ -125,7 +162,9 @@ struct CustomTabBar: View {
     }
 }
 
-
+extension Comparable {
+    func clamped(to r: ClosedRange<Self>) -> Self { min(max(self, r.lowerBound), r.upperBound) }
+}
 
 #Preview {
     CustomTabBar(selectedTab: .constant(.home), onCreateTap: {})

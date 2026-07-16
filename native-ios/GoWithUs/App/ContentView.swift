@@ -3,46 +3,77 @@ import SwiftUI
 struct ContentView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @ObservedObject private var settings = SettingsManager.shared
-    
+    @Environment(\.scenePhase) private var scenePhase
+
     // State for navigation
     @State private var currentScreen: AppScreen = SettingsManager.shared.homeLayoutPreference
     @State private var showSideMenu = false
     @State private var showingCreateTrip = false
     @State private var badgeCounts: [Tab: Int] = [:]
-    @State private var activeTransition: AnyTransition = .identity 
+    @State private var activeTransition: AnyTransition = .identity
     @State private var showTabBarWithAnimation = false
+    /// Timestamp when the app moved to background — used to decide whether to force-refresh
+    @State private var backgroundedAt: Date? = nil
+    /// Force-refresh token passed down to persistent tab views
+    @State private var forceRefreshToken: UUID = UUID()
     
     var body: some View {
         Group {
             if authViewModel.isAuthenticated {
                 ZStack(alignment: .bottom) {
-                // Main Content Area with Fade Transition
-                Group {
-                    switch currentScreen {
-                    case .home:
+                // ── Persistent tab views (never destroyed on tab switch) ──
+                // Shown/hidden via opacity so state & cache survive
+                ZStack {
+                    // Home Tab Container
+                    ZStack(alignment: .top) {
                         HomeView(showSideMenu: $showSideMenu, currentScreen: $currentScreen)
-                    case .homeGrid:
+                            .offset(x: settings.homeLayoutPreference == .homeGrid ? -UIScreen.main.bounds.width : 0)
+                            .allowsHitTesting(currentScreen == .home)
+                            .id("home-\(forceRefreshToken)")
+
                         HomeGridView(showSideMenu: $showSideMenu, currentScreen: $currentScreen)
-                    case .findBuddy:
-                        FindBuddyView(showSideMenu: $showSideMenu)
-                    case .chat:
-                        ChatView()
-                    case .profile:
-                        ProfileView()
-                    case .matchTrip:
-                        MatchTripView(showSideMenu: $showSideMenu)
-                    case .favorites:
-                        MyTripsView(showSideMenu: $showSideMenu, initialTab: 2)
-                    case .myTrips:
-                        MyTripsView(showSideMenu: $showSideMenu, initialTab: 0)
-                    case .aiChat:
-                        AIChatView(showSideMenu: $showSideMenu)
-                    default:
-                        Text("Coming Soon")
+                            .offset(x: settings.homeLayoutPreference == .home ? UIScreen.main.bounds.width : 0)
+                            .allowsHitTesting(currentScreen == .homeGrid)
+                            .id("homeGrid-\(forceRefreshToken)")
+                    }
+                    .animation(.spring(response: 0.4, dampingFraction: 0.9, blendDuration: 0), value: settings.homeLayoutPreference)
+                    .opacity((currentScreen == .home || currentScreen == .homeGrid) ? 1 : 0)
+
+                    MatchTripView(showSideMenu: $showSideMenu)
+                        .opacity(currentScreen == .matchTrip ? 1 : 0)
+                        .allowsHitTesting(currentScreen == .matchTrip)
+                        .id("match-\(forceRefreshToken)")
+
+                    ChatView()
+                        .opacity(currentScreen == .chat ? 1 : 0)
+                        .allowsHitTesting(currentScreen == .chat)
+                        .id("chat-\(forceRefreshToken)")
+
+                    ProfileView()
+                        .opacity(currentScreen == .profile ? 1 : 0)
+                        .allowsHitTesting(currentScreen == .profile)
+                        .id("profile-\(forceRefreshToken)")
+
+                    // ── Non-tab screens rendered normally (destroy on leave is fine) ──
+                    if !isMainTabScreen {
+                        Group {
+                            switch currentScreen {
+                            case .findBuddy:
+                                FindBuddyView(showSideMenu: $showSideMenu)
+                            case .favorites:
+                                MyTripsView(showSideMenu: $showSideMenu, initialTab: 2)
+                            case .myTrips:
+                                MyTripsView(showSideMenu: $showSideMenu, initialTab: 0)
+                            case .aiChat:
+                                AIChatView(showSideMenu: $showSideMenu)
+                            default:
+                                EmptyView()
+                            }
+                        }
+                        .transition(activeTransition)
+                        .id(currentScreen)
                     }
                 }
-                .transition(activeTransition)
-                .id(currentScreen) // Force transition when state changes
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -91,6 +122,26 @@ struct ContentView: View {
             }
             .task {
                 await fetchUnreadCounts()
+            }
+            .onChange(of: scenePhase) { newPhase in
+                switch newPhase {
+                case .background:
+                    // Record when we went to background
+                    backgroundedAt = Date()
+                case .active:
+                    // If we were backgrounded for 10+ minutes, force full refresh
+                    if let bg = backgroundedAt, Date().timeIntervalSince(bg) > 600 {
+                        // Reset all caches
+                        TripListViewModel.invalidateCache()
+                        ChatViewModel.invalidateCache()
+                        MatchTripViewModel.invalidateCache()
+                        // Swap token to force view recreation
+                        forceRefreshToken = UUID()
+                    }
+                    backgroundedAt = nil
+                default:
+                    break
+                }
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("NewNotificationReceived"))) { _ in
                 Task { await fetchUnreadCounts() }
@@ -220,9 +271,7 @@ struct ContentView: View {
     }
     
     private var shouldShowTabBar: Bool {
-        // Show tab bar only on main tab screens AND if not hidden by child view
         if isChildViewHidingTabBar { return false }
-        
         switch currentScreen {
         case .home, .homeGrid, .matchTrip, .chat, .profile:
             return true
@@ -230,7 +279,16 @@ struct ContentView: View {
             return false
         }
     }
-    
+
+    private var isMainTabScreen: Bool {
+        switch currentScreen {
+        case .home, .homeGrid, .matchTrip, .chat, .profile:
+            return true
+        default:
+            return false
+        }
+    }
+
     // Add state to track preference
     @State private var isChildViewHidingTabBar = false
 }

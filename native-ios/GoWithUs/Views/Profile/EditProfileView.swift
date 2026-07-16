@@ -74,7 +74,9 @@ struct EditProfileView: View {
     @State private var selectedInterests: Set<String> = []
     @State private var gender: String = ""
     @State private var bio: String = ""
+    @FocusState private var isBioFocused: Bool
     @State private var birthDate = Date()
+    @State private var isBirthDateSet = false
     @State private var showBirthDatePicker = false
     @State private var showQuiz = false
     
@@ -246,28 +248,46 @@ struct EditProfileView: View {
                     }
                     .font(.system(size: 16, weight: .medium))
                     
-                    // Age is removed, computed from birth date
-                    
                     // Birth Date Picker
                     HStack {
                         Text("วันเกิด")
                         Spacer()
-                        DatePicker(
-                            "",
-                            selection: $birthDate,
-                            displayedComponents: .date
-                        )
-                        .labelsHidden()
+                        if isBirthDateSet {
+                            DatePicker(
+                                "",
+                                selection: $birthDate,
+                                displayedComponents: .date
+                            )
+                            .labelsHidden()
+                        } else {
+                            Button(action: {
+                                isBirthDateSet = true
+                            }) {
+                                Text("ตั้งวันเกิด")
+                                    .foregroundColor(.appAccent)
+                            }
+                        }
                     }
                 }
                 
-                Section(header: Text("ประวัติส่วนตัว")) {
+                Section {
                     TextEditor(text: $bio)
-                            .frame(height: 100)
-                            .font(.system(size: 16, weight: .regular))
+                        .focused($isBioFocused)
+                        .frame(height: 100)
+                        .font(.system(size: 16, weight: .regular))
+                        .listRowSeparator(.hidden)
+                        
+                    HStack {
+                        Text("เขียนรายละเอียดตรงนี้")
+                            .font(.system(size: 12))
+                            .foregroundColor(.gray.opacity(0.7))
+                        
+                        Spacer()
+                        
                         Text("\(bio.count) / 500")
                             .font(.system(size: 12, weight: .medium))
                             .foregroundColor(.adaptiveSecondaryText)
+                    }
                 }
                 
                 Section(header: Text(SettingsManager.shared.localizedString(for: "lifestyle_header"))) {
@@ -358,6 +378,12 @@ struct EditProfileView: View {
             .navigationTitle("แก้ไขโปรไฟล์")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("เสร็จสิ้น") {
+                        isBioFocused = false
+                    }
+                }
                 ToolbarItem(placement: .cancellationAction) {
                     Button("ยกเลิก") { dismiss() }
                         .foregroundColor(.appAccent)
@@ -387,7 +413,8 @@ struct EditProfileView: View {
                             }
                             
                             let calendar = Calendar.current
-                            let ageInt = calendar.dateComponents([.year], from: birthDate, to: Date()).year
+                            let ageInt = isBirthDateSet ? calendar.dateComponents([.year], from: birthDate, to: Date()).year : nil
+                            let finalBirthDate = isBirthDateSet ? birthDate : nil
                             
                             if let target = targetUser {
                                 // Admin editing another user
@@ -399,7 +426,7 @@ struct EditProfileView: View {
                                     gender: gender,
                                     age: ageInt,
                                     bio: bio,
-                                    birthDate: birthDate,
+                                    birthDate: finalBirthDate,
                                     travelStyle: target.travelStyle, // Keep their style or use what's in VM
                                     profileImage: profileImageBase64,
                                     gallery: galleryBase64.isEmpty ? nil : galleryBase64
@@ -413,7 +440,7 @@ struct EditProfileView: View {
                                     gender: gender,
                                     age: ageInt,
                                     bio: bio,
-                                    birthDate: birthDate,
+                                    birthDate: finalBirthDate,
                                     travelStyle: authViewModel.currentUser?.travelStyle,
                                     profileImage: profileImageBase64,
                                     gallery: galleryBase64.isEmpty ? nil : galleryBase64
@@ -448,6 +475,7 @@ struct EditProfileView: View {
                     .disabled(authViewModel.isLoading || name.trimmingCharacters(in: .whitespaces).isEmpty || isUsernameInvalid)
                 }
             }
+
             .tint(.black)
             .onAppear {
                 let userToEdit = targetUser ?? authViewModel.currentUser
@@ -459,6 +487,7 @@ struct EditProfileView: View {
                     bio = user.bio ?? ""
                     if let birthDate = user.birthDate {
                         self.birthDate = birthDate
+                        self.isBirthDateSet = true
                     }
                     
                     // Load privacy settings

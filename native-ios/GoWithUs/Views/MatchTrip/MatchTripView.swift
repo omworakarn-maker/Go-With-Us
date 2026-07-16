@@ -214,8 +214,24 @@ class MatchTripViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var selectedTripForJoin: Trip?
+    private static var lastLoaded: Date? = nil
+    private static var cachedMatches: [Trip] = []
     
-    func fetchMatches() async {
+    static func invalidateCache() {
+        lastLoaded = nil
+        cachedMatches = []
+    }
+    
+    init() {
+        self.matches = Self.cachedMatches
+    }
+    
+    func fetchMatches(force: Bool = false) async {
+        if !force, let lastLoaded = Self.lastLoaded, Date().timeIntervalSince(lastLoaded) < 180, !Self.cachedMatches.isEmpty {
+            self.matches = Self.cachedMatches
+            return
+        }
+        
         await MainActor.run {
             isLoading = true
             errorMessage = nil
@@ -226,6 +242,8 @@ class MatchTripViewModel: ObservableObject {
             let response: MatchTripResponse = try await APIService.shared.request(endpoint: "/match/trips", method: .get)
             await MainActor.run {
                 self.matches = response.matches
+                Self.cachedMatches = response.matches
+                Self.lastLoaded = Date()
                 self.isLoading = false
             }
         } catch let error as URLError where error.code == .cancelled {

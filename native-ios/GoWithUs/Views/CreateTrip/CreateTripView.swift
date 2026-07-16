@@ -1269,17 +1269,6 @@ struct ItineraryEditorView: View {
                     .tracking(1)
                 
                 Spacer()
-                
-                if itinerary != nil {
-                    Button(action: addDay) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "plus.circle.fill")
-                            Text("เพิ่มวัน")
-                        }
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundColor(.appPrimary)
-                    }
-                }
             }
             
             if let itin = itinerary, !itin.isEmpty {
@@ -1293,6 +1282,24 @@ struct ItineraryEditorView: View {
                         })
                     }
                 }
+                
+                Button(action: addDay) {
+                    HStack {
+                        Image(systemName: "calendar.badge.plus")
+                        Text("เพิ่มวันใหม่")
+                    }
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(.appPrimary)
+                    .padding(.vertical, 10)
+                    .frame(maxWidth: .infinity)
+                    .background(Color.appPrimary.opacity(0.1))
+                    .cornerRadius(8)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color.appPrimary.opacity(0.3), style: StrokeStyle(lineWidth: 1, dash: [4]))
+                    )
+                }
+                .padding(.top, 4)
             } else {
                 Button(action: {
                     itinerary = [DayPlan(day: 1, activities: [])]

@@ -127,6 +127,12 @@ export const getAllTrips = async (req, res, next) => {
                         const { total, breakdown } = calculateTripCompatibilityDetailed(currentUser, trip);
                         return { ...trip, matchScore: total, matchBreakdown: breakdown };
                     });
+                    
+                    // Sort by matchScore descending for recommendations
+                    if (type === 'recommended') {
+                        responseTrips.sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0));
+                    }
+                    
                     console.log(`Calculated matchScore for ${responseTrips.length} trips.`);
                 } else {
                     console.log("Could not find currentUser for matchScore.");

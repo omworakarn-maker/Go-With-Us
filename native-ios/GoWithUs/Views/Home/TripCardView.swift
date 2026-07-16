@@ -72,7 +72,7 @@ struct TripCardView: View {
             VStack(alignment: .leading, spacing: 12) {
                 // Title
                 Text(trip.title)
-                    .font(.system(size: 18, weight: .black))
+                    .font(.system(size: 18, weight: .black, design: .rounded))
                     .foregroundColor(.adaptiveText)
                     .tracking(-0.5)
                     .lineLimit(2)

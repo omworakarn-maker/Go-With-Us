@@ -127,7 +127,7 @@ struct Part: Codable {
     let text: String?
 }
 
-struct ChatMessage: Identifiable, Equatable {
+struct ChatMessage: Identifiable, Equatable, Codable {
     let id: UUID
     let content: String
     let isUser: Bool

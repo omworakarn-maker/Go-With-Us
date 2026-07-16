@@ -15,6 +15,17 @@ class ChatViewModel: ObservableObject {
     
     // Track last message count for detecting new messages
     private var lastMessageCount = 0
+    // Static cache so it survives view destruction on tab switch
+    private static var lastLoaded: Date? = nil
+    private static var cachedConversations: [Conversation] = []
+    private static var cachedMutualMatches: [MatchUser] = []
+    
+    static func invalidateCache() {
+        lastLoaded = nil
+        cachedConversations = []
+        cachedMutualMatches = []
+    }
+    
     // Local overrides to keep unread badges visible until user reads
     private var localUnreadOverrides: [String: Int] = [:]
     
@@ -24,7 +35,12 @@ class ChatViewModel: ObservableObject {
     }
     
     // MARK: - Load Initial Data (Concurrent)
-    func loadInitialData() async {
+    func loadInitialData(force: Bool = false) async {
+        // Cache for 3 minutes (180 seconds)
+        if !force, let lastLoaded = Self.lastLoaded, Date().timeIntervalSince(lastLoaded) < 180, !conversations.isEmpty {
+            return // Skip reloading if recently loaded
+        }
+        
         isLoading = true
         errorMessage = nil
         
@@ -33,6 +49,7 @@ class ChatViewModel: ObservableObject {
         
         _ = await (fetchConversations, fetchMutualMatches)
         
+        Self.lastLoaded = Date()
         isLoading = false
     }
     
@@ -46,6 +63,7 @@ class ChatViewModel: ObservableObject {
             let response = try await MatchService.shared.getMutualMatches()
             await MainActor.run {
                 self.mutualMatches = response.matches
+                Self.cachedMutualMatches = response.matches
             }
         } catch {
             print("Failed to fetch mutual matches in ChatViewModel: \(error)")
@@ -55,6 +73,10 @@ class ChatViewModel: ObservableObject {
     private var observersSet = false
 
     init() {
+        // Load from static cache instantly
+        self.conversations = Self.cachedConversations
+        self.mutualMatches = Self.cachedMutualMatches
+        
         // Subscribe once to conversation new-message events
         guard !observersSet else { return }
         observersSet = true
@@ -87,6 +109,7 @@ class ChatViewModel: ObservableObject {
             }
             await MainActor.run {
                 self.conversations = mappedConvs
+                Self.cachedConversations = mappedConvs
             }
             print("🛰 ChatViewModel: loaded \(mappedConvs.count) conversations")
             for c in mappedConvs {

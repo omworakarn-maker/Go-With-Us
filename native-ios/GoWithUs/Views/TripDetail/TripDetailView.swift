@@ -10,6 +10,7 @@ struct TripDetailView: View {
     @State private var selectedImage: ImageViewerItem? = nil
     @State private var kickParticipantId: String? = nil
     @State private var kickParticipantName: String = ""
+    @State private var showInterestedSheet = false
     
     struct ImageViewerItem: Identifiable {
         let id = UUID()
@@ -156,8 +157,10 @@ struct TripDetailView: View {
         .navigationBarHidden(true)
         .hideTabBar(true)
         .onTapGesture { hideKeyboard() }
-        .task { 
-            await viewModel.loadTrip() 
+        .task {
+            if viewModel.trip == nil {
+                await viewModel.loadTrip() 
+            }
             if autoShowJoin {
                 viewModel.showJoinSheet = true
             }
@@ -183,6 +186,9 @@ struct TripDetailView: View {
             }
         } message: {
             Text("ต้องการนำ \(kickParticipantName) ออกจากทริปนี้ใช่หรือไม่?")
+        }
+        .sheet(isPresented: $showInterestedSheet) {
+            InterestTripSheet(viewModel: viewModel)
         }
         .sheet(isPresented: $showEditSheet, onDismiss: {
             Task {
@@ -219,7 +225,7 @@ struct TripDetailView: View {
                 TabView {
                     ForEach(Array(allImages.enumerated()), id: \.offset) { index, url in
                         CustomAsyncImage(url: url, contentMode: .fill)
-                            .frame(maxWidth: .infinity).frame(height: 300).clipped()
+                            .frame(width: UIScreen.main.bounds.width, height: 300).clipped()
                             .onTapGesture { 
                                 selectedImage = ImageViewerItem(urls: allImages, initialIndex: index) 
                             }
@@ -227,7 +233,7 @@ struct TripDetailView: View {
                 }
                 .tabViewStyle(.page)
                 .indexViewStyle(.page(backgroundDisplayMode: .always))
-                .frame(height: 300)
+                .frame(width: UIScreen.main.bounds.width, height: 300)
             }
             
             // Gradient scrim (เบาลงเพราะไม่ต้องรองรับตัวอักษรแล้ว)
@@ -787,11 +793,11 @@ struct TripDetailView: View {
                                     let currentStatus = p.status ?? "going"
                                     if currentStatus == "going" {
                                         Circle()
-                                            .stroke(Color.rainbowGradient, lineWidth: 3.5)
+                                            .stroke(Color.appPrimary, lineWidth: 3.5)
                                             .frame(width: 48, height: 48)
                                     } else if currentStatus == "interested" {
                                         Circle()
-                                            .stroke(Color.yellow, lineWidth: 2)
+                                            .stroke(Color.orange, lineWidth: 2)
                                             .frame(width: 48, height: 48)
                                     }
                                 }
@@ -824,11 +830,11 @@ struct TripDetailView: View {
                                         Text(displayStatus == "interested" ? "สนใจทริปนี้" : "ไปแน่นอน!")
                                             .font(.system(size: 10, weight: .bold))
                                     }
-                                    .foregroundColor(displayStatus == "interested" ? .black : .white)
+                                    .foregroundColor(displayStatus == "interested" ? .orange : .white)
                                     .padding(.horizontal, 10)
                                     .padding(.vertical, 4)
                                     .background(
-                                        displayStatus == "interested" ? AnyView(Color.yellow) : AnyView(Color.appPrimary)
+                                        displayStatus == "interested" ? AnyView(Color.orange.opacity(0.15)) : AnyView(Color.appPrimary)
                                     )
                                     .cornerRadius(8)
                                 }
@@ -923,10 +929,10 @@ struct TripDetailView: View {
                                     Text(participant.status == "interested" ? "เปลี่ยนเป็นจะไปแน่นอน" : "เปลี่ยนเป็นสนใจ")
                                 }
                                 .font(.system(size: 14, weight: .bold))
-                                .foregroundColor(participant.status == "interested" ? .white : .black)
+                                .foregroundColor(participant.status == "interested" ? .white : .orange)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 14)
-                                .background(participant.status == "interested" ? Color.appPrimary : Color.yellow)
+                                .background(participant.status == "interested" ? Color.appPrimary : Color.orange.opacity(0.15))
                                 .cornerRadius(12)
                             }
                             .disabled(viewModel.isJoining)
@@ -949,11 +955,15 @@ struct TripDetailView: View {
                     HStack(spacing: 12) {
                         // "Interested" button
                         Button {
-                            Task { await viewModel.joinTrip(interests: [], status: "interested") }
+                            showInterestedSheet = true
                         } label: {
-                            HStack {
+                            HStack(spacing: 6) {
                                 if viewModel.isJoining {
                                     ProgressView().tint(.yellow).scaleEffect(0.8)
+                                } else {
+                                    Image(systemName: "star.fill")
+                                        .font(.system(size: 14, weight: .bold))
+                                        .foregroundColor(.yellow)
                                 }
                                 Text(viewModel.isJoining ? "กำลังเข้า..." : "สนใจ")
                             }
@@ -1074,4 +1084,82 @@ struct ImageViewerView: View {
 
 #Preview {
     NavigationStack { TripDetailView(tripId: "1") }
+}
+
+// MARK: - Interest Trip Sheet
+struct InterestTripSheet: View {
+    @ObservedObject var viewModel: TripDetailViewModel
+    @Environment(\.dismiss) private var dismiss
+    @State private var showErrorAlert = false
+    
+    var body: some View {
+        VStack(spacing: 24) {
+            Image(systemName: "star.circle.fill")
+                .font(.system(size: 60))
+                .foregroundColor(.yellow)
+                .padding(.top, 32)
+            
+            VStack(spacing: 8) {
+                Text("สนใจทริปนี้")
+                    .font(.system(size: 22, weight: .black))
+                    .foregroundColor(.adaptiveText)
+                
+                Text("คุณต้องการบันทึกทริปนี้เข้ารายการโปรดใช่หรือไม่?")
+                    .font(.system(size: 15))
+                    .foregroundColor(.adaptiveSecondaryText)
+            }
+            
+            HStack(spacing: 16) {
+                Button(action: {
+                    dismiss()
+                }) {
+                    Text("ยกเลิก")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(Color.black)
+                        .cornerRadius(14)
+                }
+                
+                Button(action: {
+                    Task {
+                        let success = await viewModel.joinTrip(interests: [], status: "interested")
+                        if success {
+                            dismiss()
+                        } else {
+                            showErrorAlert = true
+                        }
+                    }
+                }) {
+                    HStack {
+                        if viewModel.isJoining {
+                            ProgressView().tint(.white).scaleEffect(0.8)
+                        }
+                        Text(viewModel.isJoining ? "กำลังบันทึก..." : "ยืนยัน")
+                            .font(.system(size: 15, weight: .bold))
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(
+                        LinearGradient(colors: [.yellow, .orange], startPoint: .leading, endPoint: .trailing)
+                    )
+                    .cornerRadius(14)
+                    .shadow(color: Color.yellow.opacity(0.3), radius: 8, x: 0, y: 4)
+                }
+                .disabled(viewModel.isJoining)
+            }
+            .padding(.horizontal, 24)
+            .padding(.top, 10)
+            
+            Spacer()
+        }
+        .presentationDetents([.height(280)])
+        .alert("ไม่สามารถบันทึกได้", isPresented: $showErrorAlert) {
+            Button("ตรวจสอบ", role: .cancel) {}
+        } message: {
+            Text(viewModel.errorMessage ?? "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง")
+        }
+    }
 }

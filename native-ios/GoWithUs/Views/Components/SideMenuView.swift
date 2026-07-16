@@ -79,68 +79,75 @@ struct SideMenuView: View {
                         .foregroundColor(.adaptiveText)
                 }
             }
-            .padding(.top, 70)
+            .padding(.top, 60)
             .padding(.horizontal, 24)
-            .padding(.bottom, 30)
+            .padding(.bottom, 20)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color.adaptiveBackground)
             .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 5)
-            .padding(.bottom, 20)
+            .padding(.bottom, 10)
             
-            // Menu Items
-            VStack(alignment: .leading, spacing: 24) {
-                MenuButton(icon: "house", text: SettingsManager.shared.localizedString(for: "home"), targetScreen: SettingsManager.shared.homeLayoutPreference, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
-                MenuButton(icon: "heart.fill", text: SettingsManager.shared.currentLanguage == .thai ? "รายการโปรด" : "Favorites", targetScreen: .favorites, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
-                MenuButton(icon: "person.2", text: SettingsManager.shared.currentLanguage == .thai ? "หาเพื่อน" : "Find Buddy", targetScreen: .findBuddy, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
-                MenuButton(icon: "suitcase", text: SettingsManager.shared.localizedString(for: "my_trips"), targetScreen: .myTrips, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
-                MenuButton(icon: "bubble.left.and.text.bubble.right", text: SettingsManager.shared.localizedString(for: "ai_chat"), targetScreen: .aiChat, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
-                MenuButton(icon: "person.crop.circle", text: SettingsManager.shared.localizedString(for: "profile"), targetScreen: .profile, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
-            }
-            .padding(.horizontal)
-            
-            Divider().padding(.vertical, 16)
-            
-            // Settings Button
-            Button(action: {
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    showSettings = true
-                }
-            }) {
-                HStack(spacing: 16) {
-                    Image(systemName: "gearshape")
-                        .font(.system(size: 20))
-                        .foregroundColor(.adaptiveText)
-                        .frame(width: 24)
-                    
-                    Text(SettingsManager.shared.localizedString(for: "settings"))
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(.adaptiveText)
-                    
-                    Spacer()
-                    
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(.gray.opacity(0.5))
-                }
-                .padding(.vertical, 14)
-                .padding(.horizontal, 24)
-            }
-            
-            Spacer()
-            
-            if authViewModel.currentUser != nil {
-                Button(action: { showLogoutAlert = true }) {
-                    HStack(spacing: 16) {
-                        Image(systemName: "arrow.right.square")
-                            .font(.system(size: 20))
-                        Text(SettingsManager.shared.localizedString(for: "logout"))
-                            .font(.headline)
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 16) {
+                    // Menu Items
+                    VStack(alignment: .leading, spacing: 16) {
+                        MenuButton(icon: "house", text: SettingsManager.shared.localizedString(for: "home"), targetScreen: SettingsManager.shared.homeLayoutPreference, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
+                        MenuButton(icon: "heart.fill", text: SettingsManager.shared.currentLanguage == .thai ? "รายการโปรด" : "Favorites", targetScreen: .favorites, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
+                        MenuButton(icon: "person.2", text: SettingsManager.shared.currentLanguage == .thai ? "หาเพื่อน" : "Find Buddy", targetScreen: .findBuddy, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
+                        MenuButton(icon: "suitcase", text: SettingsManager.shared.localizedString(for: "my_trips"), targetScreen: .myTrips, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
+                        MenuButton(icon: "bubble.left.and.text.bubble.right", text: SettingsManager.shared.localizedString(for: "ai_chat"), targetScreen: .aiChat, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
+                        MenuButton(icon: "person.crop.circle", text: SettingsManager.shared.localizedString(for: "profile"), targetScreen: .profile, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
                     }
-                    .foregroundColor(.red)
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 12)
-                    .padding(.bottom, 50) // Adjusted for better balance at the bottom
+                    .padding(.horizontal)
+                    
+                    Divider().padding(.vertical, 8)
+                    
+                    // Settings Button
+                    Button(action: {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            showSettings = true
+                        }
+                    }) {
+                        HStack(spacing: 16) {
+                            Image(systemName: "gearshape")
+                                .font(.system(size: 20))
+                                .foregroundColor(.adaptiveText)
+                                .frame(width: 24)
+                            
+                            Text(SettingsManager.shared.localizedString(for: "settings"))
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundColor(.adaptiveText)
+                            
+                            Spacer()
+                            
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundColor(.gray.opacity(0.5))
+                        }
+                        .padding(.vertical, 14)
+                        .padding(.horizontal, 24)
+                    }
+                    
+                    if authViewModel.currentUser != nil {
+                        Button(action: { showLogoutAlert = true }) {
+                            HStack(spacing: 16) {
+                                Image(systemName: "arrow.right.square")
+                                    .font(.system(size: 20))
+                                    .frame(width: 24)
+                                
+                                Text(SettingsManager.shared.localizedString(for: "logout"))
+                                    .font(.system(size: 16, weight: .bold))
+                                
+                                Spacer()
+                            }
+                            .foregroundColor(.red)
+                            .padding(.vertical, 14)
+                            .padding(.horizontal, 24)
+                        }
+                        .padding(.bottom, 40)
+                    }
                 }
+                .padding(.top, 10)
             }
         }
     }
@@ -165,81 +172,82 @@ struct SideMenuView: View {
                     .foregroundColor(.adaptiveText)
                 }
             }
-            .padding(.top, 70)
+            .padding(.top, 60)
             .padding(.horizontal, 24)
-            .padding(.bottom, 30)
+            .padding(.bottom, 20)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color.adaptiveBackground)
             .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 5)
-            .padding(.bottom, 20)
+            .padding(.bottom, 10)
             
-            VStack(alignment: .leading, spacing: 24) {
-                // Language Setting
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        Image(systemName: "globe")
-                            .font(.system(size: 20))
-                            .foregroundColor(.adaptiveText)
-                            .frame(width: 24)
-                        
-                        Text("\(SettingsManager.shared.localizedString(for: "language"))")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(.adaptiveText)
-                        
-                        Spacer()
-                        
-                        Menu {
-                            Button(AppLanguage.thai.displayName) {
-                                SettingsManager.shared.currentLanguage = .thai
-                                showLanguageAlert = true
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 24) {
+                    // Language Setting
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Image(systemName: "globe")
+                                .font(.system(size: 20))
+                                .foregroundColor(.adaptiveText)
+                                .frame(width: 24)
+                            
+                            Text("\(SettingsManager.shared.localizedString(for: "language"))")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundColor(.adaptiveText)
+                            
+                            Spacer()
+                            
+                            Menu {
+                                Button(AppLanguage.thai.displayName) {
+                                    SettingsManager.shared.currentLanguage = .thai
+                                    showLanguageAlert = true
+                                }
+                                Button(AppLanguage.english.displayName) {
+                                    SettingsManager.shared.currentLanguage = .english
+                                    showLanguageAlert = true
+                                }
+                            } label: {
+                                HStack {
+                                    Text(SettingsManager.shared.currentLanguage.displayName)
+                                        .font(.subheadline)
+                                        .foregroundColor(.gray)
+                                    Image(systemName: "chevron.up.chevron.down")
+                                        .font(.system(size: 10))
+                                        .foregroundColor(.gray)
+                                }
+                                .padding(.horizontal, 10).padding(.vertical, 5)
+                                .background(Color.gray.opacity(0.1))
+                                .cornerRadius(8)
                             }
-                            Button(AppLanguage.english.displayName) {
-                                SettingsManager.shared.currentLanguage = .english
-                                showLanguageAlert = true
-                            }
-                        } label: {
-                            HStack {
-                                Text(SettingsManager.shared.currentLanguage.displayName)
-                                    .font(.subheadline)
-                                    .foregroundColor(.gray)
-                                Image(systemName: "chevron.up.chevron.down")
-                                    .font(.system(size: 10))
-                                    .foregroundColor(.gray)
-                            }
-                            .padding(.horizontal, 10).padding(.vertical, 5)
-                            .background(Color.gray.opacity(0.1))
-                            .cornerRadius(8)
                         }
                     }
-                }
-                .padding(.horizontal, 24)
-                
-                // Vibration Setting
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        Image(systemName: "waveform.path.ecg")
-                            .font(.system(size: 20))
-                            .foregroundColor(.adaptiveText)
-                            .frame(width: 24)
-                        
-                        Text(SettingsManager.shared.localizedString(for: "vibration"))
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(.adaptiveText)
-                        
-                        Spacer()
-                        
-                        Toggle("", isOn: Binding(
-                            get: { SettingsManager.shared.isHapticEnabled },
-                            set: { SettingsManager.shared.isHapticEnabled = $0 }
-                        ))
-                        .labelsHidden()
-                        .tint(.black)
+                    .padding(.horizontal, 24)
+                    
+                    // Vibration Setting
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Image(systemName: "waveform.path.ecg")
+                                .font(.system(size: 20))
+                                .foregroundColor(.adaptiveText)
+                                .frame(width: 24)
+                            
+                            Text(SettingsManager.shared.localizedString(for: "vibration"))
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundColor(.adaptiveText)
+                            
+                            Spacer()
+                            
+                            Toggle("", isOn: Binding(
+                                get: { SettingsManager.shared.isHapticEnabled },
+                                set: { SettingsManager.shared.isHapticEnabled = $0 }
+                            ))
+                            .labelsHidden()
+                            .tint(.black)
+                        }
                     }
+                    .padding(.horizontal, 24)
                 }
-                .padding(.horizontal, 24)
+                .padding(.top, 10)
             }
-            
-            Spacer()
         }
     }
 }

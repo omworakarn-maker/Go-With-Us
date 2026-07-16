@@ -49,16 +49,10 @@ struct ChatDetailView: View {
                         HStack(spacing: 10) {
                             UserAvatarView(user: partnerUser, size: 36)
                             
-                            VStack(alignment: .leading, spacing: 1) {
-                                Text(chatTitle)
-                                    .font(.system(size: 16, weight: .bold))
-                                    .foregroundColor(.adaptiveText)
-                                    .lineLimit(1)
-                                
-                                Text("ดูโปรไฟล์")
-                                    .font(.system(size: 11, weight: .medium))
-                                    .foregroundColor(.appPrimary)
-                            }
+                            Text(!chatTitle.isEmpty ? chatTitle : (partnerUser?.name ?? "ผู้ใช้"))
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundColor(.adaptiveText)
+                                .lineLimit(1)
                         }
                     }
                 } else {
@@ -146,6 +140,13 @@ struct ChatDetailView: View {
                     .padding()
                     .id("Bottom")
                 }
+                .refreshable {
+                    if let tripId = tripId {
+                        await viewModel.loadTripMessages(tripId: tripId)
+                    } else if let partnerId = partnerId {
+                        await viewModel.loadPrivateMessages(userId: partnerId)
+                    }
+                }
                 .onChange(of: viewModel.messages) { _, _ in
                     withAnimation {
                         proxy.scrollTo("Bottom", anchor: .bottom)
@@ -183,78 +184,71 @@ struct ChatDetailView: View {
                     .padding(.bottom, 8)
                 }
                 
-                HStack(alignment: .bottom, spacing: 12) {
+                HStack(alignment: .bottom, spacing: 10) {
                     PhotosPicker(selection: $selectedItem, matching: .images) {
-                        Image(systemName: "photo")
-                            .font(.system(size: 24))
-                            .foregroundColor(.gray)
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 28))
+                            .foregroundColor(.gray.opacity(0.7))
                     }
-                    .padding(.bottom, 10)
-                    .onChange(of: selectedItem) { _, newItem in
-                        Task {
-                            if let data = try? await newItem?.loadTransferable(type: Data.self) {
-                                // Compress image for base64
-                                if let uiImage = UIImage(data: data),
-                                   let compressedData = uiImage.jpegData(compressionQuality: 0.5) {
-                                    selectedImageData = compressedData
+                    .padding(.bottom, 8)
+
+                    HStack(alignment: .bottom, spacing: 0) {
+                        TextField("พิมพ์ข้อความ...", text: $messageText, axis: .vertical)
+                            .lineLimit(1...5)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
+                            .foregroundColor(.adaptiveText)
+                        
+                        if !messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || selectedImageData != nil || isSendingImage {
+                            Button(action: {
+                                let content = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
+                                let base64Image = selectedImageData?.base64EncodedString()
+                                
+                                guard !content.isEmpty || base64Image != nil else { return }
+                                
+                                isSendingImage = true
+                                messageText = ""
+                                selectedItem = nil
+                                let dataToSend = selectedImageData
+                                selectedImageData = nil
+                                
+                                Task {
+                                    let img64 = dataToSend?.base64EncodedString()
+                                    await sendMessage(content: content, imageUrl: img64)
+                                    isSendingImage = false
+                                }
+                            }) {
+                                if isSendingImage {
+                                    ProgressView()
+                                        .frame(width: 34, height: 34)
+                                        .padding(.trailing, 6)
+                                        .padding(.bottom, 6)
+                                } else {
+                                    Image(systemName: "arrow.up.circle.fill")
+                                        .font(.system(size: 32))
+                                        .foregroundColor(Color.appPrimary)
+                                        .padding(.trailing, 6)
+                                        .padding(.bottom, 4)
+                                        .shadow(color: Color.appPrimary.opacity(0.3), radius: 3, x: 0, y: 2)
                                 }
                             }
+                            .disabled(isSendingImage)
                         }
                     }
-
-                    TextField("พิมพ์ข้อความ...", text: $messageText, axis: .vertical)
-                        .lineLimit(1...5)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
-                        .background(Color.adaptiveCardBackground)
-                        .foregroundColor(.adaptiveText)
-                        .cornerRadius(22)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 22)
-                                .stroke(Color.gray.opacity(0.1), lineWidth: 1)
-                        )
-
-                    Button(action: {
-                        let content = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
-                        let base64Image = selectedImageData?.base64EncodedString()
-                        
-                        guard !content.isEmpty || base64Image != nil else { return }
-                        
-                        isSendingImage = true
-                        messageText = ""
-                        selectedItem = nil
-                        let dataToSend = selectedImageData
-                        selectedImageData = nil
-                        
-                        Task {
-                            let img64 = dataToSend?.base64EncodedString()
-                            await sendMessage(content: content, imageUrl: img64)
-                            isSendingImage = false
-                        }
-                    }) {
-                        if isSendingImage {
-                            ProgressView()
-                                .frame(width: 44, height: 44)
-                        } else {
-                            Image(systemName: "paperplane.fill")
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundColor(.white)
-                                .frame(width: 44, height: 44)
-                                .background((messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && selectedImageData == nil) ? 
-                                            Color.gray.opacity(0.3) : Color.appPrimary)
-                                .clipShape(Circle())
-                                .shadow(color: (messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && selectedImageData == nil) ? .clear : Color.appPrimary.opacity(0.3), radius: 4, x: 0, y: 2)
-                        }
-                    }
-                    .disabled(messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && selectedImageData == nil || isSendingImage)
-                    .padding(.bottom, 2)
+                    .background(Color.adaptiveCardBackground)
+                    .cornerRadius(22)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 22)
+                            .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                    )
+                    .shadow(color: Color.black.opacity(0.03), radius: 5, x: 0, y: 2)
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
-                .padding(.bottom, getSafeAreaBottom() > 0 ? 0 : 8) // Adjust for non-notch devices
-                .background(Color.adaptiveBackground)
-                .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: -5)
+                .padding(.bottom, getSafeAreaBottom() > 0 ? 0 : 8)
             }
+            .background(Color.adaptiveBackground)
+            .shadow(color: .black.opacity(0.03), radius: 10, x: 0, y: -5)
             .background(Color.adaptiveBackground)
         }
         .navigationBarHidden(true)
@@ -370,7 +364,7 @@ struct MessageBubble: View {
                         .padding(.vertical, 12)
                         .background(
                             isCurrentUser ?
-                            AnyShapeStyle(Color.black) :
+                            AnyShapeStyle(LinearGradient(gradient: Gradient(colors: [Color.appPrimary, Color.appPrimary.opacity(0.8)]), startPoint: .topLeading, endPoint: .bottomTrailing)) :
                                 AnyShapeStyle(Color.adaptiveCardBackground)
                         )
                         .foregroundColor(isCurrentUser ? .white : .adaptiveText)
