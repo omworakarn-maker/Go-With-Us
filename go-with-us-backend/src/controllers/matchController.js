@@ -14,14 +14,6 @@ const normalizeTravelStyle = (style) => {
         else if (style.budget === 'luxury') budget = 8;
         else if (!isNaN(Number(style.budget))) budget = Number(style.budget);
         
-        // Convert THB back to 1-10 scale for the formula
-        if (budget > 10) {
-            if (budget <= 500) budget = 2;
-            else if (budget <= 1000) budget = 4;
-            else if (budget <= 2000) budget = 6;
-            else if (budget <= 5000) budget = 8;
-            else budget = 10;
-        }
     }
     
     let activityStyle = null;
