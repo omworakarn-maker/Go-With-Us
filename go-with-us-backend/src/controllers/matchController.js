@@ -13,6 +13,15 @@ const normalizeTravelStyle = (style) => {
         else if (style.budget === 'moderate') budget = 5;
         else if (style.budget === 'luxury') budget = 8;
         else if (!isNaN(Number(style.budget))) budget = Number(style.budget);
+        
+        // Convert THB back to 1-10 scale for the formula
+        if (budget > 10) {
+            if (budget <= 500) budget = 2;
+            else if (budget <= 1000) budget = 4;
+            else if (budget <= 2000) budget = 6;
+            else if (budget <= 5000) budget = 8;
+            else budget = 10;
+        }
     }
     
     let activityStyle = null;
@@ -92,6 +101,7 @@ const calculateDetailedCompatibility = (userA, userB) => {
 // Helper to map rating (1-10) to THB
 const mapRatingToBudget = (rating) => {
     const r = Number(rating) || 5;
+    if (r > 10) return r; // Already in THB
     if (r <= 2) return 500;
     if (r <= 4) return 1000;
     if (r <= 6) return 2000;
@@ -136,9 +146,14 @@ export const calculateTripCompatibilityDetailed = (user, trip) => {
         const tripBudgetTHB = trip.budget || 1000;
         const diffTHB = Math.abs(userBudgetTHB - tripBudgetTHB);
         
+        // Use percentage difference instead of absolute THB
+        const diffPercent = diffTHB / Math.max(userBudgetTHB, 100);
+        
         let score = 1.0;
-        if (diffTHB > 500) {
-            score = Math.max(0.0, 1.0 - ((diffTHB - 500) / 3500.0));
+        // Accept up to 30% difference without penalty
+        if (diffPercent > 0.3) {
+            // Drop score to 0 linearly as difference approaches 100%
+            score = Math.max(0.0, 1.0 - ((diffPercent - 0.3) / 0.7));
         }
         
         totalScore += score * 3;
