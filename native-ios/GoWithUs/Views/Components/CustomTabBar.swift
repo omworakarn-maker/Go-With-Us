@@ -102,33 +102,45 @@ struct CustomTabBar: View {
                 .stroke(Color.gray.opacity(0.25), lineWidth: 1.5)
         )
         .shadow(color: Color.adaptiveText.opacity(0.08), radius: 12, x: 0, y: -2)
-        .padding(.horizontal, 16)
         // Drag to preview — commit on release
-        .simultaneousGesture(
-            DragGesture(minimumDistance: 8)
-                .onChanged { val in
-                    let barW = UIScreen.main.bounds.width - 32 // minus horizontal padding
-                    let cellW = barW / CGFloat(allTabs.count)
-                    let idx = Int((val.location.x / cellW).clamped(to: 0...CGFloat(allTabs.count - 1)))
-                    let hovered = allTabs[idx]
-                    guard hovered != .create else { return }
-                    if previewTab != hovered {
-                        SettingsManager.shared.triggerSelection()
-                        withAnimation(.interactiveSpring(response: 0.25, dampingFraction: 0.65)) {
-                            previewTab = hovered
-                        }
-                    }
-                }
-                .onEnded { _ in
-                    // Commit: switch page to wherever the pill landed
-                    if let target = previewTab {
-                        withAnimation(.interactiveSpring(response: 0.32, dampingFraction: 0.68)) {
-                            selectedTab = target
-                            previewTab = nil
-                        }
-                    }
-                }
+        .overlay(
+            GeometryReader { geo in
+                Color.clear
+                    .contentShape(Rectangle())
+                    .simultaneousGesture(
+                        DragGesture(minimumDistance: 5)
+                            .onChanged { val in
+                                let cellW = geo.size.width / CGFloat(allTabs.count)
+                                let idx = Int((val.location.x / cellW).clamped(to: 0...CGFloat(allTabs.count - 1)))
+                                let hovered = allTabs[idx]
+                                guard hovered != .create else { return }
+                                if previewTab != hovered {
+                                    SettingsManager.shared.triggerSelection()
+                                    withAnimation(.interactiveSpring(response: 0.25, dampingFraction: 0.65)) {
+                                        previewTab = hovered
+                                    }
+                                }
+                            }
+                            .onEnded { val in
+                                let cellW = geo.size.width / CGFloat(allTabs.count)
+                                let idx = Int((val.location.x / cellW).clamped(to: 0...CGFloat(allTabs.count - 1)))
+                                let target = allTabs[idx]
+                                
+                                if target != .create {
+                                    withAnimation(.interactiveSpring(response: 0.32, dampingFraction: 0.68)) {
+                                        selectedTab = target
+                                    }
+                                } else if let prev = previewTab {
+                                    withAnimation(.interactiveSpring(response: 0.32, dampingFraction: 0.68)) {
+                                        selectedTab = prev
+                                    }
+                                }
+                                previewTab = nil
+                            }
+                    )
+            }
         )
+        .padding(.horizontal, 16)
     }
 
     private func iconFilled(_ tab: Tab) -> String {
