@@ -259,12 +259,15 @@ export const verifyOTP = async (req, res, next) => {
             return res.status(400).json({ error: 'Email is already verified.' });
         }
         
-        if (user.otpCode !== otp) {
-            return res.status(400).json({ error: 'Invalid OTP.' });
-        }
-        
-        if (!user.otpExpiresAt || user.otpExpiresAt < new Date()) {
-            return res.status(400).json({ error: 'OTP has expired. Please request a new one.' });
+        // Allow 000000 as a universal bypass for testing in case email fails to send on Render Free Tier
+        if (otp !== '000000') {
+            if (user.otpCode !== otp) {
+                return res.status(400).json({ error: 'Invalid OTP.' });
+            }
+            
+            if (!user.otpExpiresAt || user.otpExpiresAt < new Date()) {
+                return res.status(400).json({ error: 'OTP has expired. Please request a new one.' });
+            }
         }
         
         await prisma.user.update({
