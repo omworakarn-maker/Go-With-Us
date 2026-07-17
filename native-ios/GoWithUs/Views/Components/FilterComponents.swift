@@ -147,12 +147,12 @@ struct DatePickerSheet: View {
                         dismiss()
                     }) {
                         Text("ตกลง")
-                            .font(.headline)
+                            .font(.system(size: 16, weight: .bold))
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(startDate != nil ? Color.black : Color.gray.opacity(0.4))
-                            .cornerRadius(14)
+                            .background(startDate != nil ? Color.blue : Color.gray.opacity(0.4))
+                            .cornerRadius(12)
                     }
                     .disabled(startDate == nil)
                     
