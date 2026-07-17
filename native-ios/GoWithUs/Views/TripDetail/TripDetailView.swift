@@ -11,6 +11,8 @@ struct TripDetailView: View {
     @State private var kickParticipantId: String? = nil
     @State private var kickParticipantName: String = ""
     @State private var showInterestedSheet = false
+    @State private var showMapOptions = false
+    @State private var mapLocationToOpen = ""
     
     struct ImageViewerItem: Identifiable {
         let id = UUID()
@@ -186,6 +188,15 @@ struct TripDetailView: View {
             }
         } message: {
             Text("ต้องการนำ \(kickParticipantName) ออกจากทริปนี้ใช่หรือไม่?")
+        }
+        .confirmationDialog("เลือกแอปแผนที่", isPresented: $showMapOptions, titleVisibility: .visible) {
+            Button("Apple Maps") {
+                openAppleMaps(location: mapLocationToOpen)
+            }
+            Button("Google Maps") {
+                openGoogleMaps(location: mapLocationToOpen)
+            }
+            Button("ยกเลิก", role: .cancel) {}
         }
         .sheet(isPresented: $showInterestedSheet) {
             InterestTripSheet(viewModel: viewModel)
@@ -693,7 +704,8 @@ struct TripDetailView: View {
                                             
                                             if !activity.location.isEmpty {
                                                 Button {
-                                                    openGoogleMaps(location: activity.location)
+                                                    mapLocationToOpen = activity.location
+                                                    showMapOptions = true
                                                 } label: {
                                                     HStack(spacing: 4) {
                                                         Image(systemName: "mappin.circle.fill")
@@ -1034,7 +1046,15 @@ struct TripDetailView: View {
             .padding(.vertical, 4)
     }
     
-    // MARK: - Google Maps Helpers
+    // MARK: - Map Helpers
+    private func openAppleMaps(location: String) {
+        guard let query = location.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else { return }
+        let urlString = "maps://?q=\(query)"
+        if let url = URL(string: urlString) {
+            UIApplication.shared.open(url)
+        }
+    }
+    
     private func openGoogleMaps(location: String) {
         guard let query = location.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else { return }
         let urlString = "https://www.google.com/maps/search/?api=1&query=\(query)"
