@@ -48,8 +48,10 @@ export const register = async (req, res, next) => {
             },
         });
         
-        // Send OTP via Email
-        await sendVerificationEmail(email, otpCode);
+        // Send OTP via Email (Non-blocking to speed up response)
+        sendVerificationEmail(email, otpCode).catch(err => {
+            console.error("Failed to send background email:", err);
+        });
 
         // Generate JWT token
         const token = jwt.sign(
@@ -289,7 +291,10 @@ export const resendOTP = async (req, res, next) => {
             data: { otpCode, otpExpiresAt }
         });
         
-        await sendVerificationEmail(email, otpCode);
+        // Send OTP via Email (Non-blocking)
+        sendVerificationEmail(email, otpCode).catch(err => {
+            console.error("Failed to send background email:", err);
+        });
         
         res.json({ message: 'OTP sent successfully.' });
     } catch (error) {
