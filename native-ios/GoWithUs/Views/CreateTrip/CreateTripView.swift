@@ -1400,6 +1400,8 @@ struct ActivityEditorView: View {
     @Binding var activity: Activity
     var onRemove: () -> Void
     
+    @State private var isShowingLocationSearch = false
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 10) {
@@ -1425,10 +1427,21 @@ struct ActivityEditorView: View {
                 Image(systemName: "mappin.circle.fill")
                     .foregroundColor(.red)
                     .font(.system(size: 12))
-                TextField("สถานที่ (ถ้ามี)", text: $activity.location)
-                    .font(.system(size: 12))
+                Button(action: {
+                    isShowingLocationSearch = true
+                }) {
+                    Text(activity.location.isEmpty ? "เพิ่มสถานที่ (ค้นหาได้เลย)" : activity.location)
+                        .font(.system(size: 12))
+                        .foregroundColor(activity.location.isEmpty ? .gray : .adaptiveText)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
             }
             .padding(.leading, 4)
+            .sheet(isPresented: $isShowingLocationSearch) {
+                LocationSearchView { selectedLocation in
+                    activity.location = selectedLocation
+                }
+            }
             
             TextField("รายละเอียดเพิ่มเติม", text: $activity.description)
                 .font(.system(size: 13))
