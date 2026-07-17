@@ -56,8 +56,8 @@ struct FilterBar: View {
                     }
                 }
             }
-            .padding(.horizontal)
         }
+        .safeAreaPadding(.horizontal, 16)
         .padding(.vertical, 8)
         
         // Sheets
