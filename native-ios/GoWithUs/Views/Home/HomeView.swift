@@ -93,7 +93,11 @@ struct HomeView: View {
                         // Search Bar
                         HStack(spacing: 12) {
                             Image(systemName: "magnifyingglass")
-                                .foregroundColor(isSearchFocused ? .appAccent : .gray)
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundColor(isSearchFocused ? .appAccent : .gray.opacity(0.8))
+                                .padding(8)
+                                .background(isSearchFocused ? Color.appAccent.opacity(0.15) : Color.gray.opacity(0.1))
+                                .clipShape(Circle())
                             
                             TextField(SettingsManager.shared.localizedString(for: "search_placeholder"), text: $viewModel.searchText)
                                 .foregroundColor(.adaptiveText)
