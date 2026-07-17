@@ -34,6 +34,12 @@ class AuthViewModel: ObservableObject {
     func loadCurrentUser() async {
         do {
             currentUser = try await AuthService.shared.getCurrentUser()
+            
+            // SECURITY FIX: Prevent bypassing OTP by restarting the app
+            if let user = currentUser, user.isEmailVerified == false {
+                print("⚠️ User has token but email is NOT verified. Forcing OTP screen.")
+                showOTPVerification = true
+            }
         } catch let error as URLError where error.code == .cancelled {
             // Ignore cancellation, don't logout
         } catch {
