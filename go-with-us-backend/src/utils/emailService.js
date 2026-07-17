@@ -25,9 +25,9 @@ export const sendVerificationEmail = async (to, otp) => {
   }
 
   const mailOptions = {
-    from: `"GoWithUs App" <${process.env.SMTP_USER}>`,
+    from: `"GoWithUs" <${process.env.SMTP_USER}>`,
     to: to,
-    subject: 'รหัสยืนยันอีเมลของคุณ (GoWithUs)',
+    subject: `GoWithUs OTP: ${otp}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
         <h2 style="color: #ff4d4d; text-align: center;">ยืนยันอีเมลของคุณ</h2>
