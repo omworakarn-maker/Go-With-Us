@@ -13,8 +13,8 @@ struct FilterButton: View {
             action()
         }) {
             HStack(spacing: 4) {
-                Image(systemName: icon)
-                    .font(.system(size: 12))
+                Text(icon)
+                    .font(.system(size: 14))
                 Text(title)
                     .font(.system(size: 13, weight: .bold))
             }

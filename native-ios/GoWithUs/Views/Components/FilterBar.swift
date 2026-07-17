@@ -20,7 +20,7 @@ struct FilterBar: View {
                 FilterButton(
                     title: selectedProvince != nil && selectedProvince != "ทุกจังหวัด" ? selectedProvince! : "ทุกจังหวัด",
                     isSelected: selectedProvince != nil && selectedProvince != "ทุกจังหวัด",
-                    icon: "map",
+                    icon: "📍",
                     action: { showProvinceSheet = true }
                 )
                 
@@ -28,7 +28,7 @@ struct FilterBar: View {
                 FilterButton(
                     title: formatDateButtonTitle(),
                     isSelected: selectedDate != nil,
-                    icon: "calendar",
+                    icon: "🗓️",
                     action: { showDateSheet = true }
                 )
                 
@@ -36,7 +36,7 @@ struct FilterBar: View {
                 FilterButton(
                     title: selectedCategory?.rawValue ?? "หมวดหมู่",
                     isSelected: selectedCategory != nil,
-                    icon: "camera.macro",
+                    icon: "🧭",
                     action: { showCategorySheet = true }
                 )
                 
