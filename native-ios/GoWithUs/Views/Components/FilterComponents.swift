@@ -192,32 +192,59 @@ struct CategoryPicker: View {
     @Environment(\.dismiss) var dismiss
     @Binding var selectedCategory: TripCategory?
     
+    // We need a temp selection that can hold nil (represented by "ทุกหมวดหมู่")
+    @State private var tempSelectionRaw: String
+    
+    init(selectedCategory: Binding<TripCategory?>) {
+        self._selectedCategory = selectedCategory
+        self._tempSelectionRaw = State(initialValue: selectedCategory.wrappedValue?.rawValue ?? "ทุกหมวดหมู่")
+    }
+    
     var body: some View {
         NavigationView {
-            List {
-                Button("ทุกหมวดหมู่") {
-                    selectedCategory = nil
-                    dismiss()
-                }
-                .foregroundColor(.adaptiveText)
-                
-                ForEach(TripCategory.allCases, id: \.self) { category in
-                    Button(category.rawValue) {
-                        selectedCategory = category
-                        dismiss()
+            VStack {
+                Picker("เลือกหมวดหมู่", selection: $tempSelectionRaw) {
+                    Text("ทุกหมวดหมู่").tag("ทุกหมวดหมู่")
+                    ForEach(TripCategory.allCases, id: \.self) { category in
+                        Text(category.rawValue).tag(category.rawValue)
                     }
-                    .foregroundColor(.adaptiveText)
                 }
+                .pickerStyle(.wheel)
+                .frame(height: 250)
+                
+                Spacer()
+                
+                Button(action: {
+                    if tempSelectionRaw == "ทุกหมวดหมู่" {
+                        selectedCategory = nil
+                    } else {
+                        if let category = TripCategory(rawValue: tempSelectionRaw) {
+                            selectedCategory = category
+                        }
+                    }
+                    SettingsManager.shared.triggerSelection()
+                    dismiss()
+                }) {
+                    Text("ตกลง")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.blue)
+                        .cornerRadius(12)
+                        .padding(.horizontal, 24)
+                }
+                .padding(.bottom, 20)
             }
             .navigationTitle("เลือกหมวดหมู่")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("ปิด") { dismiss() }
-                        .foregroundColor(.black)
+                    Button("ยกเลิก") { dismiss() }
+                        .foregroundColor(.blue)
                 }
             }
         }
-        .presentationDetents([.medium, .large])
+        .presentationDetents([.medium])
     }
 }
