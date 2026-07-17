@@ -36,6 +36,7 @@ struct GoWithUsApp: App {
                     showSplash = false
                 }
             }
+            .preferredColorScheme(.light) // Force light mode globally
         }
     }
 }
