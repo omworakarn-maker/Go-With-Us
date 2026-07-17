@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import prisma from '../utils/prismaClient.js';
+import { sendVerificationEmail } from '../utils/emailService.js';
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
 // Register new user
@@ -29,6 +30,10 @@ export const register = async (req, res, next) => {
 
         // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
+        
+        // Generate OTP
+        const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
         // Create user
         const user = await prisma.user.create({
@@ -37,8 +42,14 @@ export const register = async (req, res, next) => {
                 email,
                 password: hashedPassword,
                 role: 'user', // Default role
+                otpCode,
+                otpExpiresAt,
+                isEmailVerified: false
             },
         });
+        
+        // Send OTP via Email
+        await sendVerificationEmail(email, otpCode);
 
         // Generate JWT token
         const token = jwt.sign(
@@ -112,6 +123,13 @@ export const login = async (req, res, next) => {
         if (user.isBanned) {
             return res.status(403).json({ error: 'บัญชีของคุณถูกระงับการใช้งาน โปรดติดต่อผู้ดูแลระบบ' });
         }
+        
+        // Ensure email is verified (UNCOMMENT THIS LATER WHEN YOU HAVE OTP UI)
+        /*
+        if (user.isEmailVerified === false) {
+            return res.status(401).json({ error: 'Please verify your email address before logging in.', needsVerification: true });
+        }
+        */
 
         // Check password
         const isValidPassword = await bcrypt.compare(password, user.password);

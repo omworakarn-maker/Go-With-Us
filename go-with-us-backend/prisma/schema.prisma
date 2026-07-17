@@ -45,6 +45,9 @@ model User {
   embedding Json?    // AI Vector for recommendation
   fcmToken  String?  // Firebase Cloud Messaging Token for Push Notifications
   // Verification System
+  isEmailVerified    Boolean @default(false)
+  otpCode            String?
+  otpExpiresAt       DateTime?
   isVerified         Boolean @default(false)
   verificationStatus String  @default("unverified") // "unverified", "pending", "verified", "rejected"
   idCardImage        String? @db.Text

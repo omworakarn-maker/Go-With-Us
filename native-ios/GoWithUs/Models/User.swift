@@ -28,6 +28,7 @@ struct User: Codable, Identifiable, Hashable {
     let showEmail: Bool?
     
     // Verification
+    let isEmailVerified: Bool?
     let isVerified: Bool?
     let verificationStatus: String?
     
@@ -54,6 +55,7 @@ struct User: Codable, Identifiable, Hashable {
         showBio: Bool? = nil,
         showInterests: Bool? = nil,
         showEmail: Bool? = nil,
+        isEmailVerified: Bool? = nil,
         isVerified: Bool? = nil,
         verificationStatus: String? = nil
     ) {
@@ -79,6 +81,7 @@ struct User: Codable, Identifiable, Hashable {
         self.showBio = showBio
         self.showInterests = showInterests
         self.showEmail = showEmail
+        self.isEmailVerified = isEmailVerified
         self.isVerified = isVerified
         self.verificationStatus = verificationStatus
     }
