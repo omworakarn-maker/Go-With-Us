@@ -108,7 +108,7 @@ class AuthViewModel: ObservableObject {
             let user = try await AuthService.shared.register(name: name, email: email, password: password)
             currentUser = user
             showOTPVerification = true
-            needsOnboarding = true // Will be used after verification
+            // Do NOT set needsOnboarding here, because it triggers a fullScreenCover conflict.
         } catch {
             let errStr = error.localizedDescription
             if errStr.contains("400") || errStr.contains("409") {
@@ -129,6 +129,7 @@ class AuthViewModel: ObservableObject {
             try await AuthService.shared.verifyOTP(email: email, otp: otp)
             isAuthenticated = true
             showOTPVerification = false
+            needsOnboarding = true // Trigger onboarding ONLY after OTP is verified
             isLoading = false
             return true
         } catch {
