@@ -17,6 +17,7 @@ struct CustomTabBar: View {
     @Environment(\.colorScheme) var colorScheme
     @Namespace private var tabNamespace
     @State private var previewTab: Tab? = nil  // Visual-only during drag
+    @State private var barWidth: CGFloat = UIScreen.main.bounds.width - 32
 
     private let allTabs: [Tab] = [.home, .matchTrip, .create, .chat, .profile]
 
@@ -102,43 +103,44 @@ struct CustomTabBar: View {
                 .stroke(Color.gray.opacity(0.25), lineWidth: 1.5)
         )
         .shadow(color: Color.adaptiveText.opacity(0.08), radius: 12, x: 0, y: -2)
-        // Drag to preview — commit on release
-        .overlay(
+        .background(
             GeometryReader { geo in
                 Color.clear
-                    .contentShape(Rectangle())
-                    .simultaneousGesture(
-                        DragGesture(minimumDistance: 5)
-                            .onChanged { val in
-                                let cellW = geo.size.width / CGFloat(allTabs.count)
-                                let idx = Int((val.location.x / cellW).clamped(to: 0...CGFloat(allTabs.count - 1)))
-                                let hovered = allTabs[idx]
-                                guard hovered != .create else { return }
-                                if previewTab != hovered {
-                                    SettingsManager.shared.triggerSelection()
-                                    withAnimation(.interactiveSpring(response: 0.25, dampingFraction: 0.65)) {
-                                        previewTab = hovered
-                                    }
-                                }
-                            }
-                            .onEnded { val in
-                                let cellW = geo.size.width / CGFloat(allTabs.count)
-                                let idx = Int((val.location.x / cellW).clamped(to: 0...CGFloat(allTabs.count - 1)))
-                                let target = allTabs[idx]
-                                
-                                if target != .create {
-                                    withAnimation(.interactiveSpring(response: 0.32, dampingFraction: 0.68)) {
-                                        selectedTab = target
-                                    }
-                                } else if let prev = previewTab {
-                                    withAnimation(.interactiveSpring(response: 0.32, dampingFraction: 0.68)) {
-                                        selectedTab = prev
-                                    }
-                                }
-                                previewTab = nil
-                            }
-                    )
+                    .onAppear { barWidth = geo.size.width }
+                    .onChange(of: geo.size.width) { _, w in barWidth = w }
             }
+        )
+        // Drag to preview — commit on release
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 5)
+                .onChanged { val in
+                    let cellW = barWidth / CGFloat(allTabs.count)
+                    let idx = Int((val.location.x / cellW).clamped(to: 0...CGFloat(allTabs.count - 1)))
+                    let hovered = allTabs[idx]
+                    guard hovered != .create else { return }
+                    if previewTab != hovered {
+                        SettingsManager.shared.triggerSelection()
+                        withAnimation(.interactiveSpring(response: 0.25, dampingFraction: 0.65)) {
+                            previewTab = hovered
+                        }
+                    }
+                }
+                .onEnded { val in
+                    let cellW = barWidth / CGFloat(allTabs.count)
+                    let idx = Int((val.location.x / cellW).clamped(to: 0...CGFloat(allTabs.count - 1)))
+                    let target = allTabs[idx]
+                    
+                    if target != .create {
+                        withAnimation(.interactiveSpring(response: 0.32, dampingFraction: 0.68)) {
+                            selectedTab = target
+                        }
+                    } else if let prev = previewTab {
+                        withAnimation(.interactiveSpring(response: 0.32, dampingFraction: 0.68)) {
+                            selectedTab = prev
+                        }
+                    }
+                    previewTab = nil
+                }
         )
         .padding(.horizontal, 16)
     }
