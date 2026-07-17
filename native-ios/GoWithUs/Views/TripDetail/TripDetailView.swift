@@ -198,6 +198,7 @@ struct TripDetailView: View {
             }
             Button("ยกเลิก", role: .cancel) {}
         }
+        .tint(.primary)
         .sheet(isPresented: $showInterestedSheet) {
             InterestTripSheet(viewModel: viewModel)
         }
