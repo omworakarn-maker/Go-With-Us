@@ -4,6 +4,9 @@ struct RegisterView: View {
     @EnvironmentObject var viewModel: AuthViewModel
     @Environment(\.dismiss) private var dismiss
     
+    @State private var showPassword = false
+    @State private var showConfirmPassword = false
+    
     var body: some View {
         ZStack {
             // White Background
@@ -97,20 +100,78 @@ struct RegisterView: View {
                                     .textCase(.uppercase)
                                     .tracking(1)
                                 
-                                SecureField("", text: $viewModel.password)
-                                    .placeholder(when: viewModel.password.isEmpty) {
-                                        Text("อย่างน้อย 6 ตัวอักษร")
-                                            .foregroundColor(.gray.opacity(0.1))
+                                HStack {
+                                    if showPassword {
+                                        TextField("", text: $viewModel.password)
+                                            .placeholder(when: viewModel.password.isEmpty) {
+                                                Text("อย่างน้อย 6 ตัวอักษร")
+                                                    .foregroundColor(.gray.opacity(0.5))
+                                            }
+                                            .foregroundColor(.adaptiveText)
+                                            .tint(.adaptiveText)
+                                    } else {
+                                        SecureField("", text: $viewModel.password)
+                                            .placeholder(when: viewModel.password.isEmpty) {
+                                                Text("อย่างน้อย 6 ตัวอักษร")
+                                                    .foregroundColor(.gray.opacity(0.5))
+                                            }
+                                            .foregroundColor(.adaptiveText)
+                                            .tint(.adaptiveText)
                                     }
-                                    .foregroundColor(.adaptiveText)
-                                    .tint(.adaptiveText)
-                                    .padding()
-                                    .background(Color.gray.opacity(0.05))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                                    )
-                                    .cornerRadius(12)
+                                    
+                                    Button(action: { showPassword.toggle() }) {
+                                        Image(systemName: showPassword ? "eye.slash.fill" : "eye.fill")
+                                            .foregroundColor(.gray)
+                                    }
+                                }
+                                .padding()
+                                .background(Color.gray.opacity(0.05))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                                )
+                                .cornerRadius(12)
+                            }
+                            
+                            // Confirm Password Field
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("ยืนยันรหัสผ่าน")
+                                    .font(.system(size: 11, weight: .bold))
+                                    .foregroundColor(.gray)
+                                    .textCase(.uppercase)
+                                    .tracking(1)
+                                
+                                HStack {
+                                    if showConfirmPassword {
+                                        TextField("", text: $viewModel.confirmPassword)
+                                            .placeholder(when: viewModel.confirmPassword.isEmpty) {
+                                                Text("พิมพ์รหัสผ่านอีกครั้ง")
+                                                    .foregroundColor(.gray.opacity(0.5))
+                                            }
+                                            .foregroundColor(.adaptiveText)
+                                            .tint(.adaptiveText)
+                                    } else {
+                                        SecureField("", text: $viewModel.confirmPassword)
+                                            .placeholder(when: viewModel.confirmPassword.isEmpty) {
+                                                Text("พิมพ์รหัสผ่านอีกครั้ง")
+                                                    .foregroundColor(.gray.opacity(0.5))
+                                            }
+                                            .foregroundColor(.adaptiveText)
+                                            .tint(.adaptiveText)
+                                    }
+                                    
+                                    Button(action: { showConfirmPassword.toggle() }) {
+                                        Image(systemName: showConfirmPassword ? "eye.slash.fill" : "eye.fill")
+                                            .foregroundColor(.gray)
+                                    }
+                                }
+                                .padding()
+                                .background(Color.gray.opacity(0.05))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                                )
+                                .cornerRadius(12)
                             }
                             
                             // Error Message

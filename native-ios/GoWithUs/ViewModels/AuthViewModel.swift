@@ -6,6 +6,7 @@ import Combine
 class AuthViewModel: ObservableObject {
     @Published var email = ""
     @Published var password = ""
+    @Published var confirmPassword = ""
     @Published var name = ""
     @Published var isLoading = false
     @Published var errorMessage: String?
@@ -74,13 +75,25 @@ class AuthViewModel: ObservableObject {
     
     // MARK: - Register
     func register() async {
-        guard !name.isEmpty, !email.isEmpty, !password.isEmpty else {
+        guard !name.isEmpty, !email.isEmpty, !password.isEmpty, !confirmPassword.isEmpty else {
             errorMessage = "กรุณากรอกข้อมูลให้ครบถ้วน"
+            return
+        }
+        
+        let emailRegex = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}"
+        let emailPredicate = NSPredicate(format:"SELF MATCHES %@", emailRegex)
+        guard emailPredicate.evaluate(with: email) else {
+            errorMessage = "รูปแบบอีเมลไม่ถูกต้อง"
             return
         }
         
         guard password.count >= 6 else {
             errorMessage = "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร"
+            return
+        }
+        
+        guard password == confirmPassword else {
+            errorMessage = "รหัสผ่านและการยืนยันรหัสผ่านไม่ตรงกัน"
             return
         }
         
@@ -111,6 +124,7 @@ class AuthViewModel: ObservableObject {
         currentUser = nil
         email = ""
         password = ""
+        confirmPassword = ""
         name = ""
     }
     
