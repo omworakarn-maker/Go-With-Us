@@ -63,11 +63,9 @@ Our goal was to build not just a functional app, but a **world-class user experi
 
 ## 📸 Interface Highlights
 
-*(Add your screenshots here by replacing the placeholder URLs)*
-
 | Home Feed | Trip Details | Create Trip | Profile |
 | :---: | :---: | :---: | :---: |
-| <img src="https://via.placeholder.com/250x540.png?text=Home+Feed" width="200" /> | <img src="https://via.placeholder.com/250x540.png?text=Trip+Details" width="200" /> | <img src="https://via.placeholder.com/250x540.png?text=Create+Trip" width="200" /> | <img src="https://via.placeholder.com/250x540.png?text=Profile" width="200" /> |
+| <img src="assets/screenshots/1.png" width="200" alt="Home Feed"/> | <img src="assets/screenshots/2.png" width="200" alt="Trip Details"/> | <img src="assets/screenshots/3.png" width="200" alt="Create Trip"/> | <img src="assets/screenshots/4.png" width="200" alt="Profile"/> |
 
 ---
 
