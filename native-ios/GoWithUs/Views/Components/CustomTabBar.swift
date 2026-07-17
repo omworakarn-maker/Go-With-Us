@@ -29,66 +29,66 @@ struct CustomTabBar: View {
             ForEach(allTabs, id: \.rawValue) { tab in
                 if tab == .create {
                     // ── FAB inside capsule ─────────────────────────────
-                    Button(action: onCreateTap) {
-                        ZStack {
-                            Circle()
-                                .fill(Color.appAccent)
-                                .frame(width: 44, height: 44)
-                            Image(systemName: "plus")
-                                .font(.system(size: 20, weight: .bold))
-                                .foregroundColor(.white)
-                        }
+                    ZStack {
+                        Circle()
+                            .fill(Color.appAccent)
+                            .frame(width: 44, height: 44)
+                        Image(systemName: "plus")
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundColor(.white)
                     }
-                    .buttonStyle(.plain)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        SettingsManager.shared.triggerSelection()
+                        onCreateTap()
+                    }
 
                 } else {
                     // ── Regular tab ────────────────────────────────────
                     let active = displayTab == tab
-                    Button {
+                    ZStack {
+                        if active {
+                            Capsule()
+                                .fill(Color.appAccent.opacity(0.15))
+                                .matchedGeometryEffect(id: "PILL", in: tabNamespace)
+                                .frame(width: 62, height: 50)
+                        }
+
+                        VStack(spacing: 3) {
+                            ZStack(alignment: .topTrailing) {
+                                Image(systemName: active ? iconFilled(tab) : iconOutline(tab))
+                                    .font(.system(size: 21, weight: active ? .semibold : .regular))
+                                    .foregroundColor(active ? .appAccent : .primary)
+                                    .opacity(active ? 1.0 : 0.6)
+                                    .scaleEffect(active ? 1.08 : 1.0)
+                                    .animation(.spring(response: 0.28, dampingFraction: 0.6), value: active)
+
+                                if let count = badgeCounts[tab], count > 0 {
+                                    Text("\(min(count, 99))")
+                                        .font(.system(size: 9, weight: .bold))
+                                        .foregroundColor(.white)
+                                        .padding(.horizontal, 4).padding(.vertical, 2)
+                                        .background(Color.red)
+                                        .clipShape(Capsule())
+                                        .offset(x: 11, y: -7)
+                                }
+                            }
+
+                            Text(thaiTitle(for: tab))
+                                .font(.system(size: 10, weight: active ? .bold : .medium))
+                                .foregroundColor(active ? .appAccent : .primary)
+                                .opacity(active ? 1.0 : 0.6)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
                         SettingsManager.shared.triggerSelection()
                         withAnimation(.interactiveSpring(response: 0.32, dampingFraction: 0.68)) {
                             selectedTab = tab
                         }
-                    } label: {
-                        ZStack {
-                            if active {
-                                Capsule()
-                                    .fill(Color.appAccent.opacity(0.15))
-                                    .matchedGeometryEffect(id: "PILL", in: tabNamespace)
-                                    .frame(width: 62, height: 50)
-                            }
-
-                            VStack(spacing: 3) {
-                                ZStack(alignment: .topTrailing) {
-                                    Image(systemName: active ? iconFilled(tab) : iconOutline(tab))
-                                        .font(.system(size: 21, weight: active ? .semibold : .regular))
-                                        .foregroundColor(active ? .appAccent : .primary)
-                                        .opacity(active ? 1.0 : 0.6)
-                                        .scaleEffect(active ? 1.08 : 1.0)
-                                        .animation(.spring(response: 0.28, dampingFraction: 0.6), value: active)
-
-                                    if let count = badgeCounts[tab], count > 0 {
-                                        Text("\(min(count, 99))")
-                                            .font(.system(size: 9, weight: .bold))
-                                            .foregroundColor(.white)
-                                            .padding(.horizontal, 4).padding(.vertical, 2)
-                                            .background(Color.red)
-                                            .clipShape(Capsule())
-                                            .offset(x: 11, y: -7)
-                                    }
-                                }
-
-                                Text(thaiTitle(for: tab))
-                                    .font(.system(size: 10, weight: active ? .bold : .medium))
-                                    .foregroundColor(active ? .appAccent : .primary)
-                                    .opacity(active ? 1.0 : 0.6)
-                            }
-                        }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
                 }
             }
         }
