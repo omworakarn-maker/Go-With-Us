@@ -21,11 +21,14 @@ export const register = async (req, res, next) => {
         // Check if user exists
         const existingUser = await prisma.user.findUnique({
             where: { email },
-            select: { id: true }
+            select: { id: true, isEmailVerified: true }
         });
 
         if (existingUser) {
-            return res.status(400).json({ error: 'Email already registered.' });
+            if (existingUser.isEmailVerified) {
+                return res.status(400).json({ error: 'Email already registered.' });
+            }
+            // If they are not verified, we allow them to re-register. We will just update their info below.
         }
 
         // Hash password
@@ -35,18 +38,32 @@ export const register = async (req, res, next) => {
         const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
         const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-        // Create user
-        const user = await prisma.user.create({
-            data: {
-                name,
-                email,
-                password: hashedPassword,
-                role: 'user', // Default role
-                otpCode,
-                otpExpiresAt,
-                isEmailVerified: false
-            },
-        });
+        let user;
+        if (existingUser && !existingUser.isEmailVerified) {
+            // Overwrite existing unverified account
+            user = await prisma.user.update({
+                where: { email },
+                data: {
+                    name,
+                    password: hashedPassword,
+                    otpCode,
+                    otpExpiresAt,
+                }
+            });
+        } else {
+            // Create new user
+            user = await prisma.user.create({
+                data: {
+                    name,
+                    email,
+                    password: hashedPassword,
+                    role: 'user', // Default role
+                    otpCode,
+                    otpExpiresAt,
+                    isEmailVerified: false
+                },
+            });
+        }
         
         // Send OTP via Email (Non-blocking to speed up response)
         sendVerificationEmail(email, otpCode).catch(err => {
