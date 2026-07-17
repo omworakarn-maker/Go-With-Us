@@ -49,33 +49,57 @@ struct ProvincePicker: View {
         "อุทัยธานี", "อุบลราชธานี"
     ]
     
+    // Use a local state for the picker, so we can confirm selection
+    @State private var tempSelection: String
+    
+    init(selectedProvince: Binding<String?>) {
+        self._selectedProvince = selectedProvince
+        self._tempSelection = State(initialValue: selectedProvince.wrappedValue ?? "ทุกจังหวัด")
+    }
+    
     var body: some View {
         NavigationView {
-            List {
-                Button("ทุกจังหวัด") {
-                    selectedProvince = nil
-                    dismiss()
-                }
-                .foregroundColor(.adaptiveText)
-                
-                ForEach(provinces.filter { $0 != "ทุกจังหวัด" }, id: \.self) { province in
-                    Button(province) {
-                        selectedProvince = province
-                        dismiss()
+            VStack {
+                Picker("เลือกจังหวัด", selection: $tempSelection) {
+                    ForEach(provinces, id: \.self) { province in
+                        Text(province).tag(province)
                     }
-                    .foregroundColor(.adaptiveText)
                 }
+                .pickerStyle(.wheel)
+                .frame(height: 250)
+                
+                Spacer()
+                
+                Button(action: {
+                    if tempSelection == "ทุกจังหวัด" {
+                        selectedProvince = nil
+                    } else {
+                        selectedProvince = tempSelection
+                    }
+                    SettingsManager.shared.triggerSelection()
+                    dismiss()
+                }) {
+                    Text("ตกลง")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.blue)
+                        .cornerRadius(12)
+                        .padding(.horizontal, 24)
+                }
+                .padding(.bottom, 20)
             }
             .navigationTitle("เลือกจังหวัด")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("ปิด") { dismiss() }
-                        .foregroundColor(.black)
+                    Button("ยกเลิก") { dismiss() }
+                        .foregroundColor(.blue)
                 }
             }
         }
-        .presentationDetents([.medium, .large])
+        .presentationDetents([.medium])
     }
 }
 
