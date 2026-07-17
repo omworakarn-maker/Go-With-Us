@@ -144,9 +144,6 @@ struct LoginView: View {
             .onTapGesture {
                 hideKeyboard()
             }
-            .fullScreenCover(isPresented: $viewModel.showOTPVerification) {
-                OTPVerificationView()
-            }
         }
     }
 }

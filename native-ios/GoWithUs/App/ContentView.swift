@@ -176,6 +176,10 @@ struct ContentView: View {
                     .environmentObject(authViewModel)
             }
         }
+        .fullScreenCover(isPresented: $authViewModel.showOTPVerification) {
+            OTPVerificationView()
+                .environmentObject(authViewModel)
+        }
     }
     
     @State private var lastUnreadCount: Int = 0
