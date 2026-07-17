@@ -221,3 +221,78 @@ export const getCurrentUser = async (req, res, next) => {
         next(error);
     }
 };
+
+export const verifyOTP = async (req, res, next) => {
+    try {
+        const { email, otp } = req.body;
+        
+        if (!email || !otp) {
+            return res.status(400).json({ error: 'Email and OTP are required.' });
+        }
+        
+        const user = await prisma.user.findUnique({ where: { email } });
+        
+        if (!user) {
+            return res.status(404).json({ error: 'User not found.' });
+        }
+        
+        if (user.isEmailVerified) {
+            return res.status(400).json({ error: 'Email is already verified.' });
+        }
+        
+        if (user.otpCode !== otp) {
+            return res.status(400).json({ error: 'Invalid OTP.' });
+        }
+        
+        if (!user.otpExpiresAt || user.otpExpiresAt < new Date()) {
+            return res.status(400).json({ error: 'OTP has expired. Please request a new one.' });
+        }
+        
+        await prisma.user.update({
+            where: { email },
+            data: {
+                isEmailVerified: true,
+                otpCode: null,
+                otpExpiresAt: null
+            }
+        });
+        
+        res.json({ message: 'Email verified successfully.' });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const resendOTP = async (req, res, next) => {
+    try {
+        const { email } = req.body;
+        
+        if (!email) {
+            return res.status(400).json({ error: 'Email is required.' });
+        }
+        
+        const user = await prisma.user.findUnique({ where: { email } });
+        
+        if (!user) {
+            return res.status(404).json({ error: 'User not found.' });
+        }
+        
+        if (user.isEmailVerified) {
+            return res.status(400).json({ error: 'Email is already verified.' });
+        }
+        
+        const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+        
+        await prisma.user.update({
+            where: { email },
+            data: { otpCode, otpExpiresAt }
+        });
+        
+        await sendVerificationEmail(email, otpCode);
+        
+        res.json({ message: 'OTP sent successfully.' });
+    } catch (error) {
+        next(error);
+    }
+};
