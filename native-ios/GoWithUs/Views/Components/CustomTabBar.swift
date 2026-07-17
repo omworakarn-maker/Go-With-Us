@@ -17,6 +17,7 @@ struct CustomTabBar: View {
     @Environment(\.colorScheme) var colorScheme
     @Namespace private var tabNamespace
     @State private var previewTab: Tab? = nil  // Visual-only during drag
+    @State private var dragLocationX: CGFloat? = nil // Tracks drag for fluid pill
     @State private var barWidth: CGFloat = UIScreen.main.bounds.width - 32
 
     private let allTabs: [Tab] = [.home, .matchTrip, .create, .chat, .profile]
@@ -48,13 +49,6 @@ struct CustomTabBar: View {
                     // ── Regular tab ────────────────────────────────────
                     let active = displayTab == tab
                     ZStack {
-                        if active {
-                            Capsule()
-                                .fill(Color.appAccent.opacity(0.15))
-                                .matchedGeometryEffect(id: "PILL", in: tabNamespace)
-                                .frame(width: 62, height: 50)
-                        }
-
                         VStack(spacing: 3) {
                             ZStack(alignment: .topTrailing) {
                                 Image(systemName: active ? iconFilled(tab) : iconOutline(tab))
@@ -93,6 +87,35 @@ struct CustomTabBar: View {
             }
         }
         .frame(height: 60)
+        // ── Fluid Pill Background ─────────────────────────────────
+        .background(
+            GeometryReader { geo in
+                let cellW = geo.size.width / CGFloat(allTabs.count)
+                let currentIdx = CGFloat(allTabs.firstIndex(of: selectedTab) ?? 0)
+                let currentCenter = (currentIdx * cellW) + (cellW / 2)
+                
+                let targetX: CGFloat
+                let stretchWidth: CGFloat
+                let basePillWidth: CGFloat = 62
+                
+                if let dragX = dragLocationX {
+                    // Jelly stretch effect
+                    let diff = dragX - currentCenter
+                    targetX = currentCenter + (diff / 2)
+                    stretchWidth = basePillWidth + abs(diff) * 0.7
+                } else {
+                    targetX = currentCenter
+                    stretchWidth = basePillWidth
+                }
+                
+                Capsule()
+                    .fill(Color.appAccent.opacity(0.15))
+                    .frame(width: stretchWidth, height: 50)
+                    .position(x: targetX, y: geo.size.height / 2)
+                    .animation(.interactiveSpring(response: 0.35, dampingFraction: 0.65), value: dragLocationX)
+                    .animation(.interactiveSpring(response: 0.35, dampingFraction: 0.65), value: targetX)
+            }
+        )
         // ── blur พื้นหลัง — ขุ่นๆ แต่ใส ─────────────────────────────────
         .background(
             Capsule()
@@ -114,6 +137,8 @@ struct CustomTabBar: View {
         .simultaneousGesture(
             DragGesture(minimumDistance: 5)
                 .onChanged { val in
+                    dragLocationX = val.location.x.clamped(to: 0...barWidth)
+                    
                     let cellW = barWidth / CGFloat(allTabs.count)
                     let idx = Int((val.location.x / cellW).clamped(to: 0...CGFloat(allTabs.count - 1)))
                     let hovered = allTabs[idx]
@@ -134,12 +159,12 @@ struct CustomTabBar: View {
                         withAnimation(.interactiveSpring(response: 0.32, dampingFraction: 0.68)) {
                             selectedTab = target
                         }
-                    } else if let prev = previewTab {
-                        withAnimation(.interactiveSpring(response: 0.32, dampingFraction: 0.68)) {
-                            selectedTab = prev
-                        }
                     }
-                    previewTab = nil
+                    
+                    withAnimation(.interactiveSpring(response: 0.32, dampingFraction: 0.68)) {
+                        previewTab = nil
+                        dragLocationX = nil
+                    }
                 }
         )
         .padding(.horizontal, 16)
