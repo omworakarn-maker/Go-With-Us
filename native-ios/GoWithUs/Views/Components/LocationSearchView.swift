@@ -66,8 +66,8 @@ struct LocationSearchView: View {
                 .cornerRadius(10)
                 .padding()
                 
-                // Use current custom location if no results
-                if !searchText.isEmpty && viewModel.completions.isEmpty {
+                // Always allow using the exact typed text
+                if !searchText.isEmpty {
                     Button(action: {
                         onSelect(searchText)
                         dismiss()
