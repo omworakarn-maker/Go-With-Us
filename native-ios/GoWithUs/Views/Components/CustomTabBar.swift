@@ -99,16 +99,17 @@ struct CustomTabBar: View {
                 let basePillWidth: CGFloat = 62
                 
                 if let dragX = dragLocationX {
-                    // Jelly stretch effect
                     let diff = dragX - currentCenter
-                    targetX = currentCenter + (diff / 2)
-                    stretchWidth = basePillWidth + abs(diff) * 0.7
+                    // Follows finger closely but anchored slightly to give a sense of weight
+                    targetX = currentCenter + (diff * 0.85)
+                    // Stretches up to a max of 45 extra pixels to prevent getting too long
+                    stretchWidth = basePillWidth + min(abs(diff) * 0.35, 45)
                 } else {
                     targetX = currentCenter
                     stretchWidth = basePillWidth
                 }
                 
-                Capsule()
+                return Capsule()
                     .fill(Color.appAccent.opacity(0.15))
                     .frame(width: stretchWidth, height: 50)
                     .position(x: targetX, y: geo.size.height / 2)
