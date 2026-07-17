@@ -10,84 +10,111 @@ struct OTPVerificationView: View {
     @State private var timer: Timer? = nil
     
     var body: some View {
-        VStack(spacing: 24) {
-            // Header
-            VStack(spacing: 8) {
-                Image(systemName: "envelope.badge")
-                    .font(.system(size: 60))
-                    .foregroundColor(.accentColor)
-                    .padding(.bottom, 10)
-                
-                Text("ยืนยันอีเมล")
-                    .font(.title)
-                    .fontWeight(.bold)
-                
-                Text("กรุณากรอกรหัส 6 หลักที่ส่งไปที่")
-                    .foregroundColor(.secondary)
-                Text(viewModel.email)
-                    .fontWeight(.semibold)
-            }
-            .padding(.top, 40)
+        ZStack {
+            Color.adaptiveBackground.ignoresSafeArea()
             
-            // OTP Input
-            TextField("รหัส OTP", text: $otp)
-                .keyboardType(.numberPad)
-                .textContentType(.oneTimeCode)
-                .multilineTextAlignment(.center)
-                .font(.system(size: 32, weight: .bold))
-                .tracking(10)
-                .padding()
-                .background(Color(.systemGray6))
-                .cornerRadius(12)
-                .frame(width: 250)
-                .onChange(of: otp) { newValue in
-                    if newValue.count > 6 {
-                        otp = String(newValue.prefix(6))
+            VStack(spacing: 24) {
+                // Header
+                VStack(spacing: 8) {
+                    Image(systemName: "envelope.badge")
+                        .font(.system(size: 50, weight: .light))
+                        .foregroundColor(.adaptiveText)
+                        .padding(.bottom, 16)
+                    
+                    Text("ยืนยันอีเมล")
+                        .font(.system(size: 28, weight: .bold))
+                        .foregroundColor(.adaptiveText)
+                    
+                    VStack(spacing: 4) {
+                        Text("กรุณากรอกรหัส 6 หลักที่ส่งไปที่")
+                            .font(.system(size: 15))
+                            .foregroundColor(.gray)
+                        Text(viewModel.email)
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(.adaptiveText)
                     }
                 }
-            
-            if let error = viewModel.errorMessage {
-                Text(error)
-                    .foregroundColor(.red)
-                    .font(.footnote)
-            }
-            
-            // Verify Button
-            Button(action: verifyOTP) {
-                HStack {
-                    if isVerifying {
-                        ProgressView()
-                            .tint(.white)
-                            .padding(.trailing, 8)
-                    }
-                    Text("ยืนยันรหัส")
-                        .fontWeight(.semibold)
-                }
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(otp.count == 6 ? Color.accentColor : Color.gray)
-                .cornerRadius(12)
-            }
-            .disabled(otp.count < 6 || isVerifying)
-            
-            // Resend Button
-            HStack {
-                Text("ไม่ได้รับรหัส?")
-                    .foregroundColor(.secondary)
+                .padding(.top, 40)
                 
-                Button(action: resendOTP) {
-                    Text(timeRemaining > 0 ? "ส่งใหม่ใน \(timeRemaining) วิ" : "ส่งรหัสใหม่")
-                        .fontWeight(.semibold)
-                        .foregroundColor(timeRemaining > 0 ? .gray : .accentColor)
+                // OTP Input
+                TextField("------", text: $otp)
+                    .keyboardType(.numberPad)
+                    .textContentType(.oneTimeCode)
+                    .multilineTextAlignment(.center)
+                    .font(.system(size: 40, weight: .bold, design: .monospaced))
+                    .tracking(8)
+                    .foregroundColor(.adaptiveText)
+                    .tint(.adaptiveText)
+                    .padding(.vertical, 20)
+                    .padding(.horizontal, 16)
+                    .background(Color.gray.opacity(0.05))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(otp.count == 6 ? Color.adaptiveText : Color.gray.opacity(0.2), lineWidth: 1.5)
+                    )
+                    .cornerRadius(16)
+                    .frame(width: 280)
+                    .onChange(of: otp) { newValue in
+                        // Keep only numbers
+                        let filtered = newValue.filter { $0.isNumber }
+                        if filtered != newValue {
+                            otp = filtered
+                        }
+                        if filtered.count > 6 {
+                            otp = String(filtered.prefix(6))
+                        } else if filtered.count == 6 && !isVerifying {
+                            hideKeyboard()
+                            verifyOTP()
+                        }
+                    }
+                
+                if let error = viewModel.errorMessage {
+                    Text(error)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.red)
+                        .padding(.horizontal)
+                        .multilineTextAlignment(.center)
                 }
-                .disabled(timeRemaining > 0)
+                
+                // Verify Button
+                Button(action: verifyOTP) {
+                    HStack(spacing: 8) {
+                        if isVerifying {
+                            ProgressView()
+                                .tint(Color.adaptiveBackground)
+                        } else {
+                            Text("ยืนยันรหัส")
+                                .font(.system(size: 15, weight: .bold))
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(otp.count == 6 && !isVerifying ? Color.adaptiveText : Color.gray.opacity(0.3))
+                    .foregroundColor(otp.count == 6 && !isVerifying ? Color.adaptiveBackground : .gray)
+                    .cornerRadius(12)
+                }
+                .disabled(otp.count < 6 || isVerifying)
+                .padding(.horizontal, 32)
+                .padding(.top, 16)
+                
+                // Resend Button
+                HStack(spacing: 4) {
+                    Text("ไม่ได้รับรหัส?")
+                        .font(.system(size: 14))
+                        .foregroundColor(.gray)
+                    
+                    Button(action: resendOTP) {
+                        Text(timeRemaining > 0 ? "ส่งใหม่ใน \(timeRemaining) วิ" : "ส่งรหัสใหม่")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(timeRemaining > 0 ? .gray : .adaptiveText)
+                    }
+                    .disabled(timeRemaining > 0)
+                }
+                .padding(.top, 8)
+                
+                Spacer()
             }
-            .padding(.top, 8)
-            
-            Spacer()
         }
-        .padding()
         .onAppear {
             startTimer()
         }
@@ -97,13 +124,19 @@ struct OTPVerificationView: View {
     }
     
     private func verifyOTP() {
-        isVerifying = true
+        withAnimation {
+            isVerifying = true
+        }
         Task {
             let success = await viewModel.verifyOTP(otp: otp)
-            if success {
-                dismiss() // This will pop back and since isAuthenticated = true, it goes to Main app or Onboarding
-            } else {
-                isVerifying = false
+            await MainActor.run {
+                if success {
+                    dismiss()
+                } else {
+                    withAnimation {
+                        isVerifying = false
+                    }
+                }
             }
         }
     }
