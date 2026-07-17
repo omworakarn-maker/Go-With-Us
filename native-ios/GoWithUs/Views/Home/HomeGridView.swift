@@ -4,6 +4,7 @@ struct HomeGridView: View {
     @StateObject private var viewModel = TripListViewModel()
     @ObservedObject private var notificationPoller = NotificationPoller.shared
     @State private var showNotifications = false
+    @FocusState private var isSearchFocused: Bool
 
     @Binding var showSideMenu: Bool
     @Binding var currentScreen: AppScreen
@@ -91,14 +92,21 @@ struct HomeGridView: View {
                         // Search Bar
                         HStack(spacing: 12) {
                             Image(systemName: "magnifyingglass")
-                                .foregroundColor(.gray)
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundColor(isSearchFocused ? .appAccent : .gray.opacity(0.8))
+                                .padding(8)
+                                .background(isSearchFocused ? Color.appAccent.opacity(0.15) : Color.gray.opacity(0.1))
+                                .clipShape(Circle())
                             
                             TextField(SettingsManager.shared.localizedString(for: "search_placeholder"), text: $viewModel.searchText)
                                 .foregroundColor(.adaptiveText)
+                                .accentColor(.appAccent)
+                                .focused($isSearchFocused)
                             
                             if !viewModel.searchText.isEmpty {
                                 Button(action: {
                                     viewModel.searchText = ""
+                                    isSearchFocused = false
                                 }) {
                                     Image(systemName: "xmark.circle.fill")
                                         .foregroundColor(.gray.opacity(0.6))
@@ -106,10 +114,10 @@ struct HomeGridView: View {
                             }
                         }
                         .padding()
-                        .background(Color.gray.opacity(0.05))
+                        .background(isSearchFocused ? Color.appAccent.opacity(0.05) : Color.gray.opacity(0.05))
                         .overlay(
                             RoundedRectangle(cornerRadius: 12)
-                                .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                                .stroke(isSearchFocused ? Color.appAccent : Color.gray.opacity(0.2), lineWidth: 1)
                         )
                         .cornerRadius(12)
                         .padding(.horizontal)
