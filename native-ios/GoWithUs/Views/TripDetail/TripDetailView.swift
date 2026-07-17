@@ -671,12 +671,34 @@ struct TripDetailView: View {
                 VStack(alignment: .leading, spacing: 18) {
                     ForEach(itinerary.sorted(by: { $0.day < $1.day })) { dayPlan in
                         VStack(alignment: .leading, spacing: 10) {
-                            Text("วันที่ \(dayPlan.day)")
-                                .font(.system(size: 15, weight: .bold))
-                                .foregroundColor(.appPrimary)
-                                .padding(.horizontal, 10).padding(.vertical, 4)
-                                .background(Color.appPrimary.opacity(0.1))
-                                .cornerRadius(8)
+                            HStack {
+                                Text("วันที่ \(dayPlan.day)")
+                                    .font(.system(size: 15, weight: .bold))
+                                    .foregroundColor(.appPrimary)
+                                    .padding(.horizontal, 10).padding(.vertical, 4)
+                                    .background(Color.appPrimary.opacity(0.1))
+                                    .cornerRadius(8)
+                                
+                                Spacer()
+                                
+                                let locations = dayPlan.activities.map { $0.location }.filter { !$0.isEmpty }
+                                if locations.count > 1 {
+                                    Button {
+                                        openGoogleMapsRoute(locations: locations)
+                                    } label: {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: "map.fill")
+                                            Text("เปิด Google Maps")
+                                        }
+                                        .font(.system(size: 11, weight: .bold))
+                                        .foregroundColor(Color.white)
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 6)
+                                        .background(Color(hex: "#4285F4"))
+                                        .cornerRadius(8)
+                                    }
+                                }
+                            }
                             
                             VStack(alignment: .leading, spacing: 12) {
                                 ForEach(dayPlan.activities) { activity in
@@ -692,13 +714,18 @@ struct TripDetailView: View {
                                                 .foregroundColor(.adaptiveText)
                                             
                                             if !activity.location.isEmpty {
-                                                HStack(spacing: 4) {
-                                                    Image(systemName: "mappin.circle.fill")
-                                                        .foregroundColor(.red)
-                                                    Text(activity.location)
+                                                Button {
+                                                    openGoogleMaps(location: activity.location)
+                                                } label: {
+                                                    HStack(spacing: 4) {
+                                                        Image(systemName: "mappin.circle.fill")
+                                                            .foregroundColor(Color(hex: "#EA4335"))
+                                                        Text(activity.location)
+                                                            .underline()
+                                                    }
+                                                    .font(.system(size: 12, weight: .medium))
+                                                    .foregroundColor(Color(hex: "#4285F4"))
                                                 }
-                                                .font(.system(size: 12))
-                                                .foregroundColor(.adaptiveSecondaryText)
                                             }
                                             
                                             if !activity.description.isEmpty {
@@ -1027,6 +1054,34 @@ struct TripDetailView: View {
             .fill(Color.gray.opacity(0.08))
             .frame(height: 1)
             .padding(.vertical, 4)
+    }
+    
+    // MARK: - Google Maps Helpers
+    private func openGoogleMaps(location: String) {
+        guard let query = location.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else { return }
+        let urlString = "https://www.google.com/maps/search/?api=1&query=\(query)"
+        if let url = URL(string: urlString) {
+            UIApplication.shared.open(url)
+        }
+    }
+    
+    private func openGoogleMapsRoute(locations: [String]) {
+        guard locations.count >= 2 else { return }
+        let origin = locations.first!.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        let destination = locations.last!.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        
+        var urlString = "https://www.google.com/maps/dir/?api=1&origin=\(origin)&destination=\(destination)"
+        
+        if locations.count > 2 {
+            let waypoints = locations.dropFirst().dropLast()
+                .compactMap { $0.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) }
+                .joined(separator: "|")
+            urlString += "&waypoints=\(waypoints)"
+        }
+        
+        if let url = URL(string: urlString) {
+            UIApplication.shared.open(url)
+        }
     }
 }
 
