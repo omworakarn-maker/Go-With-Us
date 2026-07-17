@@ -61,7 +61,12 @@ class AuthViewModel: ObservableObject {
             await loadCurrentUser()
         } catch {
             print("❌ Login failed: \(error.localizedDescription)")
-            errorMessage = error.localizedDescription
+            let errStr = error.localizedDescription
+            if errStr.contains("401") || errStr.contains("404") || errStr.contains("400") {
+                errorMessage = "อีเมลหรือรหัสผ่านไม่ถูกต้อง"
+            } else {
+                errorMessage = errStr
+            }
         }
         
         isLoading = false
@@ -88,7 +93,12 @@ class AuthViewModel: ObservableObject {
             isAuthenticated = true
             needsOnboarding = true // แสดงหน้า Onboarding หลังสมัคร
         } catch {
-            errorMessage = error.localizedDescription
+            let errStr = error.localizedDescription
+            if errStr.contains("400") || errStr.contains("409") {
+                errorMessage = "อีเมลนี้อาจมีผู้ใช้งานแล้ว หรือข้อมูลไม่ถูกต้อง"
+            } else {
+                errorMessage = errStr
+            }
         }
         
         isLoading = false

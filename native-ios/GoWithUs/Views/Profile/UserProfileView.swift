@@ -249,7 +249,7 @@ struct UserProfileView: View {
                     showingEditSheet = true
                 }
             )
-            .presentationDetents([.medium])
+            .presentationDetents([.height(authViewModel.currentUser?.role == .admin ? 420 : 250)])
         }
         .sheet(isPresented: $showingEditSheet) {
             EditProfileView(targetUser: displayUser)
