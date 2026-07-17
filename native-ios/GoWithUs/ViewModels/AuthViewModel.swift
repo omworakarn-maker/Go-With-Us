@@ -13,6 +13,7 @@ class AuthViewModel: ObservableObject {
     @Published var isAuthenticated = false
     @Published var currentUser: User?
     @Published var needsOnboarding = false
+    @Published var showOTPVerification = false
     
     init() {
         checkAuthStatus()
@@ -60,6 +61,9 @@ class AuthViewModel: ObservableObject {
             print("✅ isAuthenticated set to: \(isAuthenticated)")
             // Fetch full profile immediately so all fields (bio, gender, etc.) are available
             await loadCurrentUser()
+        } catch APIError.needsVerification {
+            print("⚠️ Login needs verification")
+            showOTPVerification = true
         } catch {
             print("❌ Login failed: \(error.localizedDescription)")
             let errStr = error.localizedDescription
@@ -103,8 +107,8 @@ class AuthViewModel: ObservableObject {
         do {
             let user = try await AuthService.shared.register(name: name, email: email, password: password)
             currentUser = user
-            isAuthenticated = true
-            needsOnboarding = true // แสดงหน้า Onboarding หลังสมัคร
+            showOTPVerification = true
+            needsOnboarding = true // Will be used after verification
         } catch {
             let errStr = error.localizedDescription
             if errStr.contains("400") || errStr.contains("409") {
@@ -114,6 +118,36 @@ class AuthViewModel: ObservableObject {
             }
         }
         
+        isLoading = false
+    }
+    
+    // MARK: - Verify OTP
+    func verifyOTP(otp: String) async -> Bool {
+        isLoading = true
+        errorMessage = nil
+        do {
+            try await AuthService.shared.verifyOTP(email: email, otp: otp)
+            isAuthenticated = true
+            showOTPVerification = false
+            isLoading = false
+            return true
+        } catch {
+            errorMessage = "รหัส OTP ไม่ถูกต้องหรือหมดอายุ"
+            isLoading = false
+            return false
+        }
+    }
+    
+    // MARK: - Resend OTP
+    func resendOTP() async {
+        isLoading = true
+        errorMessage = nil
+        do {
+            try await AuthService.shared.resendOTP(email: email)
+            errorMessage = "ส่งรหัส OTP ใหม่เรียบร้อยแล้ว"
+        } catch {
+            errorMessage = "ไม่สามารถส่งรหัส OTP ได้ กรุณาลองใหม่"
+        }
         isLoading = false
     }
     

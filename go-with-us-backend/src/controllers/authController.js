@@ -124,12 +124,10 @@ export const login = async (req, res, next) => {
             return res.status(403).json({ error: 'บัญชีของคุณถูกระงับการใช้งาน โปรดติดต่อผู้ดูแลระบบ' });
         }
         
-        // Ensure email is verified (UNCOMMENT THIS LATER WHEN YOU HAVE OTP UI)
-        /*
+        // Ensure email is verified
         if (user.isEmailVerified === false) {
             return res.status(401).json({ error: 'Please verify your email address before logging in.', needsVerification: true });
         }
-        */
 
         // Check password
         const isValidPassword = await bcrypt.compare(password, user.password);

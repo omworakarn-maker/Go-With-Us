@@ -76,6 +76,39 @@ class AuthService {
         return response.user
     }
     
+    // MARK: - Verify OTP
+    func verifyOTP(email: String, otp: String) async throws {
+        struct VerifyOTPRequest: Encodable {
+            let email: String
+            let otp: String
+        }
+        struct EmptyResponse: Decodable {}
+        
+        let request = VerifyOTPRequest(email: email, otp: otp)
+        let _: EmptyResponse = try await APIService.shared.request(
+            endpoint: "/auth/verify-otp",
+            method: .post,
+            body: request,
+            requiresAuth: false
+        )
+    }
+    
+    // MARK: - Resend OTP
+    func resendOTP(email: String) async throws {
+        struct ResendOTPRequest: Encodable {
+            let email: String
+        }
+        struct EmptyResponse: Decodable {}
+        
+        let request = ResendOTPRequest(email: email)
+        let _: EmptyResponse = try await APIService.shared.request(
+            endpoint: "/auth/resend-otp",
+            method: .post,
+            body: request,
+            requiresAuth: false
+        )
+    }
+    
     // MARK: - Admin Update Profile
     func adminUpdateProfile(
         userId: String,

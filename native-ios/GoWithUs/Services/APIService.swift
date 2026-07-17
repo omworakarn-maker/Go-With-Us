@@ -78,6 +78,12 @@ class APIService {
             
             guard (200...299).contains(httpResponse.statusCode) else {
                 print("❌ HTTP Error: \(httpResponse.statusCode)")
+                
+                if let errorJson = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let needsVerification = errorJson["needsVerification"] as? Bool, needsVerification == true {
+                    throw APIError.needsVerification
+                }
+                
                 throw APIError.httpError(httpResponse.statusCode)
             }
             
@@ -163,6 +169,7 @@ enum APIError: LocalizedError {
     case httpError(Int)
     case decodingError(String)
     case unauthorized
+    case needsVerification
     
     var errorDescription: String? {
         switch self {
@@ -176,6 +183,8 @@ enum APIError: LocalizedError {
             return "Decoding Error: \(message)"
         case .unauthorized:
             return "Unauthorized access"
+        case .needsVerification:
+            return "Needs Verification"
         }
     }
 }
