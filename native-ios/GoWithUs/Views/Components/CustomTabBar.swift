@@ -32,11 +32,10 @@ struct CustomTabBar: View {
                     // ── FAB inside capsule ─────────────────────────────
                     ZStack {
                         Circle()
-                            .fill(Color.rainbowGradient)
-                            .frame(width: 48, height: 48) // Slightly larger for emphasis
-                            .shadow(color: Color.appPrimary.opacity(0.4), radius: 8, x: 0, y: 4) // Floating shadow
+                            .fill(Color.appAccent)
+                            .frame(width: 44, height: 44)
                         Image(systemName: "plus")
-                            .font(.system(size: 22, weight: .bold))
+                            .font(.system(size: 20, weight: .bold))
                             .foregroundColor(.white)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
