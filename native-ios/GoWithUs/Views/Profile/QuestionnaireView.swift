@@ -125,7 +125,7 @@ struct QuestionnaireView: View {
                                     Text("พักผ่อนชิลล์ๆ (1)")
                                         .font(.caption).foregroundColor(.secondary)
                                     Spacer()
-                                    Text("ลุยเต็มพิกัด (10)")
+                                    Text("เน้นกิจกรรม (10)")
                                         .font(.caption).foregroundColor(.secondary)
                                 }
                             }

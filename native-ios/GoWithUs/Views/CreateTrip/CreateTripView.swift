@@ -406,7 +406,7 @@ struct CreateTripView: View {
                                         Text("\(Int(activityStyle))")
                                             .font(.system(size: 18, weight: .bold))
                                         Spacer()
-                                        Text("ลุยเต็มพิกัด (10)")
+                                        Text("เน้นกิจกรรม (10)")
                                             .font(.caption).foregroundColor(.secondary)
                                     }
                                     Slider(value: $activityStyle, in: 1...10, step: 1)
