@@ -28,11 +28,15 @@ extension Color {
     }
     
     // MARK: - Theme Colors
-    static let appPrimary = Color(hex: "#00B4DB")   // Vibrant Travel Blue
-    static let appSecondary = Color(hex: "#0083B0") // Deeper Blue for gradients
-    static let appAccent = Color(hex: "#FF5F6D")    // Vibrant Sunset Coral
-    static let appBackground = Color(hex: "#F9FAFB")
-    static let appText = Color(hex: "#2C3E50")
+    static let appPrimary = Color(hex: "#FF5A5F") // Vibrant Coral Red (Airbnb style)
+    static let appSecondary = Color(hex: "#FF385C") // Deeper vibrant pink-red
+    static let appAccent = Color(hex: "#FF5A5F") // Primary Accent
+    static let appSoftAccent = Color(hex: "#FFE8E9") // Soft coral for pill backgrounds
+    static let appBackground = Color(hex: "#F9F9F9") // Clean white/gray background
+    static let appText = Color(hex: "#1A1A1A") // Stronger dark text
+    static let appSuccess = Color(hex: "#00C875") // Vibrant Mint Green for success/match
+    static let appWarning = Color(hex: "#FFB020") // Vibrant Orange
+    static let appDanger = Color(hex: "#FF3333") // Vibrant Red
     
     // MARK: - Adaptive Colors (Dark/Light Mode)
     
@@ -63,13 +67,11 @@ extension Color {
     /// Subtle background tint for cards
     static let adaptiveCardTint = Color(.tertiarySystemFill)
     
-    /// Rainbow gradient for special highlights
+    /// Restrained brand gradient for special highlights
     static let rainbowGradient = LinearGradient(
         colors: [
-            Color(hex: "#FF5F6D"), // Sunset Coral
-            Color(hex: "#FFC371"), // Yellow/Orange
-            Color(hex: "#00B4DB"), // Vibrant Blue
-            Color(hex: "#8E54E9")  // Purple
+            appPrimary,
+            appSecondary
         ],
         startPoint: .leading,
         endPoint: .trailing
