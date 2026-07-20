@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "postinstall": "prisma generate --schema=./go-with-us-backend/prisma/schema.prisma"
+    "postinstall": "prisma generate --schema=../backend-api/prisma/schema.prisma"
   },
   "dependencies": {
     "@capacitor/android": "^8.0.2",
