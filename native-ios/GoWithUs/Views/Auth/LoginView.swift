@@ -13,10 +13,10 @@ struct LoginView: View {
                 VStack(spacing: 0) {
                     Spacer()
                     
-                    // Logo - Minimal Black Circle
+                    // Logo - Ocean Blue Circle
                     VStack(spacing: 24) {
                         Circle()
-                            .fill(Color.adaptiveText)
+                            .fill(Color.appPrimary)
                             .frame(width: 80, height: 80)
                             .overlay(
                                 Circle()
@@ -51,10 +51,10 @@ struct LoginView: View {
                             TextField("", text: $viewModel.email)
                                 .placeholder(when: viewModel.email.isEmpty) {
                                     Text(SettingsManager.shared.localizedString(for: "email_placeholder"))
-                                        .foregroundColor(.gray.opacity(0.1))
+                                        .foregroundColor(.gray.opacity(0.5))
                                 }
                                 .foregroundColor(.adaptiveText)
-                                .tint(.black)
+                                .tint(Color.appPrimary)
                                 .textInputAutocapitalization(.never)
                                 .keyboardType(.emailAddress)
                                 .padding()
@@ -77,10 +77,10 @@ struct LoginView: View {
                             SecureField("", text: $viewModel.password)
                                 .placeholder(when: viewModel.password.isEmpty) {
                                     Text("••••••••")
-                                        .foregroundColor(.gray.opacity(0.1))
+                                        .foregroundColor(.gray.opacity(0.5))
                                 }
                                 .foregroundColor(.adaptiveText)
-                                .tint(.black)
+                                .tint(Color.appPrimary)
                                 .padding()
                                 .background(Color.gray.opacity(0.05))
                                 .overlay(
@@ -115,8 +115,8 @@ struct LoginView: View {
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 16)
-                            .background(Color.adaptiveText)
-                            .foregroundColor(Color.adaptiveBackground)
+                            .background(Color.appPrimary)
+                            .foregroundColor(.white)
                             .cornerRadius(12)
                         }
                         .disabled(viewModel.isLoading)
@@ -128,7 +128,7 @@ struct LoginView: View {
                                 Text("ยังไม่มีบัญชี?")
                                     .foregroundColor(.gray)
                                 Text("สมัครสมาชิก")
-                                    .foregroundColor(.adaptiveText)
+                                    .foregroundColor(Color.appPrimary)
                                     .fontWeight(.bold)
                             }
                             .font(.system(size: 13))

@@ -18,7 +18,7 @@ struct OTPVerificationView: View {
                 VStack(spacing: 8) {
                     Image(systemName: "envelope.badge")
                         .font(.system(size: 50, weight: .light))
-                        .foregroundColor(.adaptiveText)
+                        .foregroundColor(Color.appPrimary)
                         .padding(.bottom, 16)
                     
                     Text("ยืนยันอีเมล")
@@ -44,13 +44,13 @@ struct OTPVerificationView: View {
                     .font(.system(size: 40, weight: .bold, design: .monospaced))
                     .tracking(8)
                     .foregroundColor(.adaptiveText)
-                    .tint(.adaptiveText)
+                    .tint(Color.appPrimary)
                     .padding(.vertical, 20)
                     .padding(.horizontal, 16)
                     .background(Color.gray.opacity(0.05))
                     .overlay(
                         RoundedRectangle(cornerRadius: 16)
-                            .stroke(otp.count == 6 ? Color.adaptiveText : Color.gray.opacity(0.2), lineWidth: 1.5)
+                            .stroke(otp.count == 6 ? Color.appPrimary : Color.gray.opacity(0.2), lineWidth: 1.5)
                     )
                     .cornerRadius(16)
                     .frame(width: 280)
@@ -89,8 +89,8 @@ struct OTPVerificationView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
-                    .background(otp.count == 6 && !isVerifying ? Color.adaptiveText : Color.gray.opacity(0.3))
-                    .foregroundColor(otp.count == 6 && !isVerifying ? Color.adaptiveBackground : .gray)
+                    .background(otp.count == 6 && !isVerifying ? Color.appPrimary : Color.gray.opacity(0.3))
+                    .foregroundColor(otp.count == 6 && !isVerifying ? .white : .gray)
                     .cornerRadius(12)
                 }
                 .disabled(otp.count < 6 || isVerifying)
@@ -106,7 +106,7 @@ struct OTPVerificationView: View {
                     Button(action: resendOTP) {
                         Text(timeRemaining > 0 ? "ส่งใหม่ใน \(timeRemaining) วิ" : "ส่งรหัสใหม่")
                             .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(timeRemaining > 0 ? .gray : .adaptiveText)
+                            .foregroundColor(timeRemaining > 0 ? .gray : Color.appPrimary)
                     }
                     .disabled(timeRemaining > 0)
                 }

@@ -27,12 +27,13 @@ extension Color {
         )
     }
     
-    // MARK: - Theme Colors
-    static let appPrimary = Color(hex: "#00B4DB")   // Vibrant Travel Blue
-    static let appSecondary = Color(hex: "#0083B0") // Deeper Blue for gradients
-    static let appAccent = Color(hex: "#FF5F6D")    // Vibrant Sunset Coral
-    static let appBackground = Color(hex: "#F9FAFB")
-    static let appText = Color(hex: "#2C3E50")
+    // MARK: - Theme Colors (Ocean & Breeze)
+    static let appPrimary = Color(hex: "#1E3A8A")   // Deep Ocean Navy
+    static let appSecondary = Color(hex: "#2563EB") // Vibrant Ocean Blue
+    static let appAccent = Color(hex: "#60A5FA")    // Breeze Light Blue
+    static let appBackground = Color(hex: "#F4F8FC") // Icy Soft Blue/Gray
+    static let appText = Color(hex: "#0F172A")      // Deep Slate for better contrast
+
     
     // MARK: - Adaptive Colors (Dark/Light Mode)
     
@@ -63,15 +64,15 @@ extension Color {
     /// Subtle background tint for cards
     static let adaptiveCardTint = Color(.tertiarySystemFill)
     
-    /// Rainbow gradient for special highlights
+    /// Ocean gradient for special highlights (kept name as rainbowGradient for compatibility)
     static let rainbowGradient = LinearGradient(
         colors: [
-            Color(hex: "#FF5F6D"), // Sunset Coral
-            Color(hex: "#FFC371"), // Yellow/Orange
-            Color(hex: "#00B4DB"), // Vibrant Blue
-            Color(hex: "#8E54E9")  // Purple
+            Color(hex: "#1E3A8A"), // Deep Ocean Navy
+            Color(hex: "#2563EB"), // Vibrant Ocean Blue
+            Color(hex: "#60A5FA"), // Breeze Light Blue
+            Color(hex: "#BFDBFE")  // Pale Ice Blue
         ],
-        startPoint: .leading,
-        endPoint: .trailing
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
     )
 }

@@ -12,41 +12,25 @@ struct SegmentedControl: View {
                     .font(.system(size: 14, weight: selected == option ? .bold : .medium))
                     .foregroundColor(selected == option ? .white : .adaptiveText.opacity(0.6))
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
+                    .padding(.vertical, 8) // Reduced from 10 to prevent overflow
                     .background(
                         ZStack {
                             if selected == option {
                                 Capsule()
-                                    .fill(
-                                        LinearGradient(
-                                            colors: [Color.appAccent, Color(hex: "#FF6B6B")],
-                                            startPoint: .leading,
-                                            endPoint: .trailing
-                                        )
-                                    )
+                                    .fill(Color.appSecondary) // Updated to Ocean Blue theme
                                     .matchedGeometryEffect(id: "THUMB", in: namespace)
-                                    .overlay(
-                                        Capsule()
-                                            .stroke(
-                                                LinearGradient(
-                                                    colors: [.white.opacity(0.6), .clear],
-                                                    startPoint: .topLeading,
-                                                    endPoint: .bottomTrailing
-                                                ),
-                                                lineWidth: 1.5
-                                            )
-                                    )
                             }
                         }
                     )
                     .contentShape(Capsule())
+                    .onTapGesture {
+                        updateSelection(at: CGPoint(x: (CGFloat(options.firstIndex(of: option) ?? 0) * 100) + 50, y: 10), in: CGSize(width: 300, height: 40)) // Fallback tap, though drag gesture handles it
+                    }
             }
         }
-        .padding(5)
-        .background(
-            Capsule()
-                .fill(Color.gray.opacity(0.15))
-        )
+        .padding(4) // Tightened outer padding
+        .background(Color.gray.opacity(0.15))
+        .clipShape(Capsule()) // Ensures nothing bleeds out
         .overlay(
             Capsule()
                 .stroke(
