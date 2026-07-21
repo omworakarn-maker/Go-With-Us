@@ -65,7 +65,7 @@ Our goal was to build not just a functional app, but a **world-class user experi
 
 | Home Feed | Trip Details | Create Trip | Profile |
 | :---: | :---: | :---: | :---: |
-| <img src="assets/screenshots/1.png" width="200" alt="Home Feed"/> | <img src="assets/screenshots/2.png" width="200" alt="Trip Details"/> | <img src="assets/screenshots/3.png" width="200" alt="Create Trip"/> | <img src="assets/screenshots/4.png" width="200" alt="Profile"/> |
+| <img src="web-frontend/assets/screenshots/1.png" width="200" alt="Home Feed"/> | <img src="web-frontend/assets/screenshots/2.png" width="200" alt="Trip Details"/> | <img src="web-frontend/assets/screenshots/3.png" width="200" alt="Create Trip"/> | <img src="web-frontend/assets/screenshots/4.png" width="200" alt="Profile"/> |
 
 ---
 
