@@ -33,7 +33,7 @@ struct MatchTripView: View {
                         // State for navigation
                         NavigationLink(value: "placeholder") { EmptyView() } // Hack for destiny
                         Button(action: {
-                            Task { await viewModel.fetchMatches() }
+                            Task { await viewModel.fetchMatches(force: true) }
                         }) {
                             Image(systemName: "arrow.clockwise")
                                 .font(.system(size: 20, weight: .bold))
@@ -65,7 +65,7 @@ struct MatchTripView: View {
                                     .foregroundColor(.gray)
                                     .multilineTextAlignment(.center)
                                 Button("ลองใหม่") {
-                                    Task { await viewModel.fetchMatches() }
+                                    Task { await viewModel.fetchMatches(force: true) }
                                 }
                                 .padding(.horizontal, 24)
                                 .padding(.vertical, 12)
@@ -89,7 +89,7 @@ struct MatchTripView: View {
                                     .multilineTextAlignment(.center)
                                 
                                 Button("รีเฟรช") {
-                                    Task { await viewModel.fetchMatches() }
+                                    Task { await viewModel.fetchMatches(force: true) }
                                 }
                                 .padding(.top, 10)
                                 .foregroundColor(.adaptiveText)

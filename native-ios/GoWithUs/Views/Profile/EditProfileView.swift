@@ -490,6 +490,7 @@ struct EditProfileView: View {
                             
                             // Refresh current user logic to sync entirely with DB
                             await authViewModel.loadCurrentUser()
+                            MatchTripViewModel.invalidateCache()
                             
                             dismiss()
                         }

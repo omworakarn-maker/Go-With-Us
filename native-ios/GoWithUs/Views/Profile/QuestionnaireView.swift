@@ -322,6 +322,7 @@ struct QuestionnaireView: View {
                 )
                 
                 DispatchQueue.main.async {
+                    MatchTripViewModel.invalidateCache()
                     self.isSubmitting = false
                     self.onComplete?()
                     if self.isOnboarding {
