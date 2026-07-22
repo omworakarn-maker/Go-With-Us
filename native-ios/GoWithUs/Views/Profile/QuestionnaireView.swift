@@ -315,11 +315,13 @@ struct QuestionnaireView: View {
                     timeOfDay: timeOfDay
                 )
                 
-                let _ = try await AuthService.shared.updateProfile(
+                let updatedUser = try await AuthService.shared.updateProfile(
                     name: userName,
                     interests: interests,
                     travelStyle: travelStyle
                 )
+                
+                await authViewModel.loadCurrentUser()
                 
                 DispatchQueue.main.async {
                     MatchTripViewModel.invalidateCache()
