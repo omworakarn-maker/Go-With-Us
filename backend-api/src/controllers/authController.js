@@ -206,6 +206,7 @@ export const getCurrentUser = async (req, res, next) => {
                 email: true,
                 role: true,
                 interests: true,
+                travelStyle: true,
                 profileImage: true,
                 createdAt: true,
                 updatedAt: true,
