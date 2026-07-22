@@ -142,26 +142,18 @@ struct Trip: Codable, Identifiable, Hashable {
 
 // MARK: - Trip Category (Simplified temporarily to fix build)
 enum TripCategory: String, Codable, CaseIterable {
-    case adventure = "ผจญภัย"
     case beach = "ทะเล"
     case mountain = "ภูเขา"
     case camping = "แคมป์ปิ้ง"
-    case city = "เมือง"
-    case culture = "วัฒนธรรม"
-    case history = "ประวัติศาสตร์"
-    case food = "อาหาร"
+    case city = "เที่ยวเมือง"
     case cafe = "คาเฟ่"
-    case nature = "ธรรมชาติ"
+    case food = "อาหาร"
+    case hangout = "แฮงเอาต์"
     case photography = "ถ่ายรูป"
     case shopping = "ช้อปปิ้ง"
-    case sport = "กีฬา"
-    case party = "ปาร์ตี้"
-    case volunteer = "จิตอาสา"
-    case family = "ครอบครัว"
-    case eatAndTravel = "กินเที่ยว"
-    case workshop = "เวิร์กชอป"
     case concert = "คอนเสิร์ต"
-    case relax = "พักผ่อน"
+    case adventure = "ผจญภัย"
+    case temple = "ไหว้พระ"
     case other = "อื่นๆ"
     
     init(from decoder: Decoder) throws {
@@ -171,11 +163,21 @@ enum TripCategory: String, Codable, CaseIterable {
     }
     
     var icon: String {
-        return "📌"
-    }
-    
-    var assetName: String {
-        return "category_other"
+        switch self {
+        case .beach: return "🏖️"
+        case .mountain: return "🏔️"
+        case .camping: return "🏕️"
+        case .city: return "🏙️"
+        case .cafe: return "☕️"
+        case .food: return "🍜"
+        case .hangout: return "🍻"
+        case .photography: return "📸"
+        case .shopping: return "🛍️"
+        case .concert: return "🎫"
+        case .adventure: return "🧗"
+        case .temple: return "🏛️"
+        case .other: return "📌"
+        }
     }
 }
 

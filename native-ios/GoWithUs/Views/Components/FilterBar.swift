@@ -34,7 +34,7 @@ struct FilterBar: View {
                 
                 // Category Filter
                 FilterButton(
-                    title: selectedCategory?.rawValue ?? "หมวดหมู่",
+                    title: selectedCategory?.rawValue ?? "สไตล์",
                     isSelected: selectedCategory != nil,
                     icon: "🧭",
                     action: { showCategorySheet = true }

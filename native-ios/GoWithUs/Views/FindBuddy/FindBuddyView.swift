@@ -35,7 +35,7 @@ struct FindBuddyView: View {
                             .foregroundColor(.gray.opacity(0.3))
                         Text(SettingsManager.shared.currentLanguage == .thai ? "ยังไม่มีเพื่อนใหม่ใกล้ตัวคุณ" : "No new buddies near you")
                             .font(.headline)
-                        Text(SettingsManager.shared.currentLanguage == .thai ? "ลองปรับความสนใจในโปรไฟล์ของคุณ\nเพื่อให้เจอเพื่อนที่ตรงใจมากขึ้น" : "Try updating your interests\nfor better recommendations")
+                        Text(SettingsManager.shared.currentLanguage == .thai ? "ลองปรับสไตล์การเที่ยวในโปรไฟล์ของคุณ\nเพื่อให้เจอเพื่อนที่ตรงใจมากขึ้น" : "Try updating your travel styles\nfor better recommendations")
                             .font(.subheadline)
                             .foregroundColor(.gray)
                             .multilineTextAlignment(.center)

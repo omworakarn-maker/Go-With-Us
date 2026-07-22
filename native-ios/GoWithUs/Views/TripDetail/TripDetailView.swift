@@ -283,8 +283,8 @@ struct TripDetailView: View {
         HStack(spacing: 8) {
             // Category
             HStack(spacing: 5) {
-                let iconName = INTEREST_CATEGORIES.first(where: { $0.id == trip.category.rawValue })?.icon ?? "airplane"
-                Image(systemName: iconName).font(.system(size: 10, weight: .bold))
+                let iconName = INTEREST_CATEGORIES.first(where: { $0.id == trip.category.rawValue })?.icon ?? "✈️"
+                Text(iconName).font(.system(size: 10, weight: .bold))
                 Text(trip.category.rawValue).font(.system(size: 12, weight: .bold))
             }
             .foregroundColor(.white)
@@ -307,7 +307,7 @@ struct TripDetailView: View {
             } else {
                 HStack(spacing: 4) {
                     Circle().fill(Color(hex: "#22C55E")).frame(width: 6, height: 6)
-                    Text("ว่าง \(trip.maxParticipants - trip.currentParticipants) ที่")
+                    Text("ว่าง \(trip.maxParticipants - trip.currentParticipants) คน")
                         .font(.system(size: 12, weight: .bold))
                 }
                 .foregroundColor(Color(hex: "#16A34A"))

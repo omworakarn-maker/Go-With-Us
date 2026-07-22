@@ -116,7 +116,7 @@ struct CreateTripView: View {
         }
         
         let desc = trip.description ?? ""
-        _description = State(initialValue: desc.isEmpty ? "-" : desc)
+        _description = State(initialValue: desc)
     }
     
     var body: some View {
@@ -199,7 +199,7 @@ struct CreateTripView: View {
 
                             // Category
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("หมวดหมู่")
+                                Text("สไตล์ของทริป")
                                     .font(.system(size: 11, weight: .bold))
                                     .foregroundColor(.gray)
                                     .textCase(.uppercase)
@@ -217,7 +217,7 @@ struct CreateTripView: View {
                                     }
 
                                     Divider()
-                                    Button("เพิ่มหมวดหมู่...") {
+                                    Button("เพิ่มสไตล์...") {
                                         showAddCategory = true
                                     }
                                 } label: {
@@ -278,29 +278,29 @@ struct CreateTripView: View {
                                 }
                                 
 
-                                TextEditor(text: $description)
-                                    .foregroundColor(.adaptiveText)
-                                    .tint(.adaptiveText)
-                                    .frame(minHeight: 120)
-                                    .padding(8)
-                                    .scrollContentBackground(.hidden) // Remove white background
-                                    .background(Color.clear)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                                    )
-                                    .cornerRadius(12)
-                                    .onChange(of: description) { old, new in
-                                        if old == "-" && new.count > 1 {
-                                            // Extract the character the user just typed
-                                            description = String(new.suffix(1))
-                                        }
+                                ZStack(alignment: .topLeading) {
+                                    TextEditor(text: $description)
+                                        .foregroundColor(.adaptiveText)
+                                        .tint(.adaptiveText)
+                                        .frame(minHeight: 120)
+                                        .padding(8)
+                                        .scrollContentBackground(.hidden) // Remove white background
+                                        .background(Color.clear)
+                                    
+                                    if description.isEmpty {
+                                        Text("เขียนรายละเอียดตรงนี้")
+                                            .font(.system(size: 14))
+                                            .foregroundColor(.gray.opacity(0.5))
+                                            .padding(.horizontal, 12)
+                                            .padding(.vertical, 16)
+                                            .allowsHitTesting(false)
                                     }
-                                    .onTapGesture {
-                                        if description == "-" {
-                                            description = ""
-                                        }
-                                    }
+                                }
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                                )
+                                .cornerRadius(12)
                             }
 
                             // Tags / Keywords
@@ -530,7 +530,7 @@ struct CreateTripView: View {
         .onAppear { 
             loadExtraCategories()
             if description.isEmpty {
-                description = "-"
+                description = ""
             }
             
             // Synchronize state when view appears (fixes SwiftUI state retention bug in sheets)
@@ -561,7 +561,7 @@ struct CreateTripView: View {
         .sheet(isPresented: $showAddCategory) {
             NavigationView {
                 VStack(spacing: 16) {
-                    TextField("ชื่อหมวดหมู่ใหม่", text: $newCategoryText)
+                    TextField("ชื่อสไตล์ใหม่", text: $newCategoryText)
                         .padding()
                         .background(Color.gray.opacity(0.05))
                         .tint(.adaptiveText)
@@ -570,7 +570,7 @@ struct CreateTripView: View {
                     Spacer()
                 }
                 .padding()
-                .navigationTitle("เพิ่มหมวดหมู่")
+                .navigationTitle("เพิ่มสไตล์")
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
                         Button("ยกเลิก") { showAddCategory = false; newCategoryText = "" }
@@ -647,7 +647,7 @@ struct CreateTripView: View {
         
         // Append tags as hashtags to description
         let tagsString = tags.isEmpty ? "" : "\n" + tags.map { "#\($0)" }.joined(separator: " ")
-        let cleanDescription = description == "-" ? "" : description
+        let cleanDescription = description
         let fullDescription = (cleanDescription.isEmpty ? "" : cleanDescription) + tagsString
         
         let fullDestination = specificLocation.isEmpty ? destination : "\(destination) (\(specificLocation))"
@@ -792,7 +792,7 @@ struct CreateTripView: View {
         - activityStyle: ตัวเลข 1 ถึง 10 (1=ชิลล์มากพักผ่อนเยอะ, 10=ลุยหนักมากกิจกรรมอัดแน่น)
         - timeOfDay: เลือกเวลาที่เหมาะสมกับทริปจาก array นี้เท่านั้น: ["morning", "noon", "evening", "night"] (เลือกได้หลายช่วงเวลา)
         จัดตารางกิจกรรมให้ครบ \(totalDays) วัน
-        *คำเตือน*: ในส่วน "description" ให้เขียนอธิบายภาพรวม จุดเด่น และความน่าสนใจของทริปนี้ให้น่าดึงดูด โดยไม่ต้องระบุวันเดินทางหรือวันที่ (เช่น วันที่ 1, วันที่ 2) ในคำอธิบายนี้ เพราะรายละเอียดรายวันจะไปอยู่ในส่วน "itinerary" อยู่แล้ว
+        *คำเตือน*: ในส่วน "description" ให้เขียนอธิบายภาพรวม จุดเด่น และความน่าสนใจของทริปนี้ให้น่าดึงดูด โดยเขียนในมุมมองของเจ้าของทริปที่เป็นคนชวนเพื่อนเที่ยว (เช่น ใช้คำว่า เรา/ฉัน/ผม จะพาไป...) ห้ามใช้คำพูดเชิง AI หรือผู้ช่วยจัดทริปเด็ดขาด (ห้ามบอกว่า AI จัดให้) และไม่ต้องระบุวันเดินทางหรือวันที่ในส่วนนี้
         """
         
         Task {
@@ -1444,7 +1444,7 @@ struct ActivityEditorView: View {
                 }
             }
             
-            TextField("รายละเอียดเพิ่มเติม", text: $activity.description)
+            TextField("เขียนรายละเอียดตรงนี้", text: $activity.description)
                 .font(.system(size: 13))
                 .foregroundColor(.gray)
                 .padding(.leading, 4)

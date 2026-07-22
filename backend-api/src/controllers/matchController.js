@@ -1,5 +1,6 @@
 import prisma from '../utils/prismaClient.js';
 import { sendPushNotification } from '../utils/firebase.js';
+import { cosineSimilarity } from '../utils/ai.js';
 
 
 // Helper to normalize legacy and new travel styles
@@ -34,67 +35,54 @@ const normalizeTravelStyle = (style) => {
     return { budget, activityStyle, timeOfDay };
 };
 
-// Helper to calculate exact user-to-user compatibility percentage
-const calculateDetailedCompatibility = (userA, userB) => {
-    const styleA = normalizeTravelStyle(userA.travelStyle);
-    const styleB = normalizeTravelStyle(userB.travelStyle);
-
-    let totalScore = 0;
-    let totalWeight = 0;
+// Helper to build a numerical Feature Vector for Cosine Similarity
+const buildFeatureVector = (travelStyle, interests, isTrip = false, tripCategory = null) => {
+    const style = normalizeTravelStyle(travelStyle);
+    const vector = [];
     
-    // 1. Budget Level (Weight = 3)
-    if (styleA && styleA.budget !== null && styleB && styleB.budget !== null) {
-        const userABudgetTHB = mapRatingToBudget(styleA.budget);
-        const userBBudgetTHB = mapRatingToBudget(styleB.budget);
-        const diffTHB = Math.abs(userABudgetTHB - userBBudgetTHB);
-        let score = 1.0;
-        
-        const maxBudget = Math.max(userABudgetTHB, userBBudgetTHB, 100);
-        const diffPercent = diffTHB / maxBudget;
-        
-        if (diffPercent > 0.3) {
-            score = Math.max(0.0, 1.0 - ((diffPercent - 0.3) / 0.7));
+    // 1. Budget (0 to 1) - Default to 0.5 if missing
+    vector.push((style && style.budget !== null) ? style.budget / 10.0 : 0.5);
+    
+    // 2. Activity Style (0 to 1) - Default to 0.5 if missing
+    vector.push((style && style.activityStyle !== null) ? style.activityStyle / 10.0 : 0.5);
+    
+    // 3. Interests / Categories (12 Dimensions)
+    const allCategories = ['ทะเล', 'ภูเขา', 'แคมป์ปิ้ง', 'เที่ยวเมือง', 'คาเฟ่', 'อาหาร', 'แฮงเอาต์', 'ถ่ายรูป', 'ช้อปปิ้ง', 'คอนเสิร์ต', 'ผจญภัย', 'ไหว้พระ'];
+    const userInts = Array.isArray(interests) ? interests : [];
+    
+    for (const cat of allCategories) {
+        if (isTrip) {
+            // For trips, they usually have one main category
+            vector.push(tripCategory === cat ? 1.0 : 0.0);
+        } else {
+            vector.push(userInts.includes(cat) ? 1.0 : 0.0);
         }
-        
-        totalScore += score * 3;
-        totalWeight += 3;
     }
-
-    // 2. Activity Style (With Flexibility +/- 2) (Weight = 1)
-    if (styleA && styleA.activityStyle !== null && styleB && styleB.activityStyle !== null) {
-        const diff = Math.abs(styleA.activityStyle - styleB.activityStyle);
-        let score = 1.0;
-        if (diff > 2) {
-            score = 1.0 - ((diff - 2) / 7.0);
-        }
-        totalScore += score;
-        totalWeight += 1;
+    
+    // 4. Time of Day (4 Dimensions)
+    const allTimes = ['morning', 'noon', 'evening', 'night'];
+    const times = (style && Array.isArray(style.timeOfDay)) ? style.timeOfDay : [];
+    
+    for (const t of allTimes) {
+        vector.push(times.includes(t) ? 1.0 : 0.0);
     }
+    
+    return vector;
+};
 
-    // 3. Time of Day (Weight = 1)
-    if (styleA && styleA.timeOfDay && styleA.timeOfDay.length > 0 && styleB && styleB.timeOfDay && styleB.timeOfDay.length > 0) {
-        const intersect = styleA.timeOfDay.filter(x => styleB.timeOfDay.includes(x)).length;
-        const minLen = Math.min(styleA.timeOfDay.length, styleB.timeOfDay.length);
-        const score = minLen > 0 ? (intersect / minLen) : 0.0;
-        totalScore += score;
-        totalWeight += 1;
-    }
 
-    // 4. Interests (Always evaluated if at least one has it) (Weight = 1)
-    const intA = Array.isArray(userA.interests) ? userA.interests : [];
-    const intB = Array.isArray(userB.interests) ? userB.interests : [];
-    if (intA.length > 0 || intB.length > 0) {
-        const intersect = intA.filter(x => intB.includes(x)).length;
-        const minLen = Math.max(1, Math.min(intA.length, intB.length));
-        const score = intersect / minLen;
-        totalScore += score;
-        totalWeight += 1;
-    }
 
-    if (totalWeight === 0) return null; // Fallback if no matching fields are found
-
-    const finalScore = totalScore / totalWeight;
-    return Math.round(finalScore * 100);
+// Helper to calculate user-to-user compatibility percentage using Cosine Similarity
+const calculateDetailedCompatibility = (userA, userB) => {
+    const vecA = buildFeatureVector(userA.travelStyle, userA.interests, false);
+    const vecB = buildFeatureVector(userB.travelStyle, userB.interests, false);
+    
+    const simScore = cosineSimilarity(vecA, vecB);
+    
+    // Convert Cosine Similarity (0 to 1) to percentage (0 to 100)
+    // Vectors are mostly positive (0 or 1), so score is naturally between 0 and 1.
+    // If they match perfectly, it's 1.0 (100%)
+    return Math.round(simScore * 100);
 };
 
 // Helper to map rating (1-10) to THB
@@ -194,17 +182,33 @@ export const calculateTripCompatibilityDetailed = (user, trip) => {
     const userInterests = Array.isArray(user.interests) ? user.interests : [];
     if (trip.category) {
         if (userInterests.includes(trip.category)) {
-            totalScore += 1.0;
-            totalWeight += 1;
             breakdown.category = 100;
         } else {
-            totalScore += 0.0;
-            totalWeight += 1;
             breakdown.category = 0;
         }
     }
 
-    const tripTotal = totalWeight === 0 ? 0 : Math.round((totalScore / totalWeight) * 100);
+    // Replace the old weighted average calculation with Feature Vector Cosine Similarity
+    const userVector = buildFeatureVector(user.travelStyle, user.interests, false);
+    
+    // For the trip, we build the vector using the trip's creator style (or trip style) and the trip's main category
+    const tripVector = buildFeatureVector(
+        trip.creator ? trip.creator.travelStyle : null, 
+        [], // trips don't have an interests array, they have a single category
+        true, 
+        trip.category
+    );
+    
+    // Override specific trip attributes if they exist on the trip level (like budget and pace)
+    if (trip.budget !== undefined && trip.budget !== null) {
+        tripVector[0] = mapBudgetToRating(Number(trip.budget)) / 10.0;
+    }
+    if (trip.activityStyle !== undefined && trip.activityStyle !== null) {
+        tripVector[1] = trip.activityStyle / 10.0;
+    }
+    
+    const simScore = cosineSimilarity(userVector, tripVector);
+    const tripTotal = Math.round(simScore * 100);
 
     return { total: tripTotal, breakdown, tripMatch: tripTotal };
 };

@@ -83,7 +83,7 @@ struct MatchTripView: View {
                                 Text("ไม่มีทริปแมตช์ใหม่ๆ ตอนนี้")
                                     .font(.system(size: 20, weight: .bold))
                                     .foregroundColor(.adaptiveText)
-                                Text("กลับมาเช็คดูใหม่ หรือเพิ่มความสนใจในโปรไฟล์")
+                                Text("กลับมาเช็คดูใหม่ หรือเพิ่มสไตล์การเที่ยวในโปรไฟล์")
                                     .font(.system(size: 14))
                                     .foregroundColor(.gray)
                                     .multilineTextAlignment(.center)

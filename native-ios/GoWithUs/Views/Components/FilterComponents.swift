@@ -192,19 +192,19 @@ struct CategoryPicker: View {
     @Environment(\.dismiss) var dismiss
     @Binding var selectedCategory: TripCategory?
     
-    // We need a temp selection that can hold nil (represented by "ทุกหมวดหมู่")
+    // We need a temp selection that can hold nil (represented by "ทุกสไตล์")
     @State private var tempSelectionRaw: String
     
     init(selectedCategory: Binding<TripCategory?>) {
         self._selectedCategory = selectedCategory
-        self._tempSelectionRaw = State(initialValue: selectedCategory.wrappedValue?.rawValue ?? "ทุกหมวดหมู่")
+        self._tempSelectionRaw = State(initialValue: selectedCategory.wrappedValue?.rawValue ?? "ทุกสไตล์")
     }
     
     var body: some View {
         NavigationView {
             VStack {
-                Picker("เลือกหมวดหมู่", selection: $tempSelectionRaw) {
-                    Text("ทุกหมวดหมู่").tag("ทุกหมวดหมู่")
+                Picker("เลือกสไตล์", selection: $tempSelectionRaw) {
+                    Text("ทุกสไตล์").tag("ทุกสไตล์")
                     ForEach(TripCategory.allCases, id: \.self) { category in
                         Text(category.rawValue).tag(category.rawValue)
                     }
@@ -215,7 +215,7 @@ struct CategoryPicker: View {
                 Spacer()
                 
                 Button(action: {
-                    if tempSelectionRaw == "ทุกหมวดหมู่" {
+                    if tempSelectionRaw == "ทุกสไตล์" {
                         selectedCategory = nil
                     } else {
                         if let category = TripCategory(rawValue: tempSelectionRaw) {
@@ -236,7 +236,7 @@ struct CategoryPicker: View {
                 }
                 .padding(.bottom, 20)
             }
-            .navigationTitle("เลือกหมวดหมู่")
+            .navigationTitle("เลือกสไตล์")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

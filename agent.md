@@ -36,3 +36,12 @@
 ## 5. 🚀 วิธีการรันโปรเจค (How to Run)
 - **iOS:** เปิดไฟล์โปรเจคในโฟลเดอร์ `/native-ios` ด้วย Xcode และกด `Cmd + R` หรือใช้ `Cmd + Option + Enter` เพื่อดู SwiftUI Canvas
 - **Web:** เปิด Terminal เข้าไปที่ `/web-frontend` แล้วรันคำสั่ง `npm install` (ครั้งแรก) และ `npm run dev` เพื่อเริ่มต้นเซิร์ฟเวอร์
+
+## 6. 📝 สิ่งที่จะทำ (TODOs / Upcoming Features)
+### native-ios
+- **UX หน้าเลือกหมวดหมู่ที่สนใจ (Interests Category):** 
+  - ให้ผู้ใช้แตะปุ่มเพื่อเลือกหมวดหมู่ตามปกติ โดยระบบจะตั้งค่า default ความสนใจเป็นระดับ `10` ทันที (Tap to select)
+  - เพิ่มฟีเจอร์ Progressive Disclosure (กดค้าง): ใช้ `.onLongPressGesture` หรือ `.contextMenu`
+  - เมื่อผู้ใช้กดค้างที่หมวดหมู่ ให้แสดง Bottom Sheet หรือ Slider แบบลอยตัวเพื่อปรับระดับ 1-10 พร้อม Haptic Feedback
+  - เพิ่ม Visual Hint เล็กๆ (เช่น ไอคอน slider สีจางๆ ที่มุมของปุ่ม) เพื่อบอกใบ้ให้ผู้ใช้รู้ว่ากดค้างเพื่อปรับค่าได้
+  - สร้าง Tooltip หรือ Coachmark สำหรับการใช้งานครั้งแรก เพื่อแนะนำให้ผู้ใช้ลอง "กดค้าง"

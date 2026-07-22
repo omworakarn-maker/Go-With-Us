@@ -200,7 +200,7 @@ struct UserProfileView: View {
                                         Image(systemName: "heart.fill")
                                             .font(.system(size: 12))
                                             .foregroundColor(Color(hex: "#F43F5E"))
-                                        Text("ความสนใจ")
+                                        Text("สไตล์การเที่ยว")
                                             .font(.system(size: 12, weight: .bold))
                                             .foregroundColor(.adaptiveSecondaryText)
                                             .textCase(.uppercase)

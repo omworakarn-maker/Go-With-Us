@@ -177,14 +177,21 @@ struct QuestionnaireView: View {
                             .padding(.top, 20)
                         } else if currentStep == 3 {
                             // Interests Step
-                            Text("สิ่งที่สนใจ (Interests)")
-                                .font(.title2).bold()
-                            Text("เลือกหมวดหมู่การท่องเที่ยวที่คุณสนใจ (เลือกได้หลายข้อ)")
+                            HStack {
+                                Text("✨ สไตล์การเที่ยวของคุณ")
+                                    .font(.title2).bold()
+                                Spacer()
+                            }
+                            Text("เลือกสไตล์การท่องเที่ยวที่คุณชอบ เพื่อให้เราแนะนำทริปที่โดนใจคุณมากที่สุด")
                                 .font(.subheadline).foregroundColor(.secondary)
                             
-                            LazyVGrid(columns: [GridItem(.adaptive(minimum: 100))], spacing: 10) {
+                            LazyVGrid(columns: [
+                                GridItem(.flexible(), spacing: 12),
+                                GridItem(.flexible(), spacing: 12),
+                                GridItem(.flexible(), spacing: 12)
+                            ], spacing: 16) {
                                 ForEach(INTEREST_CATEGORIES) { cat in
-                                    InterestTag(
+                                    QuestionnaireInterestCard(
                                         label: cat.label,
                                         icon: cat.icon,
                                         isSelected: interests.contains(cat.label)
@@ -216,7 +223,7 @@ struct QuestionnaireView: View {
                 // Footer Navigation
                 HStack {
                     if currentStep > 0 {
-                        Button("Back") {
+                        Button("ย้อนกลับ") {
                             triggerHapticFeedback()
                             if currentStep > 0 {
                                 withAnimation { currentStep -= 1 }
@@ -236,7 +243,7 @@ struct QuestionnaireView: View {
                             return
                         }
                         if currentStep == 3 && interests.isEmpty {
-                            errorMessage = "โปรดเลือกอย่างน้อย 1 หมวดหมู่"
+                            errorMessage = "โปรดเลือกอย่างน้อย 1 สไตล์"
                             return
                         }
                         
@@ -251,7 +258,7 @@ struct QuestionnaireView: View {
                         if isSubmitting {
                             ProgressView().progressViewStyle(CircularProgressViewStyle(tint: .white))
                         } else {
-                            Text(currentStep == 3 ? "Finish" : "Next")
+                            Text(currentStep == 3 ? "เสร็จสิ้น" : "ถัดไป")
                                 .bold()
                         }
                     }
@@ -263,11 +270,11 @@ struct QuestionnaireView: View {
                 }
                 .padding()
             }
-            .navigationTitle("Your Travel Style")
+            .navigationTitle("แบบสอบถาม")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Skip") {
+                    Button("ข้าม") {
                         if isOnboarding {
                             authViewModel.needsOnboarding = false
                         }
@@ -351,4 +358,37 @@ struct QuestionnaireInfoRow: View {
 
 #Preview {
     QuestionnaireView()
+}
+
+struct QuestionnaireInterestCard: View {
+    let label: String
+    let icon: String
+    let isSelected: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 12) {
+                Text(icon)
+                    .font(.system(size: 36))
+                Text(label)
+                    .font(.system(size: 14, weight: .bold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 110)
+            .background(isSelected ? Color.appPrimary : Color.gray.opacity(0.05))
+            .foregroundColor(isSelected ? .white : .adaptiveText)
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(isSelected ? Color.appPrimary : Color.gray.opacity(0.2), lineWidth: 1)
+            )
+            .cornerRadius(16)
+            .shadow(color: isSelected ? Color.appPrimary.opacity(0.3) : Color.clear, radius: 5, x: 0, y: 3)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .scaleEffect(isSelected ? 1.05 : 1.0)
+        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isSelected)
+    }
 }

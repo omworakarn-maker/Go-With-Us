@@ -7,26 +7,17 @@ struct InterestCategory: Identifiable, Hashable {
 }
 
 let INTEREST_CATEGORIES: [InterestCategory] = [
-    InterestCategory(id: "ธรรมชาติ", icon: "leaf.fill", label: "ธรรมชาติ"),
-    InterestCategory(id: "ทะเล", icon: "water.waves", label: "ทะเล"),
-    InterestCategory(id: "ภูเขา", icon: "mountain.2.fill", label: "ภูเขา"),
-    InterestCategory(id: "แคมป์ปิ้ง", icon: "tent.fill", label: "แคมป์ปิ้ง"),
-    InterestCategory(id: "ผจญภัย", icon: "figure.climbing", label: "ผจญภัย"),
-    InterestCategory(id: "กีฬา", icon: "figure.run", label: "กีฬา"),
-    InterestCategory(id: "ปาร์ตี้", icon: "party.popper.fill", label: "ปาร์ตี้"),
-    InterestCategory(id: "วัฒนธรรม", icon: "building.columns.fill", label: "วัฒนธรรม"),
-    InterestCategory(id: "ประวัติศาสตร์", icon: "clock.arrow.circlepath", label: "ประวัติศาสตร์"),
-    InterestCategory(id: "ถ่ายรูป", icon: "camera.fill", label: "ถ่ายรูป"),
-    InterestCategory(id: "คาเฟ่", icon: "cup.and.saucer.fill", label: "คาเฟ่"),
-    InterestCategory(id: "อาหาร", icon: "fork.knife", label: "อาหาร"),
-    InterestCategory(id: "ช้อปปิ้ง", icon: "bag.fill", label: "ช้อปปิ้ง"),
-    InterestCategory(id: "จิตอาสา", icon: "heart.fill", label: "จิตอาสา"),
-    InterestCategory(id: "ครอบครัว", icon: "figure.2.and.child.holdinghands", label: "ครอบครัว"),
-    InterestCategory(id: "เมือง", icon: "building.2.fill", label: "เมือง"),
-    InterestCategory(id: "กินเที่ยว", icon: "fork.knife.circle.fill", label: "กินเที่ยว"),
-    InterestCategory(id: "เวิร์กชอป", icon: "paintpalette.fill", label: "เวิร์กชอป"),
-    InterestCategory(id: "คอนเสิร์ต", icon: "music.mic", label: "คอนเสิร์ต"),
-    InterestCategory(id: "พักผ่อน", icon: "bed.double.fill", label: "พักผ่อน"),
-    InterestCategory(id: "อื่นๆ", icon: "sparkles", label: "อื่นๆ")
+    InterestCategory(id: "ทะเล", icon: "🏖️", label: "ทะเล"),
+    InterestCategory(id: "ภูเขา", icon: "🏔️", label: "ภูเขา"),
+    InterestCategory(id: "แคมป์ปิ้ง", icon: "🏕️", label: "แคมป์ปิ้ง"),
+    InterestCategory(id: "เที่ยวเมือง", icon: "🏙️", label: "เที่ยวเมือง"),
+    InterestCategory(id: "คาเฟ่", icon: "☕️", label: "คาเฟ่"),
+    InterestCategory(id: "อาหาร", icon: "🍜", label: "อาหาร"),
+    InterestCategory(id: "แฮงเอาต์", icon: "🍻", label: "แฮงเอาต์"),
+    InterestCategory(id: "ถ่ายรูป", icon: "📸", label: "ถ่ายรูป"),
+    InterestCategory(id: "ช้อปปิ้ง", icon: "🛍️", label: "ช้อปปิ้ง"),
+    InterestCategory(id: "คอนเสิร์ต", icon: "🎫", label: "คอนเสิร์ต"),
+    InterestCategory(id: "ผจญภัย", icon: "🧗", label: "ผจญภัย"),
+    InterestCategory(id: "ไหว้พระ", icon: "🏛️", label: "ไหว้พระ")
 ]
 

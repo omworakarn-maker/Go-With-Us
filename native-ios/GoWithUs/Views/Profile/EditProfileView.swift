@@ -331,7 +331,7 @@ struct EditProfileView: View {
                     }
                 }
                 
-                Section(header: Text("สิ่งที่สนใจ (เลือกได้หลายข้อ)")) {
+                Section(header: Text("สไตล์การเที่ยว (เลือกได้หลายข้อ)")) {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 100))], spacing: 10) {
                         ForEach(INTEREST_CATEGORIES) { cat in
                             InterestTag(
@@ -362,7 +362,7 @@ struct EditProfileView: View {
                             .font(.system(size: 14, weight: .medium))
                         Toggle("แสดงประวัติส่วนตัว", isOn: $showBio)
                             .font(.system(size: 14, weight: .medium))
-                        Toggle("แสดงความสนใจ", isOn: $showInterests)
+                        Toggle("แสดงสไตล์การเที่ยว", isOn: $showInterests)
                             .font(.system(size: 14, weight: .medium))
                         Toggle("แสดงอีเมล", isOn: $showEmail)
                             .font(.system(size: 14, weight: .medium))
@@ -541,7 +541,7 @@ struct InterestTag: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 4) {
-                Image(systemName: icon) // Using SF Symbol
+                Text(icon)
                     .font(.system(size: 14))
                 Text(label)
                     .font(.system(size: 12, weight: .bold))

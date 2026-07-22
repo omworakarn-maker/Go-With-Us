@@ -91,7 +91,7 @@ class SettingsManager: ObservableObject {
             "gender": [.thai: "เพศ", .english: "Gender"],
             "age": [.thai: "อายุ", .english: "Age"],
             "bio": [.thai: "ประวัติส่วนตัว", .english: "Bio"],
-            "interests": [.thai: "ความสนใจ", .english: "Interests"],
+            "interests": [.thai: "สไตล์การเที่ยว", .english: "Travel Styles"],
             "travel_style": [.thai: "สไตล์การเดินทาง", .english: "Travel Style"],
             "not_verified": [.thai: "ยังไม่ยืนยันตัวตน", .english: "Not Verified"],
             "verified": [.thai: "ยืนยันตัวตนแล้ว", .english: "Verified"],
