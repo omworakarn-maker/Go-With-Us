@@ -36,15 +36,28 @@ const normalizeTravelStyle = (style) => {
 };
 
 // Helper to build a numerical Feature Vector for Cosine Similarity
+// Helper to build a numerical Feature Vector for Cosine Similarity
 const buildFeatureVector = (travelStyle, interests, isTrip = false, tripCategory = null) => {
     const style = normalizeTravelStyle(travelStyle);
     const vector = [];
     
-    // 1. Budget (0 to 1) - Default to 0.5 if missing
-    vector.push((style && style.budget !== null) ? style.budget / 10.0 : 0.5);
+    // 1. Budget (-1 to 1) 
+    // Rating 1 = -1.0 (Cheap), Rating 10 = 1.0 (Luxury). Default = 0.0 (Neutral)
+    // We multiply by 2.0 to give Budget higher weight in the vector
+    let budgetVal = 0.0;
+    if (style && style.budget !== null) {
+        budgetVal = (style.budget - 5.5) / 4.5;
+    }
+    vector.push(budgetVal * 2.0);
     
-    // 2. Activity Style (0 to 1) - Default to 0.5 if missing
-    vector.push((style && style.activityStyle !== null) ? style.activityStyle / 10.0 : 0.5);
+    // 2. Activity Style (-1 to 1)
+    // Rating 1 = -1.0 (Relaxed), Rating 10 = 1.0 (Fast). Default = 0.0 (Neutral)
+    // Multiply by 2.0 for higher weight
+    let activityVal = 0.0;
+    if (style && style.activityStyle !== null) {
+        activityVal = (style.activityStyle - 5.5) / 4.5;
+    }
+    vector.push(activityVal * 2.0);
     
     // 3. Interests / Categories (12 Dimensions)
     const allCategories = ['ทะเล', 'ภูเขา', 'แคมป์ปิ้ง', 'เที่ยวเมือง', 'คาเฟ่', 'อาหาร', 'แฮงเอาต์', 'ถ่ายรูป', 'ช้อปปิ้ง', 'คอนเสิร์ต', 'ผจญภัย', 'ไหว้พระ'];
@@ -52,7 +65,6 @@ const buildFeatureVector = (travelStyle, interests, isTrip = false, tripCategory
     
     for (const cat of allCategories) {
         if (isTrip) {
-            // For trips, they usually have one main category
             vector.push(tripCategory === cat ? 1.0 : 0.0);
         } else {
             vector.push(userInts.includes(cat) ? 1.0 : 0.0);
@@ -79,10 +91,12 @@ const calculateDetailedCompatibility = (userA, userB) => {
     
     const simScore = cosineSimilarity(vecA, vecB);
     
-    // Convert Cosine Similarity (0 to 1) to percentage (0 to 100)
-    // Vectors are mostly positive (0 or 1), so score is naturally between 0 and 1.
-    // If they match perfectly, it's 1.0 (100%)
-    return Math.round(simScore * 100);
+    // Convert Cosine Similarity (-1 to 1) to percentage (0 to 100)
+    // Formula: (simScore + 1) / 2 * 100
+    // This perfectly maps Opposite (-1) -> 0%, Orthogonal (0) -> 50%, Exact Match (1) -> 100%
+    const percentage = ((simScore + 1.0) / 2.0) * 100.0;
+    
+    return Math.round(percentage);
 };
 
 // Helper to map rating (1-10) to THB
@@ -208,7 +222,10 @@ export const calculateTripCompatibilityDetailed = (user, trip) => {
     }
     
     const simScore = cosineSimilarity(userVector, tripVector);
-    const tripTotal = Math.round(simScore * 100);
+    
+    // Map -1 to 1 into 0 to 100
+    const percentage = ((simScore + 1.0) / 2.0) * 100.0;
+    const tripTotal = Math.round(percentage);
 
     return { total: tripTotal, breakdown, tripMatch: tripTotal };
 };
