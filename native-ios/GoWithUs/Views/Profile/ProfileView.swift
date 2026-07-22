@@ -449,6 +449,16 @@ struct UserInfoSectionView: View {
         .cornerRadius(14)
         .shadow(color: .black.opacity(0.03), radius: 6, x: 0, y: 2)
     }
+    
+    private func timeString(_ times: [String]) -> String {
+        let map: [String: String] = [
+            "morning": "เช้า",
+            "noon": "กลางวัน",
+            "evening": "เย็น",
+            "night": "ดึก"
+        ]
+        return times.compactMap { map[$0] ?? $0 }.joined(separator: ", ")
+    }
 }
 
 struct AdminAlertButton: View {
@@ -572,15 +582,5 @@ struct UserTripsSectionView: View {
             }
             print("Error loading profile trips: \(error)")
         }
-    }
-    
-    private func timeString(_ times: [String]) -> String {
-        let map: [String: String] = [
-            "morning": "เช้า",
-            "noon": "กลางวัน",
-            "evening": "เย็น",
-            "night": "ดึก"
-        ]
-        return times.compactMap { map[$0] ?? $0 }.joined(separator: ", ")
     }
 }
