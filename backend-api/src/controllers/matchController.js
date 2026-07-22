@@ -92,9 +92,13 @@ const calculateDetailedCompatibility = (userA, userB) => {
     const simScore = cosineSimilarity(vecA, vecB);
     
     // Convert Cosine Similarity (-1 to 1) to percentage (0 to 100)
-    // Formula: (simScore + 1) / 2 * 100
-    // This perfectly maps Opposite (-1) -> 0%, Orthogonal (0) -> 50%, Exact Match (1) -> 100%
-    const percentage = ((simScore + 1.0) / 2.0) * 100.0;
+    // High-dimensional sparse vectors tend to cluster around 0 (orthogonal).
+    // We amplify the score by 1.5 to stretch the distribution, 
+    // making good matches closer to 100% and bad matches closer to 0%.
+    let percentage = (simScore * 1.5) * 100.0;
+    
+    if (percentage > 100) percentage = 100;
+    if (percentage < 0) percentage = 0;
     
     return Math.round(percentage);
 };
@@ -223,8 +227,11 @@ export const calculateTripCompatibilityDetailed = (user, trip) => {
     
     const simScore = cosineSimilarity(userVector, tripVector);
     
-    // Map -1 to 1 into 0 to 100
-    const percentage = ((simScore + 1.0) / 2.0) * 100.0;
+    // Amplify the score to stretch the distribution
+    let percentage = (simScore * 1.5) * 100.0;
+    if (percentage > 100) percentage = 100;
+    if (percentage < 0) percentage = 0;
+    
     const tripTotal = Math.round(percentage);
 
     return { total: tripTotal, breakdown, tripMatch: tripTotal };
