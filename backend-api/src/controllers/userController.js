@@ -188,6 +188,7 @@ export const updateProfile = async (req, res) => {
                 profileImage: true,
                 gallery: true,
                 interests: true,
+                travelStyle: true,
                 createdAt: true,
                 updatedAt: true,
                 isProfilePublic: true,
