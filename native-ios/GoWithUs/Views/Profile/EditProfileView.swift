@@ -560,6 +560,19 @@ struct EditProfileView: View {
                 QuestionnaireView()
                     .environmentObject(authViewModel)
             }
+            .onChange(of: showQuiz) { oldValue, newValue in
+                if !newValue {
+                    // Sheet dismissed, reload interests/travel style in case they changed
+                    if let user = targetUser ?? authViewModel.currentUser {
+                        selectedInterests = Set(user.interests ?? [])
+                        if let style = user.travelStyle {
+                            if let b = style.budget { budget = Double(b) }
+                            if let a = style.activityStyle { activityStyle = Double(a) }
+                            if let t = style.timeOfDay { timeOfDay = t }
+                        }
+                    }
+                }
+            }
         }
     }
     private var isUsernameInvalid: Bool {
