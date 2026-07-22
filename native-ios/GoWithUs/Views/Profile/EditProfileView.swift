@@ -80,6 +80,37 @@ struct EditProfileView: View {
     @State private var showBirthDatePicker = false
     @State private var showQuiz = false
     
+    // Travel Style variables
+    @State private var budget: Double = 1500
+    private let budgetSteps: [Double] = [
+        100, 300, 500, 1000, 1500, 2000, 2500, 3000, 4000, 5000,
+        6000, 7000, 8000, 10000, 15000, 20000, 30000, 50000
+    ]
+    private var budgetSliderBinding: Binding<Double> {
+        Binding<Double>(
+            get: {
+                let closest = budgetSteps.enumerated().min(by: { abs($0.element - budget) < abs($1.element - budget) })?.offset ?? 0
+                return Double(closest)
+            },
+            set: { newValue in
+                let index = min(max(Int(newValue), 0), budgetSteps.count - 1)
+                let newBudget = budgetSteps[index]
+                if budget != newBudget {
+                    budget = newBudget
+                }
+            }
+        )
+    }
+    @State private var activityStyle: Double = 5
+    @State private var timeOfDay: [String] = []
+    
+    let timeOptions: [(String, String)] = [
+        ("morning", "เช้า"),
+        ("noon", "กลางวัน"),
+        ("evening", "เย็น"),
+        ("night", "ดึก")
+    ]
+    
     // Privacy settings
     @State private var isProfilePublic = true
     @State private var showGender = true
@@ -331,6 +362,89 @@ struct EditProfileView: View {
                     }
                 }
                 
+                // Travel Style Section
+                Section(header: Text("สไตล์การเที่ยว")) {
+                    VStack(alignment: .leading, spacing: 20) {
+                        // Budget Step
+                        Text("งบประมาณเฉลี่ยต่อวัน (บาท)")
+                            .font(.subheadline).bold()
+                        
+                        VStack(spacing: 15) {
+                            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                                TextField("1500", value: $budget, format: .number)
+                                    .font(.system(size: 30, weight: .black))
+                                    .foregroundColor(.primary)
+                                    .keyboardType(.numberPad)
+                                    .multilineTextAlignment(.center)
+                                    .frame(maxWidth: 150)
+                                    .tint(.black)
+                                Text("฿").foregroundColor(.secondary)
+                            }
+                            
+                            Slider(value: budgetSliderBinding, in: 0...Double(budgetSteps.count - 1), step: 1)
+                                .tint(.black)
+                            
+                            HStack {
+                                Text("ประหยัด (100฿)").font(.caption).foregroundColor(.secondary)
+                                Spacer()
+                                Text("หรูหรา (5,000฿+)").font(.caption).foregroundColor(.secondary)
+                            }
+                        }
+                        .padding(.vertical, 10)
+                        
+                        Divider()
+                        
+                        // Activity Style Step
+                        Text("สไตล์กิจกรรมที่ชื่นชอบ (ความลุย)")
+                            .font(.subheadline).bold()
+                        
+                        VStack(spacing: 15) {
+                            Text("\(Int(activityStyle))")
+                                .font(.system(size: 30, weight: .black))
+                                .foregroundColor(.primary)
+                            
+                            Slider(value: $activityStyle, in: 1...10, step: 1)
+                                .tint(.black)
+                            
+                            HStack {
+                                Text("พักผ่อนชิลล์ๆ (1)").font(.caption).foregroundColor(.secondary)
+                                Spacer()
+                                Text("เน้นกิจกรรมลุย (10)").font(.caption).foregroundColor(.secondary)
+                            }
+                        }
+                        .padding(.vertical, 10)
+                        
+                        Divider()
+                        
+                        // Time of Day Step
+                        Text("ช่วงเวลาที่ชอบท่องเที่ยว")
+                            .font(.subheadline).bold()
+                        
+                        VStack(alignment: .leading, spacing: 12) {
+                            ForEach(timeOptions, id: \.0) { option in
+                                Button(action: {
+                                    if timeOfDay.contains(option.0) {
+                                        timeOfDay.removeAll { $0 == option.0 }
+                                    } else {
+                                        timeOfDay.append(option.0)
+                                    }
+                                }) {
+                                    HStack {
+                                        Image(systemName: timeOfDay.contains(option.0) ? "checkmark.square.fill" : "square")
+                                            .foregroundColor(timeOfDay.contains(option.0) ? .appPrimary : .gray)
+                                            .font(.title3)
+                                        Text(option.1)
+                                            .foregroundColor(.primary)
+                                    }
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                            }
+                        }
+                        .padding(.vertical, 10)
+                    }
+                    .padding(.vertical, 8)
+                }
+                
                 Section(header: Text("สไตล์การเที่ยว (เลือกได้หลายข้อ)")) {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 100))], spacing: 10) {
                         ForEach(INTEREST_CATEGORIES) { cat in
@@ -427,7 +541,7 @@ struct EditProfileView: View {
                                     age: ageInt,
                                     bio: bio,
                                     birthDate: finalBirthDate,
-                                    travelStyle: target.travelStyle, // Keep their style or use what's in VM
+                                    travelStyle: TravelStyle(budget: Int(budget), activityStyle: Int(activityStyle), timeOfDay: timeOfDay),
                                     profileImage: profileImageBase64,
                                     gallery: galleryBase64.isEmpty ? nil : galleryBase64
                                 )
@@ -441,7 +555,7 @@ struct EditProfileView: View {
                                     age: ageInt,
                                     bio: bio,
                                     birthDate: finalBirthDate,
-                                    travelStyle: authViewModel.currentUser?.travelStyle,
+                                    travelStyle: TravelStyle(budget: Int(budget), activityStyle: Int(activityStyle), timeOfDay: timeOfDay),
                                     profileImage: profileImageBase64,
                                     gallery: galleryBase64.isEmpty ? nil : galleryBase64
                                 )
@@ -488,6 +602,12 @@ struct EditProfileView: View {
                     if let birthDate = user.birthDate {
                         self.birthDate = birthDate
                         self.isBirthDateSet = true
+                    }
+                    
+                    if let style = user.travelStyle {
+                        if let b = style.budget { budget = Double(b) }
+                        if let a = style.activityStyle { activityStyle = Double(a) }
+                        if let t = style.timeOfDay { timeOfDay = t }
                     }
                     
                     // Load privacy settings
