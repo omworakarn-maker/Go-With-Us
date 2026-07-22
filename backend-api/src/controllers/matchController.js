@@ -15,6 +15,14 @@ const normalizeTravelStyle = (style) => {
         else if (style.budget === 'luxury') budget = 8;
         else if (!isNaN(Number(style.budget))) budget = Number(style.budget);
         
+        // Map large THB values to 1-10 rating scale to fix massive vector magnitudes
+        if (budget > 10) {
+            if (budget <= 500) budget = 2;
+            else if (budget <= 1000) budget = 4;
+            else if (budget <= 2000) budget = 6;
+            else if (budget <= 5000) budget = 8;
+            else budget = 10;
+        }
     }
     
     let activityStyle = null;
@@ -219,10 +227,12 @@ export const calculateTripCompatibilityDetailed = (user, trip) => {
     
     // Override specific trip attributes if they exist on the trip level (like budget and pace)
     if (trip.budget !== undefined && trip.budget !== null) {
-        tripVector[0] = mapBudgetToRating(Number(trip.budget)) / 10.0;
+        const rating = mapBudgetToRating(Number(trip.budget));
+        tripVector[0] = ((rating - 5.5) / 4.5) * 2.0;
     }
     if (trip.activityStyle !== undefined && trip.activityStyle !== null) {
-        tripVector[1] = trip.activityStyle / 10.0;
+        const rating = Number(trip.activityStyle);
+        tripVector[1] = ((rating - 5.5) / 4.5) * 2.0;
     }
     
     const simScore = cosineSimilarity(userVector, tripVector);
