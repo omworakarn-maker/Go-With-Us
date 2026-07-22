@@ -377,49 +377,6 @@ struct UserInfoSectionView: View {
                 .shadow(color: .black.opacity(0.03), radius: 6, x: 0, y: 2)
             }
             
-            // Travel Style
-            if let style = user.travelStyle, (style.budget != nil || style.activityStyle != nil || (style.timeOfDay != nil && !style.timeOfDay!.isEmpty)) {
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "map.fill")
-                            .font(.system(size: 12))
-                            .foregroundColor(Color(hex: "#10B981"))
-                        Text("สไตล์การเที่ยว")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(.adaptiveSecondaryText)
-                            .textCase(.uppercase)
-                    }
-                    
-                    VStack(alignment: .leading, spacing: 12) {
-                        if let b = style.budget {
-                            HStack {
-                                Text("งบประมาณ:").font(.system(size: 14)).foregroundColor(.secondary).frame(width: 80, alignment: .leading)
-                                Text("\(b) ฿").font(.system(size: 14, weight: .semibold)).foregroundColor(.primary)
-                            }
-                        }
-                        if let a = style.activityStyle {
-                            HStack {
-                                Text("ความลุย:").font(.system(size: 14)).foregroundColor(.secondary).frame(width: 80, alignment: .leading)
-                                Text("\(a) / 10").font(.system(size: 14, weight: .semibold)).foregroundColor(.primary)
-                            }
-                        }
-                        if let t = style.timeOfDay, !t.isEmpty {
-                            HStack(alignment: .top) {
-                                Text("ช่วงเวลา:").font(.system(size: 14)).foregroundColor(.secondary).frame(width: 80, alignment: .leading)
-                                Text(timeString(t))
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .foregroundColor(.primary)
-                            }
-                        }
-                    }
-                    .padding(.top, 4)
-                }
-                .padding(16)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.adaptiveCardBackground)
-                .cornerRadius(16)
-                .shadow(color: .black.opacity(0.03), radius: 6, x: 0, y: 2)
-            }
         }
     }
     
@@ -448,16 +405,6 @@ struct UserInfoSectionView: View {
         .background(Color.adaptiveCardBackground)
         .cornerRadius(14)
         .shadow(color: .black.opacity(0.03), radius: 6, x: 0, y: 2)
-    }
-    
-    private func timeString(_ times: [String]) -> String {
-        let map: [String: String] = [
-            "morning": "เช้า",
-            "noon": "กลางวัน",
-            "evening": "เย็น",
-            "night": "ดึก"
-        ]
-        return times.compactMap { map[$0] ?? $0 }.joined(separator: ", ")
     }
 }
 
