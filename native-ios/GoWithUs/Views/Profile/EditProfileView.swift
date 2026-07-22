@@ -361,16 +361,7 @@ struct EditProfileView: View {
                         }
                     }
                 }
-                
-                                }
-                                .buttonStyle(PlainButtonStyle())
-                            }
-                        }
-                        .padding(.vertical, 10)
-                    }
-                    .padding(.vertical, 8)
-                }
-                
+
                 Section(header: Text("สไตล์การเที่ยว (เลือกได้หลายข้อ)")) {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 100))], spacing: 10) {
                         ForEach(INTEREST_CATEGORIES) { cat in

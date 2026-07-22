@@ -105,7 +105,7 @@ struct QuestionnaireView: View {
                             
                         } else if currentStep == 1 {
                             // Activity Style Step
-                            Text("สไตล์กิจกรรมที่ชื่นชอบ (Activity Style)")
+                            Text("🎯 สไตล์กิจกรรมที่ชื่นชอบ (Activity Style)")
                                 .font(.title2).bold()
                             Text("รูปแบบของกิจกรรมที่คุณต้องการทำระหว่างการท่องเที่ยว")
                                 .font(.subheadline).foregroundColor(.secondary)
@@ -133,7 +133,7 @@ struct QuestionnaireView: View {
                             
                         } else if currentStep == 2 {
                             // Time of Day Step
-                            Text("ช่วงเวลาที่ชอบท่องเที่ยว (Time of Day)")
+                            Text("🕘 ช่วงเวลาที่ชอบท่องเที่ยว (Time of Day)")
                                 .font(.title2).bold()
                             Text("เลือกช่วงเวลาที่คุณชอบออกไปทำกิจกรรมหรือท่องเที่ยว (เลือกได้มากกว่า 1 ช่วง)")
                                 .font(.subheadline).foregroundColor(.secondary)
