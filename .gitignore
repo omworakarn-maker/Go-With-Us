@@ -79,5 +79,3 @@ go-with-us-backend/prisma/dev.db
 .env*.local
 .env*
 
-#readme
-README.md
