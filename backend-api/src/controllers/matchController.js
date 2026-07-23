@@ -237,10 +237,22 @@ export const calculateTripCompatibilityDetailed = (user, trip) => {
     
     const simScore = cosineSimilarity(userVector, tripVector);
     
-    // Amplify the score to stretch the distribution
     let percentage = (simScore * 1.5) * 100.0;
     if (percentage > 100) percentage = 100;
     if (percentage < 0) percentage = 0;
+    
+    // Apply strict penalties for critical mismatches to make the total score more realistic
+    // If budget breakdown is low, cut the total score significantly (max 50% penalty)
+    if (breakdown.budget !== undefined) {
+        const budgetMultiplier = 0.5 + (breakdown.budget / 100.0) * 0.5;
+        percentage *= budgetMultiplier;
+    }
+    
+    // If activity breakdown is low, cut the total score (max 30% penalty)
+    if (breakdown.activityStyle !== undefined) {
+        const activityMultiplier = 0.7 + (breakdown.activityStyle / 100.0) * 0.3;
+        percentage *= activityMultiplier;
+    }
     
     const tripTotal = Math.round(percentage);
 

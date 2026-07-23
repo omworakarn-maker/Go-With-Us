@@ -70,7 +70,7 @@ struct QuestionnaireView: View {
                     VStack(alignment: .leading, spacing: 20) {
                         if currentStep == 0 {
                             // Budget Step
-                            Text("งบประมาณเฉลี่ยต่อวัน (บาท)")
+                            Text("💰 งบประมาณเฉลี่ยต่อวัน (บาท)")
                                 .font(.title2).bold()
                             Text("ระบุงบประมาณที่คุณพึงพอใจในการใช้จ่ายระหว่างทริป (ต่อวัน)")
                                 .font(.subheadline).foregroundColor(.secondary)
