@@ -92,18 +92,77 @@ const buildFeatureVector = (travelStyle, interests, isTrip = false, tripCategory
 
 
 
-// Helper to calculate user-to-user compatibility percentage using Cosine Similarity
 const calculateDetailedCompatibility = (userA, userB) => {
-    const vecA = buildFeatureVector(userA.travelStyle, userA.interests, false);
-    const vecB = buildFeatureVector(userB.travelStyle, userB.interests, false);
+    const styleA = normalizeTravelStyle(userA.travelStyle);
+    const styleB = normalizeTravelStyle(userB.travelStyle);
+
+    let totalScore = 0;
+    let totalWeight = 0;
+
+    // 1. Budget (Weight = 3)
+    if (styleA && styleA.budget !== null && styleB && styleB.budget !== null) {
+        const diff = Math.abs(styleA.budget - styleB.budget);
+        // rating is 1-10. Max diff is 9.
+        let score = 1.0;
+        if (diff > 1) {
+            score = Math.max(0, 1.0 - ((diff - 1) / 8.0));
+        }
+        totalScore += score * 3;
+        totalWeight += 3;
+    } else {
+        // If either doesn't have budget, give average score but lower weight
+        totalScore += 0.5 * 1;
+        totalWeight += 1;
+    }
+
+    // 2. Activity Style (Weight = 2)
+    if (styleA && styleA.activityStyle !== null && styleB && styleB.activityStyle !== null) {
+        const diff = Math.abs(styleA.activityStyle - styleB.activityStyle);
+        let score = 1.0;
+        if (diff > 1) {
+            score = Math.max(0, 1.0 - ((diff - 1) / 8.0));
+        }
+        totalScore += score * 2;
+        totalWeight += 2;
+    } else {
+        totalScore += 0.5 * 1;
+        totalWeight += 1;
+    }
+
+    // 3. Time of Day (Weight = 1)
+    if (styleA && styleA.timeOfDay && styleA.timeOfDay.length > 0 && 
+        styleB && styleB.timeOfDay && styleB.timeOfDay.length > 0) {
+        const intersect = styleA.timeOfDay.filter(x => styleB.timeOfDay.includes(x)).length;
+        const union = new Set([...styleA.timeOfDay, ...styleB.timeOfDay]).size;
+        const score = union > 0 ? (intersect / union) : 0.0;
+        
+        // Bonus for having overlapping times
+        totalScore += score * 1.5;
+        totalWeight += 1.5;
+    } else {
+        totalScore += 0.5 * 0.5;
+        totalWeight += 0.5;
+    }
+
+    // 4. Interests (Weight = 2)
+    const intA = Array.isArray(userA.interests) ? userA.interests : [];
+    const intB = Array.isArray(userB.interests) ? userB.interests : [];
     
-    const simScore = cosineSimilarity(vecA, vecB);
-    
-    // Convert Cosine Similarity (-1 to 1) to percentage (0 to 100)
-    // High-dimensional sparse vectors tend to cluster around 0 (orthogonal).
-    // We amplify the score by 1.5 to stretch the distribution, 
-    // making good matches closer to 100% and bad matches closer to 0%.
-    let percentage = (simScore * 1.5) * 100.0;
+    if (intA.length > 0 && intB.length > 0) {
+        const intersect = intA.filter(x => intB.includes(x)).length;
+        // Dice coefficient for better matching on interests
+        const score = (2.0 * intersect) / (intA.length + intB.length);
+        totalScore += score * 2;
+        totalWeight += 2;
+    } else {
+        totalScore += 0.5 * 1;
+        totalWeight += 1;
+    }
+
+    let percentage = 0;
+    if (totalWeight > 0) {
+        percentage = (totalScore / totalWeight) * 100.0;
+    }
     
     if (percentage > 100) percentage = 100;
     if (percentage < 0) percentage = 0;
@@ -214,42 +273,24 @@ export const calculateTripCompatibilityDetailed = (user, trip) => {
         }
     }
 
-    // Replace the old weighted average calculation with Feature Vector Cosine Similarity
-    const userVector = buildFeatureVector(user.travelStyle, user.interests, false);
-    
-    // For the trip, we build the vector using the trip's creator style (or trip style) and the trip's main category
-    const tripVector = buildFeatureVector(
-        trip.creator ? trip.creator.travelStyle : null, 
-        [], // trips don't have an interests array, they have a single category
-        true, 
-        trip.category
-    );
-    
-    // Override specific trip attributes if they exist on the trip level (like budget and pace)
-    if (trip.budget !== undefined && trip.budget !== null) {
-        const rating = mapBudgetToRating(Number(trip.budget));
-        tripVector[0] = ((rating - 5.5) / 4.5) * 2.0;
-    }
-    if (trip.activityStyle !== undefined && trip.activityStyle !== null) {
-        const rating = Number(trip.activityStyle);
-        tripVector[1] = ((rating - 5.5) / 4.5) * 2.0;
+    // Use the weighted average as the base percentage instead of flawed Cosine Similarity
+    let percentage = 0;
+    if (totalWeight > 0) {
+        percentage = (totalScore / totalWeight) * 100.0;
     }
     
-    const simScore = cosineSimilarity(userVector, tripVector);
-    
-    let percentage = (simScore * 1.5) * 100.0;
     if (percentage > 100) percentage = 100;
     if (percentage < 0) percentage = 0;
     
     // Apply strict penalties for critical mismatches to make the total score more realistic
     // If budget breakdown is low, cut the total score by max 20% (softer penalty)
-    if (breakdown.budget !== undefined) {
+    if (breakdown.budget !== undefined && breakdown.budget !== null) {
         const budgetMultiplier = 0.8 + (breakdown.budget / 100.0) * 0.2;
         percentage *= budgetMultiplier;
     }
     
     // If activity breakdown is low, cut the total score by max 15% (softer penalty)
-    if (breakdown.activityStyle !== undefined) {
+    if (breakdown.activityStyle !== undefined && breakdown.activityStyle !== null) {
         const activityMultiplier = 0.85 + (breakdown.activityStyle / 100.0) * 0.15;
         percentage *= activityMultiplier;
     }
