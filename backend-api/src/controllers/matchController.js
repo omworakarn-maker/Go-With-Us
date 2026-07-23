@@ -242,15 +242,15 @@ export const calculateTripCompatibilityDetailed = (user, trip) => {
     if (percentage < 0) percentage = 0;
     
     // Apply strict penalties for critical mismatches to make the total score more realistic
-    // If budget breakdown is low, cut the total score significantly (max 50% penalty)
+    // If budget breakdown is low, cut the total score by max 20% (softer penalty)
     if (breakdown.budget !== undefined) {
-        const budgetMultiplier = 0.5 + (breakdown.budget / 100.0) * 0.5;
+        const budgetMultiplier = 0.8 + (breakdown.budget / 100.0) * 0.2;
         percentage *= budgetMultiplier;
     }
     
-    // If activity breakdown is low, cut the total score (max 30% penalty)
+    // If activity breakdown is low, cut the total score by max 15% (softer penalty)
     if (breakdown.activityStyle !== undefined) {
-        const activityMultiplier = 0.7 + (breakdown.activityStyle / 100.0) * 0.3;
+        const activityMultiplier = 0.85 + (breakdown.activityStyle / 100.0) * 0.15;
         percentage *= activityMultiplier;
     }
     
