@@ -387,51 +387,52 @@ struct CreateTripView: View {
                             TripDateInputView(startDate: $startDate, endDate: $endDate)
                             
                             // Budget & Max Participants
-                            VStack(alignment: .leading, spacing: 8) {
-                                HStack(spacing: 12) {
-                                    FormField(label: "งบประมาณ (บาท)", placeholder: "ระบุจำนวนเงิน", text: $budget)
-                                        .keyboardType(.numberPad)
+                            HStack(spacing: 12) {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("งบประมาณ (บาท)")
+                                        .font(.system(size: 11, weight: .bold))
+                                        .foregroundColor(.gray)
+                                        .textCase(.uppercase)
+                                        .tracking(1)
                                     
-                                    FormField(label: "จำนวนคน", placeholder: "10", text: $maxParticipants)
-                                        .keyboardType(.numberPad)
+                                    HStack(spacing: 4) {
+                                        TextField("ระบุจำนวนเงิน", text: $budget)
+                                            .foregroundColor(.adaptiveText)
+                                            .tint(.adaptiveText)
+                                            .keyboardType(.numberPad)
+                                        
+                                        Menu {
+                                            Button(action: { budgetType = "per_person" }) {
+                                                Label("ต่อคน", systemImage: budgetType == "per_person" ? "checkmark" : "")
+                                            }
+                                            Button(action: { budgetType = "per_trip" }) {
+                                                Label("ต่อทริป (รวม)", systemImage: budgetType == "per_trip" ? "checkmark" : "")
+                                            }
+                                        } label: {
+                                            HStack(spacing: 2) {
+                                                Text(budgetType == "per_trip" ? "ต่อทริป" : "ต่อคน")
+                                                    .font(.system(size: 11, weight: .bold))
+                                                Image(systemName: "chevron.down")
+                                                    .font(.system(size: 9, weight: .bold))
+                                            }
+                                            .foregroundColor(.appAccent)
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 4)
+                                            .background(Color.appAccent.opacity(0.12))
+                                            .cornerRadius(6)
+                                        }
+                                    }
+                                    .padding()
+                                    .background(Color.gray.opacity(0.05))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                                    )
+                                    .cornerRadius(12)
                                 }
                                 
-                                HStack(spacing: 8) {
-                                    Text("ประเภทงบ:")
-                                        .font(.system(size: 13, weight: .semibold))
-                                        .foregroundColor(.adaptiveSecondaryText)
-                                    
-                                    Button(action: { budgetType = "per_person" }) {
-                                        HStack(spacing: 4) {
-                                            Image(systemName: budgetType == "per_person" ? "checkmark.circle.fill" : "circle")
-                                                .font(.system(size: 13))
-                                            Text("ต่อคน")
-                                                .font(.system(size: 13, weight: .medium))
-                                        }
-                                        .foregroundColor(budgetType == "per_person" ? .appAccent : .adaptiveSecondaryText)
-                                        .padding(.horizontal, 10)
-                                        .padding(.vertical, 6)
-                                        .background(budgetType == "per_person" ? Color.appAccent.opacity(0.12) : Color.gray.opacity(0.08))
-                                        .cornerRadius(8)
-                                    }
-                                    .buttonStyle(.plain)
-                                    
-                                    Button(action: { budgetType = "per_trip" }) {
-                                        HStack(spacing: 4) {
-                                            Image(systemName: budgetType == "per_trip" ? "checkmark.circle.fill" : "circle")
-                                                .font(.system(size: 13))
-                                            Text("ต่อทริป (รวม)")
-                                                .font(.system(size: 13, weight: .medium))
-                                        }
-                                        .foregroundColor(budgetType == "per_trip" ? .appAccent : .adaptiveSecondaryText)
-                                        .padding(.horizontal, 10)
-                                        .padding(.vertical, 6)
-                                        .background(budgetType == "per_trip" ? Color.appAccent.opacity(0.12) : Color.gray.opacity(0.08))
-                                        .cornerRadius(8)
-                                    }
-                                    .buttonStyle(.plain)
-                                }
-                                .padding(.top, 2)
+                                FormField(label: "จำนวนคน", placeholder: "10", text: $maxParticipants)
+                                    .keyboardType(.numberPad)
                             }
                             
                             // Activity Style & Time of Day
