@@ -10,6 +10,7 @@ struct CreateTripView: View {
     @State private var startDate = Date()
     @State private var endDate: Date? = nil
     @State private var budget = ""
+    @State private var budgetType = "per_person"
     @State private var maxParticipants = "10"
     @State private var selectedCategoryRaw: String = TripCategory.adventure.rawValue
     @State private var extraCategories: [String] = []
@@ -53,6 +54,7 @@ struct CreateTripView: View {
             _destination = State(initialValue: draft.destination)
             _description = State(initialValue: draft.description)
             _budget = State(initialValue: String(draft.budget))
+            _budgetType = State(initialValue: draft.budgetType ?? "per_person")
             _maxParticipants = State(initialValue: String(draft.maxParticipants))
             _itinerary = State(initialValue: draft.itinerary)
             
@@ -95,6 +97,7 @@ struct CreateTripView: View {
         _startDate = State(initialValue: trip.startDate)
         _endDate = State(initialValue: trip.endDate)
         _budget = State(initialValue: String(trip.budget))
+        _budgetType = State(initialValue: trip.budgetType ?? "per_person")
         _maxParticipants = State(initialValue: String(trip.maxParticipants))
         _selectedCategoryRaw = State(initialValue: trip.category.rawValue)
         _imageUrl = State(initialValue: trip.imageUrl ?? "")
@@ -384,12 +387,51 @@ struct CreateTripView: View {
                             TripDateInputView(startDate: $startDate, endDate: $endDate)
                             
                             // Budget & Max Participants
-                            HStack(spacing: 12) {
-                                FormField(label: "งบประมาณ (บาท)", placeholder: "ระบุจำนวนเงิน", text: $budget)
-                                    .keyboardType(.numberPad)
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack(spacing: 12) {
+                                    FormField(label: "งบประมาณ (บาท)", placeholder: "ระบุจำนวนเงิน", text: $budget)
+                                        .keyboardType(.numberPad)
+                                    
+                                    FormField(label: "จำนวนคน", placeholder: "10", text: $maxParticipants)
+                                        .keyboardType(.numberPad)
+                                }
                                 
-                                FormField(label: "จำนวนคน", placeholder: "10", text: $maxParticipants)
-                                    .keyboardType(.numberPad)
+                                HStack(spacing: 8) {
+                                    Text("ประเภทงบ:")
+                                        .font(.system(size: 13, weight: .semibold))
+                                        .foregroundColor(.adaptiveSecondaryText)
+                                    
+                                    Button(action: { budgetType = "per_person" }) {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: budgetType == "per_person" ? "checkmark.circle.fill" : "circle")
+                                                .font(.system(size: 13))
+                                            Text("ต่อคน")
+                                                .font(.system(size: 13, weight: .medium))
+                                        }
+                                        .foregroundColor(budgetType == "per_person" ? .appAccent : .adaptiveSecondaryText)
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 6)
+                                        .background(budgetType == "per_person" ? Color.appAccent.opacity(0.12) : Color.gray.opacity(0.08))
+                                        .cornerRadius(8)
+                                    }
+                                    .buttonStyle(.plain)
+                                    
+                                    Button(action: { budgetType = "per_trip" }) {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: budgetType == "per_trip" ? "checkmark.circle.fill" : "circle")
+                                                .font(.system(size: 13))
+                                            Text("ต่อทริป (รวม)")
+                                                .font(.system(size: 13, weight: .medium))
+                                        }
+                                        .foregroundColor(budgetType == "per_trip" ? .appAccent : .adaptiveSecondaryText)
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 6)
+                                        .background(budgetType == "per_trip" ? Color.appAccent.opacity(0.12) : Color.gray.opacity(0.08))
+                                        .cornerRadius(8)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                                .padding(.top, 2)
                             }
                             
                             // Activity Style & Time of Day
@@ -541,6 +583,7 @@ struct CreateTripView: View {
                 startDate = t.startDate
                 if let e = t.endDate { endDate = e }
                 budget = String(t.budget)
+                budgetType = t.budgetType ?? "per_person"
                 maxParticipants = String(t.maxParticipants)
                 selectedCategoryRaw = t.category.rawValue
                 isPublic = t.isPublic
@@ -552,6 +595,7 @@ struct CreateTripView: View {
                 destination = d.destination
                 description = d.description
                 budget = String(d.budget)
+                budgetType = d.budgetType ?? "per_person"
                 maxParticipants = String(d.maxParticipants)
                 if let itin = d.itinerary { itinerary = itin }
                 if let a = d.activityStyle { activityStyle = Double(a) }
@@ -684,6 +728,7 @@ struct CreateTripView: View {
                         startDate: startDate,
                         endDate: endDate,
                         budget: budgetValue,
+                        budgetType: budgetType,
                         maxParticipants: maxPart,
                         category: selectedCategoryRaw,
                         isPublic: isPublic,
@@ -702,6 +747,7 @@ struct CreateTripView: View {
                         startDate: startDate,
                         endDate: endDate,
                         budget: budgetValue,
+                        budgetType: budgetType,
                         maxParticipants: maxPart,
                         category: selectedCategoryRaw,
                         isPublic: isPublic,

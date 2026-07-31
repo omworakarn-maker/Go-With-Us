@@ -74,6 +74,7 @@ model Trip {
   startDate       DateTime @map("start_date")
   endDate         DateTime? @map("end_date")
   budget          Int      @default(1000) // Budget in THB (minimum 100)
+  budgetType      String   @default("per_person") @map("budget_type") // "per_person" or "per_trip"
   maxParticipants Int      @default(10) @map("max_participants")
 activityStyle   Int?     @default(5) @map("activity_style")
 timeOfDay       String[] @default([]) @map("time_of_day")

@@ -75,6 +75,7 @@ class TripService {
         startDate: Date,
         endDate: Date?,
         budget: Int,
+        budgetType: String? = nil,
         maxParticipants: Int,
         category: String,
         isPublic: Bool = true,
@@ -91,6 +92,7 @@ class TripService {
             let startDate: Date
             let endDate: Date?
             let budget: Int
+            let budgetType: String?
             let maxParticipants: Int
             let category: String
             let isPublic: Bool
@@ -113,6 +115,7 @@ class TripService {
             startDate: startDate,
             endDate: endDate,
             budget: budget,
+            budgetType: budgetType,
             maxParticipants: maxParticipants,
             category: category,
             isPublic: isPublic,
@@ -141,6 +144,7 @@ class TripService {
         startDate: Date,
         endDate: Date?,
         budget: Int,
+        budgetType: String? = nil,
         maxParticipants: Int,
         category: String,
         isPublic: Bool? = nil,
@@ -157,6 +161,7 @@ class TripService {
             let startDate: Date
             let endDate: Date?
             let budget: Int
+            let budgetType: String?
             let maxParticipants: Int
             let category: String
             let isPublic: Bool
@@ -174,6 +179,7 @@ class TripService {
             startDate: startDate,
             endDate: endDate,
             budget: budget,
+            budgetType: budgetType,
             maxParticipants: maxParticipants,
             category: category,
             isPublic: isPublic ?? true,

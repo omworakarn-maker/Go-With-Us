@@ -490,6 +490,13 @@ struct TripDetailView: View {
                 Text("\(formatBudget(trip.budget)) ฿")
                     .font(.system(size: 15, weight: .black))
                     .foregroundColor(.adaptiveText)
+                Text(trip.budgetTypeLabel)
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(Color(hex: "#3B82F6"))
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color(hex: "#3B82F6").opacity(0.12))
+                    .cornerRadius(6)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 18)

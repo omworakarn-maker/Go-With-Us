@@ -9,6 +9,7 @@ struct Trip: Codable, Identifiable, Hashable {
     let startDate: Date
     let endDate: Date?
     let budget: Int
+    let budgetType: String?
     let maxParticipants: Int
     let category: TripCategory
     let isPublic: Bool
@@ -26,6 +27,10 @@ struct Trip: Codable, Identifiable, Hashable {
     let createdAt: Date?
     let updatedAt: Date?
     
+    var budgetTypeLabel: String {
+        return (budgetType == "per_trip") ? "ต่อทริป" : "ต่อคน"
+    }
+    
     init(
         id: String,
         title: String,
@@ -34,6 +39,7 @@ struct Trip: Codable, Identifiable, Hashable {
         startDate: Date,
         endDate: Date? = nil,
         budget: Int,
+        budgetType: String? = "per_person",
         maxParticipants: Int,
         category: TripCategory,
         isPublic: Bool = true,
@@ -58,6 +64,7 @@ struct Trip: Codable, Identifiable, Hashable {
         self.startDate = startDate
         self.endDate = endDate
         self.budget = budget
+        self.budgetType = budgetType
         self.maxParticipants = maxParticipants
         self.category = category
         self.isPublic = isPublic
@@ -77,7 +84,7 @@ struct Trip: Codable, Identifiable, Hashable {
     }
     
     enum CodingKeys: String, CodingKey {
-        case id, title, destination, description, startDate, endDate, budget, maxParticipants, category, isPublic, imageUrl, gallery, creatorId, creator, participants, itinerary, activityStyle, timeOfDay, aiAnalysis, matchScore, matchBreakdown, createdAt, updatedAt
+        case id, title, destination, description, startDate, endDate, budget, budgetType, maxParticipants, category, isPublic, imageUrl, gallery, creatorId, creator, participants, itinerary, activityStyle, timeOfDay, aiAnalysis, matchScore, matchBreakdown, createdAt, updatedAt
     }
     
     init(from decoder: Decoder) throws {
@@ -89,6 +96,7 @@ struct Trip: Codable, Identifiable, Hashable {
         startDate = try container.decode(Date.self, forKey: .startDate)
         endDate = try container.decodeIfPresent(Date.self, forKey: .endDate)
         budget = try container.decode(Int.self, forKey: .budget)
+        budgetType = try container.decodeIfPresent(String.self, forKey: .budgetType)
         maxParticipants = try container.decode(Int.self, forKey: .maxParticipants)
         category = try container.decode(TripCategory.self, forKey: .category)
         isPublic = try container.decodeIfPresent(Bool.self, forKey: .isPublic) ?? true

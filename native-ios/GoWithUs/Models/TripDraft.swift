@@ -7,6 +7,7 @@ struct TripDraft: Codable {
     let startDate: String // Format: YYYY-MM-DD
     let endDate: String?  // Format: YYYY-MM-DD
     let budget: Int
+    let budgetType: String?
     let maxParticipants: Int
     let category: String
     let tags: [String]?

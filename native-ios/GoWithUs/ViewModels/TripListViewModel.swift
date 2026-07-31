@@ -80,6 +80,12 @@ class TripListViewModel: ObservableObject {
                 trips = [] 
             }
             
+            // Fix: Return early if running in SwiftUI Previews to prevent network timeout
+            if ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1" {
+                self.isLoading = false
+                return
+            }
+            
             do {
                 // Map tab to API type
                 let type: String
