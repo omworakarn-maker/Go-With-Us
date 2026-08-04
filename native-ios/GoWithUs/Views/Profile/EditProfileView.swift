@@ -362,24 +362,33 @@ struct EditProfileView: View {
                     }
                 }
 
-                Section(header: Text("สไตล์การเที่ยว (เลือกได้หลายข้อ)")) {
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 100))], spacing: 10) {
-                        ForEach(INTEREST_CATEGORIES) { cat in
-                            InterestTag(
-
-                                label: cat.label,
-                                icon: cat.icon,
-                                isSelected: selectedInterests.contains(cat.label)
-                            ) {
-                                if selectedInterests.contains(cat.label) {
-                                    selectedInterests.remove(cat.label)
-                                } else {
-                                    selectedInterests.insert(cat.label)
+                Section(header: Text("สไตล์การเที่ยว (เลือกได้สูงสุด 5 ข้อ)")) {
+                    ForEach(INTEREST_SECTIONS) { section in
+                        Text(section.title)
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(.secondary)
+                            .padding(.top, 8)
+                            .padding(.bottom, 2)
+                        
+                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 100))], spacing: 10) {
+                            ForEach(section.categories) { cat in
+                                InterestTag(
+                                    label: cat.label,
+                                    icon: cat.icon,
+                                    isSelected: selectedInterests.contains(cat.label)
+                                ) {
+                                    if selectedInterests.contains(cat.label) {
+                                        selectedInterests.remove(cat.label)
+                                    } else {
+                                        if selectedInterests.count < 5 {
+                                            selectedInterests.insert(cat.label)
+                                        }
+                                    }
                                 }
                             }
                         }
+                        .padding(.bottom, 8)
                     }
-                    .padding(.vertical, 8)
                 }
                 
                 Section(header: Text("ตั้งค่าความเป็นส่วนตัว")) {

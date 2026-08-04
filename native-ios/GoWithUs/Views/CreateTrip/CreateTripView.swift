@@ -32,10 +32,10 @@ struct CreateTripView: View {
     @State private var aiPrompt: String = ""
     
     let timeSlots = [
-        ("morning", "เช้า", "ตื่นแต่เช้า สูดอากาศสด"),
-        ("noon", "กลางวัน", "ท่องเที่ยวระหว่างวัน"),
-        ("evening", "เย็น", "ชมวิว ดูพระอาทิตย์ตก"),
-        ("night", "มืด/ราตรี", "แฮงเอาต์ ปาร์ตี้")
+        ("morning", "ช่วงเช้า (06:00 - 11:00 น.)", "เช่น ชมพระอาทิตย์ขึ้น, เยี่ยมชมตลาดเช้า"),
+        ("noon", "ช่วงกลางวัน (11:00 - 16:00 น.)", "เช่น รับประทานอาหาร, พักผ่อนในคาเฟ่, เข้าชมพิพิธภัณฑ์"),
+        ("evening", "ช่วงเย็น (16:00 - 20:00 น.)", "เช่น เดินพักผ่อน, ชมพระอาทิตย์ตก, รับประทานอาหารค่ำ"),
+        ("night", "ช่วงกลางคืน (20:00 น. เป็นต้นไป)", "เช่น สัมผัสบรรยากาศยามค่ำคืน, เข้าร่วมงานสังสรรค์")
     ]
     
 
@@ -387,52 +387,51 @@ struct CreateTripView: View {
                             TripDateInputView(startDate: $startDate, endDate: $endDate)
                             
                             // Budget & Max Participants
-                            HStack(spacing: 12) {
-                                VStack(alignment: .leading, spacing: 8) {
-                                    Text("งบประมาณ (บาท)")
-                                        .font(.system(size: 11, weight: .bold))
-                                        .foregroundColor(.gray)
-                                        .textCase(.uppercase)
-                                        .tracking(1)
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack(spacing: 12) {
+                                    FormField(label: "งบประมาณ (บาท)", placeholder: "ระบุจำนวนเงิน", text: $budget)
+                                        .keyboardType(.numberPad)
                                     
-                                    HStack(spacing: 4) {
-                                        TextField("ระบุจำนวนเงิน", text: $budget)
-                                            .foregroundColor(.adaptiveText)
-                                            .tint(.adaptiveText)
-                                            .keyboardType(.numberPad)
-                                        
-                                        Menu {
-                                            Button(action: { budgetType = "per_person" }) {
-                                                Label("ต่อคน", systemImage: budgetType == "per_person" ? "checkmark" : "")
-                                            }
-                                            Button(action: { budgetType = "per_trip" }) {
-                                                Label("ต่อทริป (รวม)", systemImage: budgetType == "per_trip" ? "checkmark" : "")
-                                            }
-                                        } label: {
-                                            HStack(spacing: 2) {
-                                                Text(budgetType == "per_trip" ? "ต่อทริป" : "ต่อคน")
-                                                    .font(.system(size: 11, weight: .bold))
-                                                Image(systemName: "chevron.down")
-                                                    .font(.system(size: 9, weight: .bold))
-                                            }
-                                            .foregroundColor(.appAccent)
-                                            .padding(.horizontal, 8)
-                                            .padding(.vertical, 4)
-                                            .background(Color.appAccent.opacity(0.12))
-                                            .cornerRadius(6)
-                                        }
-                                    }
-                                    .padding()
-                                    .background(Color.gray.opacity(0.05))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                                    )
-                                    .cornerRadius(12)
+                                    FormField(label: "จำนวนคน", placeholder: "10", text: $maxParticipants)
+                                        .keyboardType(.numberPad)
                                 }
                                 
-                                FormField(label: "จำนวนคน", placeholder: "10", text: $maxParticipants)
-                                    .keyboardType(.numberPad)
+                                HStack(spacing: 8) {
+                                    Text("ประเภทงบ:")
+                                        .font(.system(size: 13, weight: .semibold))
+                                        .foregroundColor(.adaptiveSecondaryText)
+                                    
+                                    Button(action: { budgetType = "per_person" }) {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: budgetType == "per_person" ? "checkmark.circle.fill" : "circle")
+                                                .font(.system(size: 13))
+                                            Text("ต่อคน")
+                                                .font(.system(size: 13, weight: .medium))
+                                        }
+                                        .foregroundColor(budgetType == "per_person" ? .appAccent : .adaptiveSecondaryText)
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 6)
+                                        .background(budgetType == "per_person" ? Color.appAccent.opacity(0.12) : Color.gray.opacity(0.08))
+                                        .cornerRadius(8)
+                                    }
+                                    .buttonStyle(.plain)
+                                    
+                                    Button(action: { budgetType = "per_trip" }) {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: budgetType == "per_trip" ? "checkmark.circle.fill" : "circle")
+                                                .font(.system(size: 13))
+                                            Text("ต่อทริป (รวม)")
+                                                .font(.system(size: 13, weight: .medium))
+                                        }
+                                        .foregroundColor(budgetType == "per_trip" ? .appAccent : .adaptiveSecondaryText)
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 6)
+                                        .background(budgetType == "per_trip" ? Color.appAccent.opacity(0.12) : Color.gray.opacity(0.08))
+                                        .cornerRadius(8)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                                .padding(.top, 2)
                             }
                             
                             // Activity Style & Time of Day
@@ -441,19 +440,12 @@ struct CreateTripView: View {
                                     .font(.system(size: 15, weight: .bold))
                                     .foregroundColor(.adaptiveText)
                                 
-                                VStack(spacing: 8) {
-                                    HStack {
-                                        Text("ชิลล์ๆ (1)")
-                                            .font(.caption).foregroundColor(.secondary)
-                                        Spacer()
-                                        Text("\(Int(activityStyle))")
-                                            .font(.system(size: 18, weight: .bold))
-                                        Spacer()
-                                        Text("เน้นกิจกรรม (10)")
-                                            .font(.caption).foregroundColor(.secondary)
-                                    }
-                                    Slider(value: $activityStyle, in: 1...10, step: 1)
-                                        .tint(.adaptiveText)
+                                VStack(spacing: 12) {
+                                    QuestionnaireActivityStyleCard(title: "เน้นการพักผ่อน (Very Relaxed)", subtitle: "เน้นการใช้เวลาภายในที่พักหรือสถานที่ผ่อนคลาย", value: 1, selectedValue: $activityStyle)
+                                    QuestionnaireActivityStyleCard(title: "พักผ่อนปานกลาง (Somewhat Relaxed)", subtitle: "เน้นการเดินทางแบบไม่เร่งรีบ (1-2 สถานที่ต่อวัน)", value: 3, selectedValue: $activityStyle)
+                                    QuestionnaireActivityStyleCard(title: "สมดุล (Balanced)", subtitle: "ผสมผสานระหว่างการพักผ่อนและการทำกิจกรรมอย่างเท่าเทียม", value: 5, selectedValue: $activityStyle)
+                                    QuestionnaireActivityStyleCard(title: "เน้นกิจกรรม (Somewhat Active)", subtitle: "มีตารางการเดินทางชัดเจนและครอบคลุมหลายสถานที่", value: 7, selectedValue: $activityStyle)
+                                    QuestionnaireActivityStyleCard(title: "กิจกรรมเต็มรูปแบบ (Very Active)", subtitle: "เน้นการผจญภัยและการเดินทางไปยังสถานที่สำคัญอย่างครบถ้วน", value: 10, selectedValue: $activityStyle)
                                 }
                                 
                                 Text("ช่วงเวลาของทริป")
