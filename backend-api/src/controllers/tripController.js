@@ -282,6 +282,13 @@ export const createTrip = async (req, res, next) => {
             select: { name: true }
         });
 
+        if (!creator) {
+            return res.status(401).json({ error: 'Authenticated user no longer exists.' });
+        }
+
+        // Embedding is optional. A Gemini outage/quota error must never block trip creation.
+        const generatedEmbedding = await generateEmbedding(`${title} ${description || ''} ${category || ''} ${destination}`);
+
         console.log(`Creating trip with ${gallery?.length || 0} gallery images and ${itinerary?.length || 0} itinerary days`);
 
         const trip = await prisma.trip.create({
@@ -302,11 +309,13 @@ export const createTrip = async (req, res, next) => {
                 timeOfDay: Array.isArray(timeOfDay) ? timeOfDay : [],
                 isPublic: isPublic !== undefined ? isPublic : true,
                 creatorId: req.user.userId,
-                embedding: await generateEmbedding(`${title} ${description || ''} ${category || ''} ${destination}`),
+                ...(Array.isArray(generatedEmbedding) && generatedEmbedding.length > 0
+                    ? { embedding: generatedEmbedding }
+                    : {}),
                 participants: {
                     create: {
                         userId: req.user.userId,
-                        name: creator?.name || "Creator",
+                        name: creator.name,
                         interests: []
                     }
                 }
@@ -380,6 +389,12 @@ export const updateTrip = async (req, res, next) => {
         const nextStartDate = startDate || existingTrip.startDate;
         const nextEndDate = endDate !== undefined ? endDate : existingTrip.endDate;
         const shouldRecalculateActivityStyle = itinerary !== undefined || startDate !== undefined || endDate !== undefined;
+        const shouldRegenerateEmbedding = Boolean(title || description !== undefined || category !== undefined || destination);
+        const updatedEmbedding = shouldRegenerateEmbedding
+            ? await generateEmbedding(
+                `${title || existingTrip.title} ${description !== undefined ? description : (existingTrip.description || '')} ${category !== undefined ? category : (existingTrip.category || '')} ${destination || existingTrip.destination}`
+            )
+            : null;
 
         const trip = await prisma.trip.update({
             where: { id },
@@ -403,12 +418,10 @@ export const updateTrip = async (req, res, next) => {
                 ...(timeOfDay !== undefined && { timeOfDay: Array.isArray(timeOfDay) ? timeOfDay : [] }),
                 ...(summary !== undefined && { summary }),
                 ...(groupAnalysis !== undefined && { groupAnalysis }),
-                // Regenerate embedding if key fields change
-                ...((title || description || category || destination) && {
-                    embedding: await generateEmbedding(
-                        `${title || existingTrip.title} ${description !== undefined ? description : (existingTrip.description || '')} ${category !== undefined ? category : (existingTrip.category || '')} ${destination || existingTrip.destination}`
-                    )
-                }),
+                // Regenerate only when Gemini returns a valid vector.
+                ...(Array.isArray(updatedEmbedding) && updatedEmbedding.length > 0
+                    ? { embedding: updatedEmbedding }
+                    : {}),
             },
             include: {
                 creator: {

@@ -103,18 +103,25 @@ struct MyTripsView: View {
                 }
             }
         }
-        .task {
+        .task(id: authViewModel.currentUser?.id) {
+            if authViewModel.currentUser == nil {
+                await authViewModel.loadCurrentUser()
+            }
             if let userId = authViewModel.currentUser?.id {
                 await viewModel.fetchMyTrips(userId: userId)
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("TripCreated"))) { notification in
-            guard let userId = authViewModel.currentUser?.id else { return }
             if let createdTrip = notification.object as? Trip {
                 viewModel.insertCreatedTrip(createdTrip)
             }
             Task {
-                await viewModel.fetchMyTrips(userId: userId)
+                if authViewModel.currentUser == nil {
+                    await authViewModel.loadCurrentUser()
+                }
+                if let userId = authViewModel.currentUser?.id {
+                    await viewModel.fetchMyTrips(userId: userId)
+                }
                 await MainActor.run { selectedTab = 0 }
             }
         }
@@ -150,11 +157,24 @@ class MyTripsViewModel: ObservableObject {
         await MainActor.run { isLoading = true }
         
         do {
-            async let createdRequest = TripService.shared.getMyCreatedTrips(userId: userId)
-            async let allTripsRequest: TripListResponse = APIService.shared.request(endpoint: "/trips", method: .get)
-            let (created, response) = try await (createdRequest, allTripsRequest)
-            let joined = response.trips.filter { $0.participants?.contains(where: { $0.userId == userId && $0.status == "going" }) == true }
-            let interested = response.trips.filter { $0.participants?.contains(where: { $0.userId == userId && $0.status == "interested" }) == true }
+            // Created trips are the primary content of this screen. Do not hide them
+            // just because the secondary all-trips request fails or decodes badly.
+            let created = try await TripService.shared.getMyCreatedTrips(userId: userId)
+            var joined: [Trip] = []
+            var interested: [Trip] = []
+
+            do {
+                let response: TripListResponse = try await APIService.shared.request(endpoint: "/trips", method: .get)
+                joined = response.trips.filter {
+                    $0.creatorId != userId &&
+                    $0.participants?.contains(where: { $0.userId == userId && $0.status == "going" }) == true
+                }
+                interested = response.trips.filter {
+                    $0.participants?.contains(where: { $0.userId == userId && $0.status == "interested" }) == true
+                }
+            } catch {
+                print("Could not load joined/favorite trips: \(error)")
+            }
             
             await MainActor.run {
                 self.createdTrips = created

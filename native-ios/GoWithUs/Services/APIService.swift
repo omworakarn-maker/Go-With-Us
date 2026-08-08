@@ -83,6 +83,10 @@ class APIService {
                    let needsVerification = errorJson["needsVerification"] as? Bool, needsVerification == true {
                     throw APIError.needsVerification
                 }
+                if let errorJson = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let serverMessage = (errorJson["error"] as? String) ?? (errorJson["message"] as? String) {
+                    throw APIError.serverError(serverMessage)
+                }
                 
                 throw APIError.httpError(httpResponse.statusCode)
             }
@@ -170,6 +174,7 @@ enum APIError: LocalizedError {
     case decodingError(String)
     case unauthorized
     case needsVerification
+    case serverError(String)
     
     var errorDescription: String? {
         switch self {
@@ -185,6 +190,8 @@ enum APIError: LocalizedError {
             return "Unauthorized access"
         case .needsVerification:
             return "Needs Verification"
+        case .serverError(let message):
+            return message
         }
     }
 }
