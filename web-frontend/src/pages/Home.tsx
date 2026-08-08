@@ -184,25 +184,13 @@ const Home: React.FC = () => {
       )}
 
       <footer className="py-20 bg-black text-white mt-auto">
-        <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-16 items-start">
+        <div className="max-w-6xl mx-auto px-6">
           <div className="space-y-6">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center"><div className="w-1.5 h-1.5 bg-black rounded-full"></div></div>
               <span className="font-bold text-2xl tracking-tighter">GoWithUs.</span>
             </div>
             <p className="text-sm text-gray-400 max-w-xs font-medium leading-relaxed">แพลตฟอร์มที่เชื่อมโยงผู้คนมาเป็นเพื่อนกัน</p>
-          </div>
-          <div className="flex gap-16 text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500">
-            <div className="flex flex-col gap-4">
-              <span className="text-white mb-2">-</span>
-              <a href="#" className="hover:text-indigo-400 transition-colors">-</a>
-              <a href="#" className="hover:text-indigo-400 transition-colors">-</a>
-            </div>
-            <div className="flex flex-col gap-4">
-              <span className="text-white mb-2">-</span>
-              <a href="#" className="hover:text-indigo-400 transition-colors">-</a>
-              <a href="#" className="hover:text-indigo-400 transition-colors">-</a>
-            </div>
           </div>
         </div>
       </footer>

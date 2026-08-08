@@ -19,6 +19,9 @@ import TripHistory from '../pages/TripHistory';
 import AdminAlert from '../pages/AdminAlert';
 import AdminReports from '../pages/AdminReports';
 import AdminVerification from '../pages/AdminVerification';
+import AdminDashboard from '../pages/AdminDashboard';
+import AdminUsers from '../pages/AdminUsers';
+import AdminTrips from '../pages/AdminTrips';
 import VerificationForm from '../pages/VerificationForm';
 import { TripDetails } from './TripDetails';
 import { CreateTripModal } from './CreateTripModal';
@@ -86,7 +89,7 @@ const AnimatedRoutes: React.FC = () => {
     // Determine if we should show Bottom Nav (Mobile) - Show on ALL pages except Auth pages & Chat
     const hideBottomNav = ['/login', '/register', '/intro', '/landing', '/questionnaire'];
     const isChatPage = location.pathname.startsWith('/chat');
-    const showBottomNav = !hideBottomNav.includes(location.pathname) && !isChatPage;
+    const showBottomNav = !hideBottomNav.includes(location.pathname) && !isChatPage && !location.pathname.startsWith('/admin');
 
     return (
         <>
@@ -238,6 +241,9 @@ const AnimatedRoutes: React.FC = () => {
                     />
                     <Route path="/search" element={<SearchPage />} />
                     <Route path="/user/:userId" element={<PublicProfile />} />
+                    <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+                    <Route path="/admin/users" element={<ProtectedRoute><AdminUsers /></ProtectedRoute>} />
+                    <Route path="/admin/trips" element={<ProtectedRoute><AdminTrips /></ProtectedRoute>} />
                     <Route
                         path="/admin/alerts"
                         element={

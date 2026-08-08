@@ -288,6 +288,13 @@ export const messagesAPI = {
 };
 
 export const userAPI = {
+    getAdminOverview: () => authFetch(`${API_BASE_URL}/users/admin/overview`),
+    getAdminUsers: (filters?: { search?: string; status?: string }) => {
+        const params = new URLSearchParams();
+        if (filters?.search) params.set('search', filters.search);
+        if (filters?.status) params.set('status', filters.status);
+        return authFetch(`${API_BASE_URL}/users/admin/users${params.toString() ? `?${params}` : ''}`);
+    },
     getProfile: () => authFetch(`${API_BASE_URL}/users/profile`),
     updateProfile: (data: { name?: string; password?: string; interests?: string[]; travelStyle?: any }) => authFetch(`${API_BASE_URL}/users/profile`, {
         method: 'PUT',
