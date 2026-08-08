@@ -266,26 +266,6 @@ export const CreateTripModal: React.FC = () => {
                                             </div>
                                             
                                             <div className="space-y-2">
-                                                <label className="text-sm font-bold text-gray-700">สไตล์กิจกรรม (Pace)</label>
-                                                <div className="grid grid-cols-3 gap-2">
-                                                    {[
-                                                        { value: 2, label: 'ชิลๆ' },
-                                                        { value: 5, label: 'ปานกลาง' },
-                                                        { value: 8, label: 'ลุยเต็มที่' }
-                                                    ].map(style => (
-                                                        <button
-                                                            key={style.value}
-                                                            type="button"
-                                                            onClick={() => setNewTrip({ ...newTrip, activityStyle: style.value })}
-                                                            className={`p-2 rounded-xl border text-center transition-all ${newTrip.activityStyle === style.value ? 'border-black bg-black text-white ring-2 ring-black ring-offset-2' : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'}`}
-                                                        >
-                                                            <span className="text-sm font-bold">{style.label}</span>
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-
-                                            <div className="space-y-2">
                                                 <label className="text-sm font-bold text-gray-700">สถานที่</label>
                                                 <select
                                                     required

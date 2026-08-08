@@ -366,6 +366,70 @@ export const getAllUsers = async (req, res) => {
     }
 };
 
+// Admin dashboard summary
+export const getAdminOverview = async (req, res) => {
+    try {
+        const admin = await prisma.user.findUnique({ where: { id: req.user.userId } });
+        if (!admin || admin.role !== 'admin') {
+            return res.status(403).json({ error: 'Admin access required' });
+        }
+
+        const [totalUsers, bannedUsers, verifiedUsers, pendingVerifications, pendingReports, totalTrips] = await Promise.all([
+            prisma.user.count(),
+            prisma.user.count({ where: { isBanned: true } }),
+            prisma.user.count({ where: { isVerified: true } }),
+            prisma.user.count({ where: { verificationStatus: 'pending' } }),
+            prisma.report.count({ where: { status: 'pending' } }),
+            prisma.trip.count(),
+        ]);
+
+        res.json({ totalUsers, bannedUsers, verifiedUsers, pendingVerifications, pendingReports, totalTrips });
+    } catch (error) {
+        console.error('Get admin overview error:', error);
+        res.status(500).json({ error: 'Error fetching admin overview' });
+    }
+};
+
+// Full user list for administration
+export const getAdminUsers = async (req, res) => {
+    try {
+        const admin = await prisma.user.findUnique({ where: { id: req.user.userId } });
+        if (!admin || admin.role !== 'admin') {
+            return res.status(403).json({ error: 'Admin access required' });
+        }
+
+        const { search = '', status = 'all' } = req.query;
+        const where = {
+            ...(search ? {
+                OR: [
+                    { name: { contains: search, mode: 'insensitive' } },
+                    { email: { contains: search, mode: 'insensitive' } },
+                    { username: { contains: search, mode: 'insensitive' } },
+                ]
+            } : {}),
+            ...(status === 'banned' ? { isBanned: true } : {}),
+            ...(status === 'verified' ? { isVerified: true } : {}),
+            ...(status === 'active' ? { isBanned: false } : {}),
+        };
+
+        const users = await prisma.user.findMany({
+            where,
+            orderBy: { createdAt: 'desc' },
+            select: {
+                id: true, name: true, username: true, email: true, role: true,
+                profileImage: true, isBanned: true, isVerified: true,
+                verificationStatus: true, createdAt: true,
+                _count: { select: { trips: true, joinedTrips: true, reportsReceived: true } },
+            },
+        });
+
+        res.json({ users, count: users.length });
+    } catch (error) {
+        console.error('Get admin users error:', error);
+        res.status(500).json({ error: 'Error fetching users for administration' });
+    }
+};
+
 // Register FCM Device Token
 export const registerDeviceToken = async (req, res) => {
     try {

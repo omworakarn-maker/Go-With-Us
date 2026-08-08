@@ -216,10 +216,8 @@ export const calculateTripCompatibilityDetailed = (user, trip) => {
     // 1. Budget — calculate from THB (Weight = 3)
     if (styleU && styleU.budget !== null) {
         const userBudgetTHB = mapRatingToBudget(styleU.budget);
-        let tripBudgetTHB = (trip.budget !== undefined && trip.budget !== null) ? Number(trip.budget) : 1000;
-        if (trip.budgetType === 'per_trip' && trip.maxParticipants && trip.maxParticipants > 0) {
-            tripBudgetTHB = Math.round(tripBudgetTHB / Number(trip.maxParticipants));
-        }
+        // budgetType is display-only. Matching always uses the entered budget value directly.
+        const tripBudgetTHB = (trip.budget !== undefined && trip.budget !== null) ? Number(trip.budget) : 1000;
         
         let score = 1.0;
         

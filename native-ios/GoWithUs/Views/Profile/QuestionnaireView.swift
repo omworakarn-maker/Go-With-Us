@@ -116,17 +116,15 @@ struct QuestionnaireView: View {
                             
                         } else if currentStep == 1 {
                             // Activity Style Step
-                            Text("🎯 สไตล์กิจกรรมที่ชื่นชอบ (Activity Style)")
+                            Text("🎯 คุณต้องการทำกิจกรรมตามแผนประมาณกี่กิจกรรมต่อวัน?")
                                 .font(.title2).bold()
-                            Text("รูปแบบของกิจกรรมที่คุณต้องการทำระหว่างการท่องเที่ยว")
+                            Text("เลือกจำนวนที่ใกล้เคียงกับรูปแบบการท่องเที่ยวของคุณมากที่สุด")
                                 .font(.subheadline).foregroundColor(.secondary)
                             
                             VStack(spacing: 12) {
-                                QuestionnaireActivityStyleCard(title: "เน้นการพักผ่อน (Very Relaxed)", subtitle: "เน้นการใช้เวลาภายในที่พักหรือสถานที่ผ่อนคลาย", value: 1, selectedValue: $activityStyle)
-                                QuestionnaireActivityStyleCard(title: "พักผ่อนปานกลาง (Somewhat Relaxed)", subtitle: "เน้นการเดินทางแบบไม่เร่งรีบ (1-2 สถานที่ต่อวัน)", value: 3, selectedValue: $activityStyle)
-                                QuestionnaireActivityStyleCard(title: "สมดุล (Balanced)", subtitle: "ผสมผสานระหว่างการพักผ่อนและการทำกิจกรรมอย่างเท่าเทียม", value: 5, selectedValue: $activityStyle)
-                                QuestionnaireActivityStyleCard(title: "เน้นกิจกรรม (Somewhat Active)", subtitle: "มีตารางการเดินทางชัดเจนและครอบคลุมหลายสถานที่", value: 7, selectedValue: $activityStyle)
-                                QuestionnaireActivityStyleCard(title: "กิจกรรมเต็มรูปแบบ (Very Active)", subtitle: "เน้นการผจญภัยและการเดินทางไปยังสถานที่สำคัญอย่างครบถ้วน", value: 10, selectedValue: $activityStyle)
+                                QuestionnaireActivityStyleCard(title: "1–2 กิจกรรมต่อวัน", subtitle: "ใช้เวลากับแต่ละกิจกรรมได้นานและไม่เร่งรีบ", value: 2, selectedValue: $activityStyle)
+                                QuestionnaireActivityStyleCard(title: "3–4 กิจกรรมต่อวัน", subtitle: "ทำกิจกรรมพอประมาณและยังมีเวลาพัก", value: 5, selectedValue: $activityStyle)
+                                QuestionnaireActivityStyleCard(title: "5 กิจกรรมขึ้นไปต่อวัน", subtitle: "ต้องการทำหลายกิจกรรมในหนึ่งวัน", value: 8, selectedValue: $activityStyle)
                             }
                             .padding(.top, 20)
                             
@@ -455,4 +453,3 @@ struct QuestionnaireActivityStyleCard: View {
         }
     }
 }
-

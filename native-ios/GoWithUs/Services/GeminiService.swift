@@ -25,8 +25,9 @@ class GeminiService {
     
     private init() {}
     
-    func chat(message: String, history: [ChatMessage]) async throws -> String {
+    func chat(message: String, history: [ChatMessage], responseJSON: Bool = false) async throws -> String {
         var contents: [GeminiContent] = []
+        let currentDate = Date().formatted(.iso8601.year().month().day())
         
         let systemPrompt = """
         คุณคือ 'ที่ปรึกษา' ผู้เชี่ยวชาญด้านการท่องเที่ยว หน้าที่ของคุณคือช่วยหาทริปเที่ยว ให้คำแนะนำสถานที่ท่องเที่ยว และร่างแผนการเดินทาง (Itinerary)
@@ -34,9 +35,13 @@ class GeminiService {
         กฎสำคัญเด็ดขาด:
         1. ห้ามตอบคำถามที่ไม่เกี่ยวข้องกับการท่องเที่ยว
         2. ถ้าผู้ใช้ขอให้ร่างทริป ให้จัดทำแผนการเดินทางรายวันละเอียดที่สุด และใส่ลงใน "itinerary" array (ห้ามใส่ใน description) โดย description ให้เขียนแค่สรุปย่อๆ ของทริปเท่านั้น **สำคัญมาก: คำบรรยายใน description และ title ต้องเขียนในมุมมองของผู้ใช้ที่เป็นคนจัดทริปเอง (เช่น ใช้คำว่า เรา/ฉัน/ผม หรือเชิญชวนเพื่อนๆ) ห้ามเขียนในมุมมองของ AI หรือผู้ช่วยจัดทริปเด็ดขาด**
-        3. วันที่ (startDate, endDate) ต้องเป็นวันที่ในอนาคตเสมอ **ปีปัจจุบันคือปี 2026 (กุมภาพันธ์)** ดังนั้นห้ามสร้างทริปในปี 2024 หรือ 2025 เด็ดขาด! Format ต้องเป็น YYYY-MM-DD
+        3. วันนี้คือ \(currentDate) หากผู้ใช้ไม่ได้ระบุวันที่ ให้เสนอวันที่ในอนาคต รูปแบบ YYYY-MM-DD เท่านั้น ห้ามเดาวันที่ย้อนหลัง
         4. สไตล์การเที่ยว (category) ต้องเลือกจากรายการนี้เท่านั้น: ทะเล, ภูเขา, แคมป์ปิ้ง, เที่ยวเมือง, คาเฟ่, อาหาร, แฮงเอาต์, ถ่ายรูป, ช้อปปิ้ง, คอนเสิร์ต, ผจญภัย, ไหว้พระ, อื่นๆ
-        5. จัดแผนการเดินทาง (Itinerary) ให้สอดคล้องกับความต้องการของผู้ใช้ เช่น หากผู้ใช้ระบุว่าอยากเที่ยวแค่ตอนเช้า ก็ให้มีเฉพาะกิจกรรมตอนเช้า พร้อมระบุสไตล์ (activityStyle 1-10) และช่วงเวลา (timeOfDay เช่น "morning", "noon", "evening", "night") ลงใน JSON ให้ตรงกับแผน
+        5. ถ้าทริปมี N วัน itinerary ต้องมี N รายการพอดี เรียง day ตั้งแต่ 1 ถึง N ห้ามขาดวัน ห้ามเพิ่มวัน และทุกวันต้องมีกิจกรรม
+        6. เวลาในแต่ละวันต้องเรียงจากเช้าไปค่ำ ไม่ซ้อนกัน เผื่อเวลาเดินทาง พัก และรับประทานอาหารอย่างสมเหตุสมผล สถานที่ในวันเดียวกันควรอยู่บริเวณใกล้กัน
+        7. วันแรกต้องคำนึงถึงเวลาเดินทางไปถึงและเช็กอิน วันสุดท้ายต้องคำนึงถึงการเช็กเอาต์และเดินทางกลับ
+        8. งบประมาณ จำนวนคน หมวดหมู่ และช่วงเวลาต้องสอดคล้องกับแผน ห้ามใส่สถานที่หรือรายละเอียดเฉพาะที่ไม่มั่นใจว่าเป็นข้อมูลจริง
+        9. เมื่อผู้ใช้ขอร่างทริป ให้ตอบ JSON เพียงก้อนเดียว ห้าม Markdown ห้ามข้อความนำหรือข้อความตามท้าย
         
         โครงสร้าง JSON สำหรับร่างทริป:
         {
@@ -82,7 +87,14 @@ class GeminiService {
             parts: [GeminiPart(text: message)]
         ))
         
-        let requestBody = GeminiChatRequest(contents: contents)
+        let requestBody = GeminiChatRequest(
+            contents: contents,
+            generationConfig: responseJSON ? GeminiGenerationConfig(
+                responseMimeType: "application/json",
+                temperature: 0.35,
+                maxOutputTokens: 8192
+            ) : nil
+        )
         
         do {
             let response: GeminiResponse = try await APIService.shared.request(
@@ -103,6 +115,13 @@ class GeminiService {
 // MARK: - Models
 struct GeminiChatRequest: Codable {
     let contents: [GeminiContent]
+    let generationConfig: GeminiGenerationConfig?
+}
+
+struct GeminiGenerationConfig: Codable {
+    let responseMimeType: String
+    let temperature: Double
+    let maxOutputTokens: Int
 }
 
 struct GeminiContent: Codable {

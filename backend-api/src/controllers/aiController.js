@@ -2,7 +2,7 @@ import axios from 'axios';
 
 export const chatWithGemini = async (req, res, next) => {
     try {
-        const { contents } = req.body;
+        const { contents, generationConfig } = req.body;
         // Check both common env var names
         const apiKey = process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
         const model = "gemini-flash-latest"; // Verified stable model for 2026
@@ -22,7 +22,10 @@ export const chatWithGemini = async (req, res, next) => {
 
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
-        const response = await axios.post(url, { contents }, {
+        const response = await axios.post(url, {
+            contents,
+            ...(generationConfig && { generationConfig })
+        }, {
             headers: { 'Content-Type': 'application/json' }
         });
 

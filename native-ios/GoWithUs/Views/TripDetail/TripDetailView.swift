@@ -386,7 +386,7 @@ struct TripDetailView: View {
                 VStack(alignment: .leading, spacing: 14) {
                     let bd = trip.matchBreakdown
                     compatibilityRow(icon: "banknote", label: "งบประมาณ", color: Color(hex: "#3B82F6"), score: bd?.budget)
-                    compatibilityRow(icon: "figure.walk", label: "ไลฟ์สไตล์", color: Color(hex: "#8B5CF6"), score: bd?.activityStyle)
+                    compatibilityRow(icon: "list.number", label: "จำนวนกิจกรรมต่อวัน", color: Color(hex: "#8B5CF6"), score: bd?.activityStyle)
                     compatibilityRow(icon: "tag.fill", label: "ความชอบ", color: Color(hex: "#F59E0B"), score: bd?.category)
                     compatibilityRow(icon: "clock.fill", label: "ช่วงเวลา", color: Color(hex: "#EF4444"), score: bd?.timeOfDay)
                 }

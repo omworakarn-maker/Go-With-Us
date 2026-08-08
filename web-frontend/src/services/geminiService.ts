@@ -13,24 +13,38 @@ export const analyzeTripPlan = async (trip: Trip, userPrompt?: string): Promise<
     throw new Error('Gemini API key is not configured. Please set VITE_GEMINI_API_KEY in .env.local');
   }
 
-  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
+  const model = genAI.getGenerativeModel({
+    model: "gemini-2.5-flash-lite",
+    generationConfig: { responseMimeType: "application/json", temperature: 0.35 }
+  });
+
+  const start = new Date(trip.startDate);
+  const end = trip.endDate ? new Date(trip.endDate) : start;
+  const totalDays = Math.max(1, Math.floor((Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate()) - Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate())) / 86400000) + 1);
 
   const prompt = `
-    ในบทบาทของคุณที่เป็นผู้เชี่ยวชาญด้านการจัดทริปท่องเที่ยวภายในประเทศไทย จงวิเคราะห์ข้อมูลทริปต่อไปนี้และสร้างแผนการเดินทางให้:
+    คุณเป็นนักวางแผนการเดินทางมืออาชีพ จงสร้างแผนที่สมจริงและพร้อมใช้งานสำหรับทริปนี้
 
     ข้อมูลทริป:
     ชื่อทริป: ${trip.title}
     จุดหมาย: ${trip.destination}
-    วันที่: ${trip.startDate} - ${trip.endDate}
-    งบประมาณ: ${trip.budget} บาท
+    วันที่: ${trip.startDate} - ${trip.endDate || trip.startDate}
+    จำนวนวันทั้งหมด: ${totalDays} วัน
+    งบประมาณ: ${trip.budget} บาท (${trip.budgetType === 'per_trip' ? 'ต่อทริป' : 'ต่อคน'})
+    หมวดหมู่: ${trip.category || 'ไม่ระบุ'}
+    ช่วงเวลา: ${trip.timeOfDay?.length ? trip.timeOfDay.join(', ') : 'ไม่จำกัด'}
     สมาชิก: ${JSON.stringify(trip.participants)}
     ${userPrompt ? `\n    คำขอพิเศษเพิ่มเติมจากผู้ใช้ (User Custom Prompt):\n    "${userPrompt}"\n    (กรุณานำคำขอนี้ไปปรับใช้ในการวางแผนอย่างเคร่งครัด)\n` : ''}
     
     โจทย์ของคุณ:
     1. วิเคราะห์ความสนใจของกลุ่ม (groupAnalysis)
     2. เขียนสรุปภาพรวมของทริปให้น่าสนใจ (summary)
-    3. สร้างแผนการเดินทางละเอียด (itinerary) ตามจำนวนวันที่ระบุ
-    4. **ห้ามใช้อีโมจิใดๆ ทั้งสิ้น** (Do NOT use emojis anywhere in the response) ให้ใช้เพียงตัวอักษรเท่านั้น เพราะเราต้องการดีไซน์ที่เรียบง่าย
+    3. itinerary ต้องมี ${totalDays} วันพอดี เรียง day จาก 1 ถึง ${totalDays} ห้ามขาดและห้ามเกิน
+    4. ทุกวันต้องมีกิจกรรม เวลาเรียงจากน้อยไปมาก ไม่ซ้อนกัน และเผื่อเวลาเดินทาง/พัก/รับประทานอาหาร
+    5. จัดสถานที่ในวันเดียวกันให้อยู่บริเวณใกล้กัน วันแรกคำนึงถึงการมาถึงและเช็กอิน วันสุดท้ายคำนึงถึงเช็กเอาต์และเดินทางกลับ
+    6. แผนต้องเหมาะกับงบ จำนวนคน หมวดหมู่ และช่วงเวลาที่กำหนด ห้ามอัดกิจกรรมมากเกินไป
+    7. ห้ามแต่งชื่อสถานที่หรือรายละเอียดเฉพาะที่ไม่มั่นใจ ห้ามใช้อีโมจิ
+    8. ตอบ JSON เพียงก้อนเดียว ห้าม Markdown และข้อความอื่น
 
 
     Strictly Response in JSON format ONLY with this structure:
@@ -60,34 +74,21 @@ export const analyzeTripPlan = async (trip: Trip, userPrompt?: string): Promise<
 
     // Clean JSON string
     text = text.replace(/```json/g, '').replace(/```/g, '').trim();
-    return JSON.parse(text);
+    const parsed = JSON.parse(text) as AIRecommendation;
+    if (!Array.isArray(parsed.itinerary)) throw new Error('AI response has no itinerary');
+
+    const normalized = [...parsed.itinerary]
+      .sort((a, b) => a.day - b.day)
+      .map((day, index) => ({ ...day, day: index + 1 }));
+    const isComplete = normalized.length === totalDays
+      && normalized.every(day => Array.isArray(day.activities) && day.activities.length > 0)
+      && normalized.every(day => day.activities.every(activity => activity.time && activity.name && activity.location && activity.description));
+    if (!isComplete) throw new Error(`AI สร้างแผนไม่ครบ ${totalDays} วัน`);
+
+    return { ...parsed, itinerary: normalized };
   } catch (error) {
     console.error("AI Analysis Failed:", error);
-
-    // Fallback Mock Data if AI fails
-    return {
-      summary: "ขออภัย ระบบ AI ไม่สามารถใช้งานได้ในขณะนี้ (Quota Exceeded/Error) แต่นี่คือแผนการเดินทางเบื้องต้นที่เราแนะนำสำหรับคุณ",
-      groupAnalysis: "เหมาะสำหรับทุกเพศทุกวัย เน้นการพักผ่อนและถ่ายรูป",
-      itinerary: [
-        {
-          day: 1,
-          activities: [
-            { time: "09:00", name: "เดินทางถึงที่หมาย", location: trip.destination, description: "เช็คอินเข้าที่พักและพักผ่อนตามอัธยาศัย" },
-            { time: "12:00", name: "รับประทานอาหารกลางวัน", location: "ร้านแนะนำในพื้นที่", description: "ลิ้มลองอาหารท้องถิ่นขึ้นชื่อ" },
-            { time: "15:00", name: "ชมแลนด์มาร์คสำคัญ", location: trip.destination, description: "เยี่ยมชมสถานที่ท่องเที่ยวยอดนิยม" },
-            { time: "18:00", name: "อาหารเย็น", location: "Night Market", description: "เดินเล่นหาของกินยามค่ำคืน" }
-          ]
-        },
-        {
-          day: 2,
-          activities: [
-            { time: "09:00", name: "ตื่นเช้ารับอากาศสดใส", location: trip.destination, description: "สูดอากาศบริสุทธิ์พร้อมกาแฟยามเช้า" },
-            { time: "10:30", name: "กิจกรรมผจญภัย", location: "อุทยานแห่งชาติ/สถานที่ธรรมชาติ", description: "เดินป่า ชมน้ำตก หรือกิจกรรม outdoor" },
-            { time: "16:00", name: "Cafe Hopping", location: "คาเฟ่ยอดฮิต", description: "ถ่ายรูปสวยๆ ลงโซเชียล" }
-          ]
-        }
-      ]
-    };
+    throw error instanceof Error ? error : new Error('AI ไม่สามารถสร้างแผนการเดินทางได้');
   }
 };
 

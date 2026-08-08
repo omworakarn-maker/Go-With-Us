@@ -1,6 +1,7 @@
 import prisma from '../utils/prismaClient.js';
 import { generateEmbedding } from '../utils/gemini.js';
 import { calculateTripCompatibility, calculateTripCompatibilityDetailed } from './matchController.js';
+import { calculateActivityStyleFromItinerary } from '../utils/tripActivityStyle.js';
 
 // Get all trips with filters
 export const getAllTrips = async (req, res, next) => {
@@ -265,7 +266,7 @@ export const createTrip = async (req, res, next) => {
                 imageUrl: (imageUrl !== undefined && imageUrl !== null) ? imageUrl : null,
                 gallery: Array.isArray(gallery) ? gallery : (gallery ? [gallery] : []),
                 itinerary: itinerary || [],
-                activityStyle: activityStyle !== undefined ? Number(activityStyle) : 5,
+                activityStyle: calculateActivityStyleFromItinerary(itinerary, startDate, endDate),
                 timeOfDay: Array.isArray(timeOfDay) ? timeOfDay : [],
                 isPublic: isPublic !== undefined ? isPublic : true,
                 creatorId: req.user.userId,
@@ -343,6 +344,11 @@ export const updateTrip = async (req, res, next) => {
             });
         }
 
+        const nextItinerary = itinerary !== undefined ? itinerary : existingTrip.itinerary;
+        const nextStartDate = startDate || existingTrip.startDate;
+        const nextEndDate = endDate !== undefined ? endDate : existingTrip.endDate;
+        const shouldRecalculateActivityStyle = itinerary !== undefined || startDate !== undefined || endDate !== undefined;
+
         const trip = await prisma.trip.update({
             where: { id },
             data: {
@@ -359,7 +365,9 @@ export const updateTrip = async (req, res, next) => {
                 ...(isPublic !== undefined && { isPublic }),
                 ...(gallery !== undefined && { gallery }),
                 ...(itinerary !== undefined && { itinerary }),
-                ...(activityStyle !== undefined && { activityStyle: Number(activityStyle) }),
+                ...(shouldRecalculateActivityStyle && {
+                    activityStyle: calculateActivityStyleFromItinerary(nextItinerary, nextStartDate, nextEndDate)
+                }),
                 ...(timeOfDay !== undefined && { timeOfDay: Array.isArray(timeOfDay) ? timeOfDay : [] }),
                 ...(summary !== undefined && { summary }),
                 ...(groupAnalysis !== undefined && { groupAnalysis }),

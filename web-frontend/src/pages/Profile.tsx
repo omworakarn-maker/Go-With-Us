@@ -439,7 +439,7 @@ const Profile: React.FC = () => {
 
                                                 const keyLabels: { [key: string]: string } = {
                                                     budget: 'งบประมาณ',
-                                                    activityStyle: 'สไตล์กิจกรรม',
+                                                    activityStyle: 'จำนวนกิจกรรมต่อวัน',
                                                     pace: 'ความเร็วทริป',
                                                     adventure: 'แอดเวนเจอร์',
                                                     food: 'เน้นกิน',

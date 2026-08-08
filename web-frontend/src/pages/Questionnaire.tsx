@@ -54,11 +54,11 @@ const QUESTIONS: AnyQuestion[] = [
     {
         type: 'rating',
         key: 'activityStyle',
-        question: 'สไตล์กิจกรรมที่ชื่นชอบ (Activity Style)',
-        desc: 'รูปแบบของกิจกรรมที่คุณต้องการทำระหว่างการท่องเที่ยว',
-        lowLabel: 'พักผ่อนชิลล์ๆ (Relaxing) - เดินเล่น ถ่ายรูป นั่งคาเฟ่ สบายๆ',
-        midLabel: 'ยืดหยุ่นปานกลาง (Standard) - เดินป่าสั้นๆ เที่ยวชมเมือง ทำกิจกรรมทั่วไป',
-        highLabel: 'ลุยเต็มพิกัด (Adventure) - ปีนเขา กางเต็นท์ แอดเวนเจอร์ กีฬาเอ็กซ์ตรีม',
+        question: 'โดยปกติคุณต้องการทำกิจกรรมตามแผนประมาณกี่กิจกรรมต่อวัน?',
+        desc: 'เลือกจำนวนที่ใกล้เคียงกับรูปแบบการท่องเที่ยวของคุณมากที่สุด',
+        lowLabel: '1–2 กิจกรรมต่อวัน — ใช้เวลากับแต่ละกิจกรรมได้นานและไม่เร่งรีบ',
+        midLabel: '3–4 กิจกรรมต่อวัน — ทำกิจกรรมพอประมาณและยังมีเวลาพัก',
+        highLabel: '5 กิจกรรมขึ้นไปต่อวัน — ต้องการทำหลายกิจกรรมในหนึ่งวัน',
     },
     {
         type: 'time',
@@ -350,8 +350,8 @@ const Questionnaire: React.FC = () => {
                                             {q.desc}
                                         </p>
                                         <div className="space-y-6">
-                                            <div className="grid grid-cols-5 sm:grid-cols-10 gap-2.5">
-                                                {Array.from({ length: 10 }, (_, i) => i + 1).map(val => {
+                                            <div className={`grid gap-2.5 ${q.key === 'activityStyle' ? 'grid-cols-3' : 'grid-cols-5 sm:grid-cols-10'}`}>
+                                                {(q.key === 'activityStyle' ? [2, 5, 8] : Array.from({ length: 10 }, (_, i) => i + 1)).map(val => {
                                                     const sel = selectedRating === val;
                                                     return (
                                                         <button
@@ -364,22 +364,22 @@ const Questionnaire: React.FC = () => {
                                                                     : 'bg-white border-gray-100 text-gray-500 hover:border-black hover:text-black hover:scale-105'
                                                                 }`}
                                                         >
-                                                            {val}
+                                                            {q.key === 'activityStyle' ? (val === 2 ? '1–2' : val === 5 ? '3–4' : '5+') : val}
                                                         </button>
                                                     );
                                                 })}
                                             </div>
                                             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-4 border-t border-gray-50 text-xs">
                                                 <div className="bg-slate-50 rounded-xl p-3 flex flex-col">
-                                                    <span className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">คะแนน 1 - 3</span>
+                                                    <span className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">{q.key === 'activityStyle' ? 'ตัวเลือกที่ 1' : 'คะแนน 1 - 3'}</span>
                                                     <span className="text-gray-700 font-bold">{q.lowLabel}</span>
                                                 </div>
                                                 <div className="bg-slate-50 rounded-xl p-3 flex flex-col">
-                                                    <span className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">คะแนน 4 - 7</span>
+                                                    <span className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">{q.key === 'activityStyle' ? 'ตัวเลือกที่ 2' : 'คะแนน 4 - 7'}</span>
                                                     <span className="text-gray-700 font-bold">{q.midLabel}</span>
                                                 </div>
                                                 <div className="bg-slate-50 rounded-xl p-3 flex flex-col">
-                                                    <span className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">คะแนน 8 - 10</span>
+                                                    <span className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">{q.key === 'activityStyle' ? 'ตัวเลือกที่ 3' : 'คะแนน 8 - 10'}</span>
                                                     <span className="text-gray-700 font-bold">{q.highLabel}</span>
                                                 </div>
                                             </div>

@@ -1,6 +1,6 @@
 import express from 'express';
 import { verifyToken } from '../middleware/auth.js';
-import { getProfile, updateProfile, getAllUsers, registerDeviceToken, getPublicProfile, updatePrivacySettings, checkUsername, reportUser, banUser, warnUser, getAllReports, requestVerification, getVerificationRequests, verifyUser } from '../controllers/userController.js';
+import { getProfile, updateProfile, getAllUsers, getAdminOverview, getAdminUsers, registerDeviceToken, getPublicProfile, updatePrivacySettings, checkUsername, reportUser, banUser, warnUser, getAllReports, requestVerification, getVerificationRequests, verifyUser } from '../controllers/userController.js';
 
 const router = express.Router();
 
@@ -11,6 +11,8 @@ router.get('/:userId/public', getPublicProfile);
 // Protected routes
 router.use(verifyToken);
 
+router.get('/admin/overview', getAdminOverview);
+router.get('/admin/users', getAdminUsers);
 router.get('/', getAllUsers); // New route for searching users
 router.get('/profile', getProfile);
 router.put('/profile', updateProfile);
