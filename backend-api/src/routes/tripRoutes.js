@@ -1,6 +1,7 @@
 import express from 'express';
 import {
     getAllTrips,
+    getMyCreatedTrips,
     getTripById,
     createTrip,
     updateTrip,
@@ -15,6 +16,7 @@ const router = express.Router();
 
 // Public routes (with optional auth for recommendations)
 router.get('/', verifyTokenOptional, getAllTrips);
+router.get('/mine/created', verifyToken, getMyCreatedTrips);
 router.get('/:id', verifyTokenOptional, getTripById);
 
 // Protected routes (require authentication)

@@ -108,6 +108,16 @@ struct MyTripsView: View {
                 await viewModel.fetchMyTrips(userId: userId)
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("TripCreated"))) { notification in
+            guard let userId = authViewModel.currentUser?.id else { return }
+            if let createdTrip = notification.object as? Trip {
+                viewModel.insertCreatedTrip(createdTrip)
+            }
+            Task {
+                await viewModel.fetchMyTrips(userId: userId)
+                await MainActor.run { selectedTab = 0 }
+            }
+        }
     }
     
     private var selectedTrips: [Trip] {
@@ -140,8 +150,9 @@ class MyTripsViewModel: ObservableObject {
         await MainActor.run { isLoading = true }
         
         do {
-            let response: TripListResponse = try await APIService.shared.request(endpoint: "/trips", method: .get)
-            let created = response.trips.filter { $0.creatorId == userId }
+            async let createdRequest = TripService.shared.getMyCreatedTrips(userId: userId)
+            async let allTripsRequest: TripListResponse = APIService.shared.request(endpoint: "/trips", method: .get)
+            let (created, response) = try await (createdRequest, allTripsRequest)
             let joined = response.trips.filter { $0.participants?.contains(where: { $0.userId == userId && $0.status == "going" }) == true }
             let interested = response.trips.filter { $0.participants?.contains(where: { $0.userId == userId && $0.status == "interested" }) == true }
             
@@ -158,6 +169,12 @@ class MyTripsViewModel: ObservableObject {
                 print("Error loading my trips: \(error)")
             }
         }
+    }
+
+    @MainActor
+    func insertCreatedTrip(_ trip: Trip) {
+        guard !createdTrips.contains(where: { $0.id == trip.id }) else { return }
+        createdTrips.insert(trip, at: 0)
     }
 }
 

@@ -151,6 +151,38 @@ export const getAllTrips = async (req, res, next) => {
     }
 };
 
+// Get trips created by the currently authenticated user.
+// Ownership comes from the verified JWT, never from a client-supplied user id.
+export const getMyCreatedTrips = async (req, res, next) => {
+    try {
+        const trips = await prisma.trip.findMany({
+            where: { creatorId: req.user.userId },
+            include: {
+                creator: {
+                    select: {
+                        id: true, name: true, email: true, role: true,
+                        profileImage: true, travelStyle: true
+                    }
+                },
+                participants: {
+                    include: {
+                        user: {
+                            select: {
+                                id: true, name: true, email: true, role: true,
+                                profileImage: true, travelStyle: true, interests: true
+                            }
+                        }
+                    }
+                }
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+        res.json({ trips, count: trips.length });
+    } catch (error) {
+        next(error);
+    }
+};
+
 // Get single trip by ID
 export const getTripById = async (req, res, next) => {
     try {

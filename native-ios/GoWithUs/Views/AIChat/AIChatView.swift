@@ -2,6 +2,7 @@ import SwiftUI
 
 struct AIChatView: View {
     @StateObject private var viewModel = AIChatViewModel()
+    @EnvironmentObject private var authViewModel: AuthViewModel
     @Binding var showSideMenu: Bool
     @State private var showCreateTrip = false
     @State private var isAutoCreating = false
@@ -244,23 +245,28 @@ struct AIChatView: View {
         
         Task {
             do {
-                _ = try await TripService.shared.createTrip(
+                // Synchronize the visible account with the owner encoded in the auth token.
+                await authViewModel.loadCurrentUser()
+                let createdTrip = try await TripService.shared.createTrip(
                     title: draft.title,
                     destination: draft.destination,
                     description: fullDescription,
                     startDate: start,
                     endDate: end,
                     budget: draft.budget,
+                    budgetType: draft.budgetType,
                     maxParticipants: draft.maxParticipants,
                     category: draft.category,
                     isPublic: true,
-                    itinerary: draft.itinerary
+                    itinerary: draft.itinerary,
+                    activityStyle: draft.activityStyle,
+                    timeOfDay: draft.timeOfDay
                 )
                 await MainActor.run {
                     isAutoCreating = false
                     viewModel.showDraftAlert = false
                     showAutoCreateSuccess = true
-                    NotificationCenter.default.post(name: NSNotification.Name("TripCreated"), object: nil)
+                    NotificationCenter.default.post(name: NSNotification.Name("TripCreated"), object: createdTrip)
                 }
             } catch {
                 await MainActor.run {

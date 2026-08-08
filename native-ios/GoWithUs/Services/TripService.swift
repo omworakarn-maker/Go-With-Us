@@ -54,6 +54,21 @@ class TripService {
     }
     
     // MARK: - Get Trip by ID
+    func getMyCreatedTrips(userId: String) async throws -> [Trip] {
+        struct TripsResponse: Decodable { let trips: [Trip] }
+        do {
+            let response: TripsResponse = try await APIService.shared.request(
+                endpoint: "/trips/mine/created",
+                method: .get
+            )
+            return response.trips
+        } catch {
+            // Keep compatibility while the new backend route is being deployed.
+            return (try await getAllTrips()).filter { $0.creatorId == userId }
+        }
+    }
+
+    // MARK: - Get Trip by ID
     func getTrip(id: String) async throws -> Trip {
         struct TripResponse: Decodable {
             let trip: Trip
