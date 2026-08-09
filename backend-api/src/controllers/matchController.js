@@ -43,52 +43,52 @@ const normalizeTravelStyle = (style) => {
     return { budget, activityStyle, timeOfDay };
 };
 
-// Helper to build a numerical Feature Vector for Cosine Similarity
-// Helper to build a numerical Feature Vector for Cosine Similarity
-const buildFeatureVector = (travelStyle, interests, isTrip = false, tripCategory = null) => {
-    const style = normalizeTravelStyle(travelStyle);
-    const vector = [];
-    
-    // 1. Budget (-1 to 1) 
-    // Rating 1 = -1.0 (Cheap), Rating 10 = 1.0 (Luxury). Default = 0.0 (Neutral)
-    // We multiply by 2.0 to give Budget higher weight in the vector
-    let budgetVal = 0.0;
-    if (style && style.budget !== null) {
-        budgetVal = (style.budget - 5.5) / 4.5;
-    }
-    vector.push(budgetVal * 2.0);
-    
-    // 2. Activity Style (-1 to 1)
-    // Rating 1 = -1.0 (Relaxed), Rating 10 = 1.0 (Fast). Default = 0.0 (Neutral)
-    // Multiply by 2.0 for higher weight
-    let activityVal = 0.0;
-    if (style && style.activityStyle !== null) {
-        activityVal = (style.activityStyle - 5.5) / 4.5;
-    }
-    vector.push(activityVal * 2.0);
-    
-    // 3. Interests / Categories (12 Dimensions)
-    const allCategories = ['ทะเล', 'ภูเขา', 'แคมป์ปิ้ง', 'เที่ยวเมือง', 'คาเฟ่', 'อาหาร', 'แฮงเอาต์', 'ถ่ายรูป', 'ช้อปปิ้ง', 'คอนเสิร์ต', 'ผจญภัย', 'ไหว้พระ'];
-    const userInts = Array.isArray(interests) ? interests : [];
-    
-    for (const cat of allCategories) {
-        if (isTrip) {
-            vector.push(tripCategory === cat ? 1.0 : 0.0);
-        } else {
-            vector.push(userInts.includes(cat) ? 1.0 : 0.0);
-        }
-    }
-    
-    // 4. Time of Day (4 Dimensions)
-    const allTimes = ['morning', 'noon', 'evening', 'night'];
-    const times = (style && Array.isArray(style.timeOfDay)) ? style.timeOfDay : [];
-    
-    for (const t of allTimes) {
-        vector.push(times.includes(t) ? 1.0 : 0.0);
-    }
-    
-    return vector;
+const MATCH_WEIGHTS = {
+    category: 0.35,
+    budget: 0.30,
+    activityStyle: 0.20,
+    timeOfDay: 0.15
 };
+
+const MATCH_CATEGORIES = ['ทะเล', 'ภูเขา', 'แคมป์ปิ้ง', 'เที่ยวเมือง', 'คาเฟ่', 'อาหาร', 'แฮงเอาต์', 'ถ่ายรูป', 'ช้อปปิ้ง', 'คอนเสิร์ต', 'ผจญภัย', 'ไหว้พระ', 'อื่นๆ'];
+const MATCH_TIMES = ['morning', 'noon', 'evening', 'night'];
+
+const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+
+// Encode a continuous value as a unit vector on a quarter circle. Unlike a
+// single scalar, this lets Cosine Similarity measure how far two values differ.
+const encodeContinuous = (value, min, max) => {
+    const position = clamp((Number(value) - min) / (max - min), 0, 1);
+    const angle = position * (Math.PI / 2);
+    return [Math.cos(angle), Math.sin(angle)];
+};
+
+// Budget uses a logarithmic position because a difference of 500 baht matters
+// more around 500–1,000 than around 10,000–15,000 baht.
+const encodeBudget = (budgetTHB) => {
+    const minBudget = 100;
+    const maxBudget = 50000;
+    const safeBudget = clamp(Number(budgetTHB) || minBudget, minBudget, maxBudget);
+    const position = Math.log(safeBudget / minBudget) / Math.log(maxBudget / minBudget);
+    const angle = position * (Math.PI / 2);
+    return [Math.cos(angle), Math.sin(angle)];
+};
+
+const encodeMultiHotUnit = (selected, universe) => {
+    const selectedSet = new Set(Array.isArray(selected) ? selected : []);
+    const raw = universe.map(value => selectedSet.has(value) ? 1 : 0);
+    const norm = Math.sqrt(raw.reduce((sum, value) => sum + (value * value), 0));
+    return norm > 0 ? raw.map(value => value / norm) : raw;
+};
+
+const appendWeightedBlock = (target, block, weight) => {
+    const scale = Math.sqrt(weight);
+    target.push(...block.map(value => value * scale));
+};
+
+const blockCosinePercentage = (userBlock, tripBlock) => (
+    Math.round(clamp(cosineSimilarity(userBlock, tripBlock), 0, 1) * 100)
+);
 
 
 
@@ -202,17 +202,6 @@ export const calculateTripCompatibility = (user, trip) => {
 export const calculateTripCompatibilityDetailed = (user, trip) => {
     const styleU = normalizeTravelStyle(user.travelStyle);
     const styleC = normalizeTravelStyle(trip.creator && trip.creator.travelStyle ? trip.creator.travelStyle : null);
-
-    // Keep the existing weighted-score structure, but make the weights explicit.
-    const weights = {
-        category: 3.5,      // 35% — what the user actually enjoys
-        budget: 3.0,        // 30% — whether the trip is realistically affordable
-        activityStyle: 2.0, // 20% — preferred number of activities per day
-        timeOfDay: 1.5      // 15% — preferred travel periods
-    };
-
-    let totalScore = 0;
-    let totalWeight = 0;
     const breakdown = {
         budget: null,
         activityStyle: null,
@@ -227,7 +216,7 @@ export const calculateTripCompatibilityDetailed = (user, trip) => {
         : 0;
     if (trip.maxParticipants && goingCount >= Number(trip.maxParticipants)) {
         breakdown.groupMatch = 0;
-        return { total: 0, breakdown, tripMatch: 0 };
+        return { total: 0, breakdown, tripMatch: 0, cosineSimilarity: 0 };
     }
 
     const lastTripDate = trip.endDate || trip.startDate;
@@ -236,88 +225,86 @@ export const calculateTripCompatibilityDetailed = (user, trip) => {
         const today = new Date();
         tripDay.setHours(23, 59, 59, 999);
         if (tripDay < today) {
-            return { total: 0, breakdown, tripMatch: 0 };
+            return { total: 0, breakdown, tripMatch: 0, cosineSimilarity: 0 };
         }
     }
 
-    // 1. Budget (30%) — cheaper trips remain feasible; expensive trips lose score.
-    if (styleU && styleU.budget !== null) {
-        const rawBudget = user.travelStyle && Number(user.travelStyle.budget);
-        const userBudgetTHB = Number.isFinite(rawBudget) && rawBudget > 10
-            ? rawBudget
-            : mapRatingToBudget(styleU.budget);
-        // budgetType is display-only. Matching always uses the entered budget value directly.
-        const tripBudgetTHB = (trip.budget !== undefined && trip.budget !== null) ? Number(trip.budget) : 1000;
-        
-        let score = 1.0;
-        
-        if (tripBudgetTHB === 0) {
-            score = 1.0; // 100% match if trip is Free (0 THB)
-        } else if (tripBudgetTHB > userBudgetTHB) {
-            const overBudgetPercent = (tripBudgetTHB - userBudgetTHB) / Math.max(userBudgetTHB, 100);
-            // Up to 30% over budget is still considered flexible. At 100% over, it is unaffordable.
-            if (overBudgetPercent > 0.3) {
-                score = Math.max(0.0, 1.0 - ((overBudgetPercent - 0.3) / 0.7));
-            }
-        }
-        
-        totalScore += score * weights.budget;
-        totalWeight += weights.budget;
-        breakdown.budget = Math.round(score * 100);
+    const userVector = [];
+    const tripVector = [];
+
+    // 1. Budget vector (30%)
+    const rawUserBudget = user.travelStyle && Number(user.travelStyle.budget);
+    const userBudgetTHB = styleU && styleU.budget !== null
+        ? (Number.isFinite(rawUserBudget) && rawUserBudget > 10
+            ? rawUserBudget
+            : mapRatingToBudget(styleU.budget))
+        : null;
+    const tripBudgetTHB = trip.budget !== undefined && trip.budget !== null
+        ? Number(trip.budget)
+        : null;
+    if (userBudgetTHB !== null && Number.isFinite(tripBudgetTHB)) {
+        const userBudgetBlock = encodeBudget(userBudgetTHB);
+        const tripBudgetBlock = tripBudgetTHB === 0
+            ? userBudgetBlock
+            : encodeBudget(tripBudgetTHB);
+        appendWeightedBlock(userVector, userBudgetBlock, MATCH_WEIGHTS.budget);
+        appendWeightedBlock(tripVector, tripBudgetBlock, MATCH_WEIGHTS.budget);
+        breakdown.budget = tripBudgetTHB === 0
+            ? 100
+            : blockCosinePercentage(userBudgetBlock, tripBudgetBlock);
     }
 
-    // 2. Activity Style (20%) — allow a difference of up to two rating points.
+    // 2. Activity-style vector (20%)
     const tripPace = trip.activityStyle != null ? trip.activityStyle : (styleC ? styleC.activityStyle : null);
     if (styleU && styleU.activityStyle !== null && tripPace !== null) {
-        const diff = Math.abs(styleU.activityStyle - tripPace);
-        let score = 1.0;
-        if (diff > 2) {
-            score = Math.max(0.0, 1.0 - ((diff - 2) / 7.0));
-        }
-        totalScore += score * weights.activityStyle;
-        totalWeight += weights.activityStyle;
-        breakdown.activityStyle = Math.round(score * 100);
+        const userActivityBlock = encodeContinuous(styleU.activityStyle, 1, 10);
+        const tripActivityBlock = encodeContinuous(tripPace, 1, 10);
+        appendWeightedBlock(userVector, userActivityBlock, MATCH_WEIGHTS.activityStyle);
+        appendWeightedBlock(tripVector, tripActivityBlock, MATCH_WEIGHTS.activityStyle);
+        breakdown.activityStyle = blockCosinePercentage(userActivityBlock, tripActivityBlock);
     }
 
-    // 3. Time of Day (15%)
+    // 3. Time-of-day vector (15%)
     const tripTime = (trip.timeOfDay && trip.timeOfDay.length > 0) ? trip.timeOfDay : (styleC ? styleC.timeOfDay : []);
     if (styleU && styleU.timeOfDay && styleU.timeOfDay.length > 0 && tripTime && tripTime.length > 0) {
-        const intersect = styleU.timeOfDay.filter(x => tripTime.includes(x)).length;
-        const minLen = Math.min(styleU.timeOfDay.length, tripTime.length);
-        const score = minLen > 0 ? (intersect / minLen) : 0.0;
-        totalScore += score * weights.timeOfDay;
-        totalWeight += weights.timeOfDay;
-        breakdown.timeOfDay = Math.round(score * 100);
+        const userTimeBlock = encodeMultiHotUnit(styleU.timeOfDay, MATCH_TIMES);
+        const tripTimeBlock = encodeMultiHotUnit(tripTime, MATCH_TIMES);
+        if (userTimeBlock.some(Boolean) && tripTimeBlock.some(Boolean)) {
+            appendWeightedBlock(userVector, userTimeBlock, MATCH_WEIGHTS.timeOfDay);
+            appendWeightedBlock(tripVector, tripTimeBlock, MATCH_WEIGHTS.timeOfDay);
+            breakdown.timeOfDay = blockCosinePercentage(userTimeBlock, tripTimeBlock);
+        }
     }
 
-    // 4. Category / travel style (35%)
+    // 4. Interest/category vector (35%)
     const userInterests = Array.isArray(user.interests) ? user.interests : [];
     if (trip.category && userInterests.length > 0) {
-        const score = userInterests.includes(trip.category) ? 1.0 : 0.0;
-        totalScore += score * weights.category;
-        totalWeight += weights.category;
-        breakdown.category = Math.round(score * 100);
+        const userCategoryBlock = encodeMultiHotUnit(userInterests, MATCH_CATEGORIES);
+        const tripCategoryBlock = encodeMultiHotUnit([trip.category], MATCH_CATEGORIES);
+        if (userCategoryBlock.some(Boolean) && tripCategoryBlock.some(Boolean)) {
+            appendWeightedBlock(userVector, userCategoryBlock, MATCH_WEIGHTS.category);
+            appendWeightedBlock(tripVector, tripCategoryBlock, MATCH_WEIGHTS.category);
+            breakdown.category = blockCosinePercentage(userCategoryBlock, tripCategoryBlock);
+        }
     }
 
-    // Use the weighted average as the base percentage instead of flawed Cosine Similarity
-    let percentage = 0;
-    if (totalWeight > 0) {
-        percentage = (totalScore / totalWeight) * 100.0;
-    }
+    // Main algorithm: Cosine Similarity between the weighted User and Trip vectors.
+    const similarity = clamp(cosineSimilarity(userVector, tripVector), 0, 1);
+    let percentage = similarity * 100;
     
-    if (percentage > 100) percentage = 100;
-    if (percentage < 0) percentage = 0;
-    
-    // Critical feasibility caps prevent an unaffordable or radically different
-    // trip from appearing highly compatible just because the other fields match.
-    if (breakdown.budget === 0) percentage = Math.min(percentage, 39);
-    if (breakdown.activityStyle !== null && breakdown.activityStyle <= 15) {
-        percentage = Math.min(percentage, 49);
+    // Feasibility is a post-processing rule, not a replacement for Cosine.
+    if (userBudgetTHB !== null && tripBudgetTHB > userBudgetTHB * 2) {
+        percentage = Math.min(percentage, 39);
     }
     
     const tripTotal = Math.round(percentage);
 
-    return { total: tripTotal, breakdown, tripMatch: tripTotal };
+    return {
+        total: tripTotal,
+        breakdown,
+        tripMatch: tripTotal,
+        cosineSimilarity: Number(similarity.toFixed(4))
+    };
 };
 
 
