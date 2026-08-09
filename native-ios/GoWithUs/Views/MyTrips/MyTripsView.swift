@@ -103,7 +103,7 @@ struct MyTripsView: View {
                 }
             }
         }
-        .task(id: authViewModel.currentUser?.id) {
+        .task {
             if authViewModel.currentUser == nil {
                 await authViewModel.loadCurrentUser()
             }
@@ -154,12 +154,21 @@ class MyTripsViewModel: ObservableObject {
     @Published var errorMessage: String?
     
     func fetchMyTrips(userId: String) async {
-        await MainActor.run { isLoading = true }
+        await MainActor.run {
+            // Keep an already-created trip visible while refreshing the other tabs.
+            isLoading = createdTrips.isEmpty
+            errorMessage = nil
+        }
         
         do {
             // Created trips are the primary content of this screen. Do not hide them
             // just because the secondary all-trips request fails or decodes badly.
             let created = try await TripService.shared.getMyCreatedTrips(userId: userId)
+            await MainActor.run {
+                self.createdTrips = created
+                self.isLoading = false
+            }
+
             var joined: [Trip] = []
             var interested: [Trip] = []
 
@@ -177,7 +186,6 @@ class MyTripsViewModel: ObservableObject {
             }
             
             await MainActor.run {
-                self.createdTrips = created
                 self.joinedTrips = joined
                 self.interestedTrips = interested
                 self.isLoading = false

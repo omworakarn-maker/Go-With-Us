@@ -6,23 +6,8 @@ import { calculateActivityStyleFromItinerary } from '../utils/tripActivityStyle.
 // Get all trips with filters
 export const getAllTrips = async (req, res, next) => {
     try {
-        // --- AUTO CLEANUP LOGIC ---
-        // Delete trips ended more than 3 days ago
-        const cleanupDate = new Date();
-        cleanupDate.setDate(cleanupDate.getDate() - 3); // 3 days ago
-
-        try {
-            await prisma.trip.deleteMany({
-                where: {
-                    endDate: {
-                        lt: cleanupDate
-                    }
-                }
-            });
-        } catch (e) {
-            console.error("Cleanup error:", e);
-        }
-        // --------------------------
+        // Never delete historical trips while reading the list. Expired trips
+        // remain in the database for the owner's history and reports.
 
         const { destination, category, startDate, endDate, type, limit } = req.query;
         const userId = req.user?.userId; // Optional, might be available if using verifyToken optionally or passed

@@ -124,10 +124,9 @@ struct Trip: Codable, Identifiable, Hashable {
     }
     
     var isExpired: Bool {
-        if let endDate = endDate {
-            return endDate < Date()
-        }
-        return startDate < Date()
+        // A date-only trip remains active for the whole calendar day.
+        let lastTripDay = endDate ?? startDate
+        return lastTripDay < Calendar.current.startOfDay(for: Date())
     }
     
     var formattedDateRange: String {

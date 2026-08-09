@@ -234,10 +234,29 @@ struct AIChatView: View {
     
     private func autoCreateTrip(draft: TripDraft) {
         isAutoCreating = true
+        let calendar = Calendar.current
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
-        let start = formatter.date(from: draft.startDate) ?? Date()
-        let end = draft.endDate.flatMap { formatter.date(from: $0) }
+        formatter.calendar = calendar
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = calendar.timeZone
+        formatter.isLenient = false
+
+        let today = calendar.startOfDay(for: Date())
+        let tomorrow = calendar.date(byAdding: .day, value: 1, to: today) ?? today
+        let parsedStart = formatter.date(from: String(draft.startDate.prefix(10)))
+        let startWasInvalidOrPast = parsedStart == nil || parsedStart! < today
+        let start = startWasInvalidOrPast ? tomorrow : parsedStart!
+
+        let parsedEnd = draft.endDate.flatMap { formatter.date(from: String($0.prefix(10))) }
+        let end: Date? = {
+            guard let parsedEnd else { return nil }
+            if startWasInvalidOrPast, let parsedStart {
+                let tripLength = max(0, calendar.dateComponents([.day], from: parsedStart, to: parsedEnd).day ?? 0)
+                return calendar.date(byAdding: .day, value: tripLength, to: start)
+            }
+            return parsedEnd >= start ? parsedEnd : start
+        }()
         
         // Append tags as hashtags to description
         let tagsString = (draft.tags ?? []).isEmpty ? "" : "\n" + (draft.tags ?? []).map { "#\($0)" }.joined(separator: " ")
