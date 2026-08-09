@@ -689,10 +689,20 @@ struct CreateTripView: View {
         NavigationView {
             VStack(spacing: 0) {
                 wizardHeader
-                ScrollView {
-                    currentStepView
-                        .padding(24)
-                        .id(creationStep)
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        Color.clear
+                            .frame(height: 0)
+                            .id("createTripStepTop")
+
+                        currentStepView
+                            .padding(24)
+                    }
+                    .onChange(of: creationStep) { _ in
+                        withAnimation(.easeOut(duration: 0.25)) {
+                            proxy.scrollTo("createTripStepTop", anchor: .top)
+                        }
+                    }
                 }
                 Divider()
                 wizardNavigation

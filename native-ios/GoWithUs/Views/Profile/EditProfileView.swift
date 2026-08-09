@@ -335,31 +335,6 @@ struct EditProfileView: View {
                     }
                     .foregroundColor(.adaptiveText)
                     
-                    if let style = authViewModel.currentUser?.travelStyle {
-                        let tags: [String] = {
-                            var t: [String] = []
-                            if let b = style.budget { t.append("Budget \(b)/10") }
-                            if let a = style.activityStyle { t.append("Activity \(a)/10") }
-                            if let time = style.timeOfDay {
-                                t.append(contentsOf: time.map { $0.capitalized })
-                            }
-                            return t
-                        }()
-                        if !tags.isEmpty {
-                            FlowLayout(spacing: 8) {
-                                ForEach(tags, id: \.self) { tag in
-                                    Text(tag)
-                                        .font(.system(size: 10, weight: .bold))
-                                        .foregroundColor(Color.adaptiveBackground)
-                                        .padding(.horizontal, 10)
-                                        .padding(.vertical, 5)
-                                        .background(Color.adaptiveText)
-                                        .cornerRadius(10)
-                                }
-                            }
-                            .padding(.vertical, 8)
-                        }
-                    }
                 }
 
                 Section(header: Text("สไตล์การเที่ยว (เลือกได้สูงสุด 5 ข้อ)")) {

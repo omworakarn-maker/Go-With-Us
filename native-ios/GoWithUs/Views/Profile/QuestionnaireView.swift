@@ -5,6 +5,11 @@ struct QuestionnaireView: View {
     @State private var currentStep = 0
     @State private var isSubmitting = false
     @State private var errorMessage = ""
+    @State private var username = ""
+    @State private var usernameStatus: UsernameStatus = .idle
+    @State private var usernameCheckTask: Task<Void, Never>?
+    @State private var birthDate = Calendar.current.date(byAdding: .year, value: -18, to: Date()) ?? Date()
+    @State private var isBirthDateSet = false
     
     @EnvironmentObject var authViewModel: AuthViewModel
     
@@ -47,6 +52,51 @@ struct QuestionnaireView: View {
     @State private var userName: String = "User"
     var isOnboarding: Bool = false
     var onComplete: (() -> Void)?
+
+    private var totalSteps: Int { isOnboarding ? 5 : 4 }
+    private var displayedStep: Int { currentStep + (isOnboarding ? 0 : 1) }
+
+    private enum UsernameStatus: Equatable {
+        case idle, checking, available
+        case taken(String)
+        case invalid(String)
+    }
+
+    private var calculatedAge: Int {
+        Calendar.current.dateComponents([.year], from: birthDate, to: Date()).year ?? 0
+    }
+
+    private func checkUsername(_ value: String) {
+        usernameCheckTask?.cancel()
+        let cleaned = value.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !cleaned.isEmpty else { usernameStatus = .idle; return }
+        guard cleaned.count >= 3 else {
+            usernameStatus = .invalid("Username ต้องมีอย่างน้อย 3 ตัวอักษร")
+            return
+        }
+        if cleaned == authViewModel.currentUser?.username {
+            usernameStatus = .available
+            return
+        }
+
+        usernameStatus = .checking
+        usernameCheckTask = Task {
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            guard !Task.isCancelled else { return }
+            do {
+                let result = try await AuthService.shared.checkUsernameAvailability(
+                    username: cleaned,
+                    excludeUserId: authViewModel.currentUser?.id
+                )
+                await MainActor.run {
+                    usernameStatus = result.available ? .available : .taken(result.message)
+                }
+            } catch {
+                await MainActor.run { usernameStatus = .idle }
+            }
+        }
+    }
     
     // Time slots
     let timeSlots = [
@@ -67,11 +117,11 @@ struct QuestionnaireView: View {
             VStack(spacing: 20) {
                 // Progress
                 // Progress
-                ProgressView(value: Double(currentStep + 1), total: 4)
+                ProgressView(value: Double(currentStep + 1), total: Double(totalSteps))
                     .padding(.horizontal)
                     .tint(.black)
                 
-                Text("\(SettingsManager.shared.localizedString(for: "step_prefix")) \(currentStep + 1) \(SettingsManager.shared.localizedString(for: "step_suffix")) 4")
+                Text("\(SettingsManager.shared.localizedString(for: "step_prefix")) \(currentStep + 1) \(SettingsManager.shared.localizedString(for: "step_suffix")) \(totalSteps)")
                     .font(.caption)
                     .foregroundColor(.secondary)
                 
@@ -79,7 +129,52 @@ struct QuestionnaireView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
                         Group {
-                            if currentStep == 0 {
+                            if displayedStep == 0 {
+                                Text("👤 ข้อมูลส่วนตัวของคุณ")
+                                    .font(.title2).bold()
+                                Text("ข้อมูลนี้ช่วยให้ผู้ร่วมทริปรู้จักคุณ และใช้สร้างโปรไฟล์ของคุณ")
+                                    .font(.subheadline).foregroundColor(.secondary)
+
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("Username").font(.headline)
+                                    HStack {
+                                        Text("@").foregroundColor(.secondary)
+                                        TextField("username", text: $username)
+                                            .textInputAutocapitalization(.never)
+                                            .autocorrectionDisabled(true)
+                                            .onChange(of: username) { _, newValue in checkUsername(newValue) }
+                                        switch usernameStatus {
+                                        case .checking: ProgressView().scaleEffect(0.75)
+                                        case .available: Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
+                                        case .taken, .invalid: Image(systemName: "xmark.circle.fill").foregroundColor(.red)
+                                        default: EmptyView()
+                                        }
+                                    }
+                                    .padding().background(Color.gray.opacity(0.1)).cornerRadius(12)
+
+                                    switch usernameStatus {
+                                    case .available: Text("Username นี้ใช้งานได้").foregroundColor(.green)
+                                    case .taken(let message), .invalid(let message): Text(message).foregroundColor(.red)
+                                    default: Text("ใช้อักษรอย่างน้อย 3 ตัว และต้องไม่ซ้ำกับผู้อื่น").foregroundColor(.secondary)
+                                    }
+                                }
+
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("วันเกิด").font(.headline)
+                                    DatePicker(
+                                        "เลือกวันเกิด",
+                                        selection: $birthDate,
+                                        in: ...Date(),
+                                        displayedComponents: .date
+                                    )
+                                    .datePickerStyle(.compact)
+                                    .onChange(of: birthDate) { _, _ in isBirthDateSet = true }
+                                    Text("อายุ \(calculatedAge) ปี")
+                                        .font(.subheadline).foregroundColor(.secondary)
+                                }
+                                .padding().background(Color.gray.opacity(0.1)).cornerRadius(12)
+
+                            } else if displayedStep == 1 {
                                 // Budget Step
                                 Text("💰 งบประมาณเฉลี่ยต่อวัน (Budget / บาท)")
                                     .font(.title2).bold()
@@ -114,7 +209,7 @@ struct QuestionnaireView: View {
                             }
                             .padding(.top, 20)
                             
-                        } else if currentStep == 1 {
+                        } else if displayedStep == 2 {
                             // Activity Style Step
                             Text("🎯 คุณต้องการทำกิจกรรมตามแผนประมาณกี่กิจกรรมต่อวัน?")
                                 .font(.title2).bold()
@@ -128,7 +223,7 @@ struct QuestionnaireView: View {
                             }
                             .padding(.top, 20)
                             
-                        } else if currentStep == 2 {
+                        } else if displayedStep == 3 {
                             // Time of Day Step
                             Text("🕘 ช่วงเวลาที่ชอบท่องเที่ยว (Time of Day)")
                                 .font(.title2).bold()
@@ -176,7 +271,7 @@ struct QuestionnaireView: View {
                                 }
                             }
                             .padding(.top, 20)
-                        } else if currentStep == 3 {
+                        } else if displayedStep == 4 {
                             // Interests Step
                             HStack {
                                 Text("✨ สไตล์การเที่ยวของคุณ")
@@ -216,7 +311,7 @@ struct QuestionnaireView: View {
                                 }
                             }
                             .padding(.top, 20)
-                        } // Closes else if currentStep == 3
+                        }
                         } // Closes Group
                         .transition(.asymmetric(
                             insertion: .move(edge: movingForward ? .trailing : .leading),
@@ -255,18 +350,29 @@ struct QuestionnaireView: View {
                     Button {
                         triggerHapticFeedback()
                         
-                        if currentStep == 2 && timeOfDay.isEmpty {
+                        if displayedStep == 0 {
+                            let cleanedUsername = username.trimmingCharacters(in: .whitespacesAndNewlines)
+                            if cleanedUsername.isEmpty || usernameStatus != .available {
+                                errorMessage = "กรุณาระบุ Username ที่สามารถใช้งานได้"
+                                return
+                            }
+                            if !isBirthDateSet {
+                                errorMessage = "กรุณาเลือกวันเกิดเพื่อระบุอายุ"
+                                return
+                            }
+                        }
+                        if displayedStep == 3 && timeOfDay.isEmpty {
                             errorMessage = "โปรดเลือกอย่างน้อย 1 ช่วงเวลา"
                             return
                         }
-                        if currentStep == 3 && interests.isEmpty {
+                        if displayedStep == 4 && interests.isEmpty {
                             errorMessage = "โปรดเลือกอย่างน้อย 1 สไตล์"
                             return
                         }
                         
                         errorMessage = ""
                         
-                        if currentStep < 3 {
+                        if currentStep < totalSteps - 1 {
                             movingForward = true
                             withAnimation(.easeInOut) { currentStep += 1 }
                         } else {
@@ -276,7 +382,7 @@ struct QuestionnaireView: View {
                         if isSubmitting {
                             ProgressView().progressViewStyle(CircularProgressViewStyle(tint: .white))
                         } else {
-                            Text(currentStep == 3 ? "เสร็จสิ้น" : "ถัดไป")
+                            Text(currentStep == totalSteps - 1 ? "เสร็จสิ้น" : "ถัดไป")
                                 .bold()
                         }
                     }
@@ -306,6 +412,12 @@ struct QuestionnaireView: View {
             do {
                 let user = try await AuthService.shared.getCurrentUser()
                 userName = user.name
+                username = user.username ?? ""
+                if !username.isEmpty { usernameStatus = .available }
+                if let existingBirthDate = user.birthDate {
+                    birthDate = existingBirthDate
+                    isBirthDateSet = true
+                }
                 if let existingInterests = user.interests {
                     interests = existingInterests
                 }
@@ -336,7 +448,12 @@ struct QuestionnaireView: View {
                 let updatedUser = try await AuthService.shared.updateProfile(
                     name: userName,
                     interests: interests,
-                    travelStyle: travelStyle
+                    age: isOnboarding ? calculatedAge : nil,
+                    birthDate: isOnboarding ? birthDate : nil,
+                    travelStyle: travelStyle,
+                    username: isOnboarding
+                        ? username.trimmingCharacters(in: .whitespacesAndNewlines)
+                        : nil
                 )
                 
                 await authViewModel.loadCurrentUser()
