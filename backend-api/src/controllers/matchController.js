@@ -203,6 +203,14 @@ export const calculateTripCompatibilityDetailed = (user, trip) => {
     const styleU = normalizeTravelStyle(user.travelStyle);
     const styleC = normalizeTravelStyle(trip.creator && trip.creator.travelStyle ? trip.creator.travelStyle : null);
 
+    // Keep the existing weighted-score structure, but make the weights explicit.
+    const weights = {
+        category: 3.5,      // 35% — what the user actually enjoys
+        budget: 3.0,        // 30% — whether the trip is realistically affordable
+        activityStyle: 2.0, // 20% — preferred number of activities per day
+        timeOfDay: 1.5      // 15% — preferred travel periods
+    };
+
     let totalScore = 0;
     let totalWeight = 0;
     const breakdown = {
@@ -213,9 +221,31 @@ export const calculateTripCompatibilityDetailed = (user, trip) => {
         groupMatch: null
     };
 
-    // 1. Budget — calculate from THB (Weight = 3)
+    // A full or already-ended trip is not joinable, regardless of preference.
+    const goingCount = Array.isArray(trip.participants)
+        ? trip.participants.filter(participant => !participant.status || participant.status === 'going').length
+        : 0;
+    if (trip.maxParticipants && goingCount >= Number(trip.maxParticipants)) {
+        breakdown.groupMatch = 0;
+        return { total: 0, breakdown, tripMatch: 0 };
+    }
+
+    const lastTripDate = trip.endDate || trip.startDate;
+    if (lastTripDate) {
+        const tripDay = new Date(lastTripDate);
+        const today = new Date();
+        tripDay.setHours(23, 59, 59, 999);
+        if (tripDay < today) {
+            return { total: 0, breakdown, tripMatch: 0 };
+        }
+    }
+
+    // 1. Budget (30%) — cheaper trips remain feasible; expensive trips lose score.
     if (styleU && styleU.budget !== null) {
-        const userBudgetTHB = mapRatingToBudget(styleU.budget);
+        const rawBudget = user.travelStyle && Number(user.travelStyle.budget);
+        const userBudgetTHB = Number.isFinite(rawBudget) && rawBudget > 10
+            ? rawBudget
+            : mapRatingToBudget(styleU.budget);
         // budgetType is display-only. Matching always uses the entered budget value directly.
         const tripBudgetTHB = (trip.budget !== undefined && trip.budget !== null) ? Number(trip.budget) : 1000;
         
@@ -223,55 +253,50 @@ export const calculateTripCompatibilityDetailed = (user, trip) => {
         
         if (tripBudgetTHB === 0) {
             score = 1.0; // 100% match if trip is Free (0 THB)
-        } else {
-            const diffTHB = Math.abs(userBudgetTHB - tripBudgetTHB);
-            // Use percentage difference instead of absolute THB
-            const diffPercent = diffTHB / Math.max(userBudgetTHB, 100);
-            
-            // Accept up to 30% difference without penalty
-            if (diffPercent > 0.3) {
-                // Drop score to 0 linearly as difference approaches 100%
-                score = Math.max(0.0, 1.0 - ((diffPercent - 0.3) / 0.7));
+        } else if (tripBudgetTHB > userBudgetTHB) {
+            const overBudgetPercent = (tripBudgetTHB - userBudgetTHB) / Math.max(userBudgetTHB, 100);
+            // Up to 30% over budget is still considered flexible. At 100% over, it is unaffordable.
+            if (overBudgetPercent > 0.3) {
+                score = Math.max(0.0, 1.0 - ((overBudgetPercent - 0.3) / 0.7));
             }
         }
         
-        totalScore += score * 3;
-        totalWeight += 3;
+        totalScore += score * weights.budget;
+        totalWeight += weights.budget;
         breakdown.budget = Math.round(score * 100);
     }
 
-    // 2. Activity Style (With Flexibility +/- 2) (Weight = 1)
+    // 2. Activity Style (20%) — allow a difference of up to two rating points.
     const tripPace = trip.activityStyle != null ? trip.activityStyle : (styleC ? styleC.activityStyle : null);
     if (styleU && styleU.activityStyle !== null && tripPace !== null) {
         const diff = Math.abs(styleU.activityStyle - tripPace);
         let score = 1.0;
         if (diff > 2) {
-            score = 1.0 - ((diff - 2) / 7.0);
+            score = Math.max(0.0, 1.0 - ((diff - 2) / 7.0));
         }
-        totalScore += score;
-        totalWeight += 1;
+        totalScore += score * weights.activityStyle;
+        totalWeight += weights.activityStyle;
         breakdown.activityStyle = Math.round(score * 100);
     }
 
-    // 3. Time of Day (Weight = 1)
+    // 3. Time of Day (15%)
     const tripTime = (trip.timeOfDay && trip.timeOfDay.length > 0) ? trip.timeOfDay : (styleC ? styleC.timeOfDay : []);
     if (styleU && styleU.timeOfDay && styleU.timeOfDay.length > 0 && tripTime && tripTime.length > 0) {
         const intersect = styleU.timeOfDay.filter(x => tripTime.includes(x)).length;
         const minLen = Math.min(styleU.timeOfDay.length, tripTime.length);
         const score = minLen > 0 ? (intersect / minLen) : 0.0;
-        totalScore += score;
-        totalWeight += 1;
+        totalScore += score * weights.timeOfDay;
+        totalWeight += weights.timeOfDay;
         breakdown.timeOfDay = Math.round(score * 100);
     }
 
-    // 4. Category (Weight = 1)
+    // 4. Category / travel style (35%)
     const userInterests = Array.isArray(user.interests) ? user.interests : [];
-    if (trip.category) {
-        if (userInterests.includes(trip.category)) {
-            breakdown.category = 100;
-        } else {
-            breakdown.category = 0;
-        }
+    if (trip.category && userInterests.length > 0) {
+        const score = userInterests.includes(trip.category) ? 1.0 : 0.0;
+        totalScore += score * weights.category;
+        totalWeight += weights.category;
+        breakdown.category = Math.round(score * 100);
     }
 
     // Use the weighted average as the base percentage instead of flawed Cosine Similarity
@@ -283,17 +308,11 @@ export const calculateTripCompatibilityDetailed = (user, trip) => {
     if (percentage > 100) percentage = 100;
     if (percentage < 0) percentage = 0;
     
-    // Apply strict penalties for critical mismatches to make the total score more realistic
-    // If budget breakdown is low, cut the total score by max 20% (softer penalty)
-    if (breakdown.budget !== undefined && breakdown.budget !== null) {
-        const budgetMultiplier = 0.8 + (breakdown.budget / 100.0) * 0.2;
-        percentage *= budgetMultiplier;
-    }
-    
-    // If activity breakdown is low, cut the total score by max 15% (softer penalty)
-    if (breakdown.activityStyle !== undefined && breakdown.activityStyle !== null) {
-        const activityMultiplier = 0.85 + (breakdown.activityStyle / 100.0) * 0.15;
-        percentage *= activityMultiplier;
+    // Critical feasibility caps prevent an unaffordable or radically different
+    // trip from appearing highly compatible just because the other fields match.
+    if (breakdown.budget === 0) percentage = Math.min(percentage, 39);
+    if (breakdown.activityStyle !== null && breakdown.activityStyle <= 15) {
+        percentage = Math.min(percentage, 49);
     }
     
     const tripTotal = Math.round(percentage);
