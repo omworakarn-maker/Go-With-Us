@@ -92,6 +92,8 @@ const blockCosinePercentage = (userBlock, tripBlock) => (
 
 
 
+// ฟังก์ชันคำนวณความเข้ากันได้ระหว่างผู้ใช้ 2 คน (ใช้สำหรับหาบัดดี้ - Find Buddy)
+// โดยคิดคะแนนจาก 4 ปัจจัยหลัก: งบประมาณ, สไตล์การทำกิจกรรม, ช่วงเวลาที่ชอบ, และความสนใจ
 const calculateDetailedCompatibility = (userA, userB) => {
     const styleA = normalizeTravelStyle(userA.travelStyle);
     const styleB = normalizeTravelStyle(userB.travelStyle);
@@ -99,23 +101,26 @@ const calculateDetailedCompatibility = (userA, userB) => {
     let totalScore = 0;
     let totalWeight = 0;
 
-    // 1. Budget (Weight = 3)
+    // 1. งบประมาณ (Budget) - น้ำหนัก 3
+    // หากมีข้อมูลทั้งคู่ จะนำระดับงบ (1-10) มาหาความต่าง (diff)
     if (styleA && styleA.budget !== null && styleB && styleB.budget !== null) {
         const diff = Math.abs(styleA.budget - styleB.budget);
-        // rating is 1-10. Max diff is 9.
+        // หากต่างกันไม่เกิน 1 ระดับ จะได้คะแนนเต็ม (1.0)
         let score = 1.0;
         if (diff > 1) {
+            // หากต่างกันมากกว่า 1 จะหักคะแนนตามสัดส่วน (สูงสุดหัก 8 ระดับ)
             score = Math.max(0, 1.0 - ((diff - 1) / 8.0));
         }
         totalScore += score * 3;
         totalWeight += 3;
     } else {
-        // If either doesn't have budget, give average score but lower weight
+        // หากคนใดคนหนึ่งไม่มีข้อมูลงบประมาณ ให้คะแนนกลางๆ (0.5) แต่น้ำหนักของปัจจัยนี้จะลดลงเหลือ 1
         totalScore += 0.5 * 1;
         totalWeight += 1;
     }
 
-    // 2. Activity Style (Weight = 2)
+    // 2. สไตล์การทำกิจกรรม (Activity Style) - น้ำหนัก 2
+    // คำนวณความต่างคล้ายกับงบประมาณ โดยเทียบจากสเกล 1-10
     if (styleA && styleA.activityStyle !== null && styleB && styleB.activityStyle !== null) {
         const diff = Math.abs(styleA.activityStyle - styleB.activityStyle);
         let score = 1.0;
@@ -129,14 +134,15 @@ const calculateDetailedCompatibility = (userA, userB) => {
         totalWeight += 1;
     }
 
-    // 3. Time of Day (Weight = 1)
+    // 3. ช่วงเวลาของวัน (Time of Day) - น้ำหนัก 1 (หรือ 1.5 หากมีช่วงเวลาตรงกัน)
+    // ใช้หลักการ Jaccard index: (จำนวนช่วงเวลาที่ตรงกัน) / (จำนวนช่วงเวลาที่เลือกทั้งหมดของทั้งคู่รวมกันโดยไม่ซ้ำ)
     if (styleA && styleA.timeOfDay && styleA.timeOfDay.length > 0 && 
         styleB && styleB.timeOfDay && styleB.timeOfDay.length > 0) {
         const intersect = styleA.timeOfDay.filter(x => styleB.timeOfDay.includes(x)).length;
         const union = new Set([...styleA.timeOfDay, ...styleB.timeOfDay]).size;
         const score = union > 0 ? (intersect / union) : 0.0;
         
-        // Bonus for having overlapping times
+        // ให้โบนัสน้ำหนักเพิ่มเป็น 1.5 หากมีโอกาสซ้อนทับกัน เพื่อให้ความสำคัญกับคนที่เวลาตรงกัน
         totalScore += score * 1.5;
         totalWeight += 1.5;
     } else {
@@ -144,13 +150,14 @@ const calculateDetailedCompatibility = (userA, userB) => {
         totalWeight += 0.5;
     }
 
-    // 4. Interests (Weight = 2)
+    // 4. ความสนใจ (Interests) - น้ำหนัก 2
+    // ใช้ Dice coefficient เพื่อดูว่ามีความสนใจตรงกันมากน้อยแค่ไหน: (2 * จำนวนที่ตรงกัน) / (จำนวนที่เลือกทั้งหมดรวมกันของทั้งสองคน)
     const intA = Array.isArray(userA.interests) ? userA.interests : [];
     const intB = Array.isArray(userB.interests) ? userB.interests : [];
     
     if (intA.length > 0 && intB.length > 0) {
         const intersect = intA.filter(x => intB.includes(x)).length;
-        // Dice coefficient for better matching on interests
+        // Dice coefficient สำหรับการแมตช์ความสนใจได้ดีขึ้น
         const score = (2.0 * intersect) / (intA.length + intB.length);
         totalScore += score * 2;
         totalWeight += 2;
@@ -159,6 +166,7 @@ const calculateDetailedCompatibility = (userA, userB) => {
         totalWeight += 1;
     }
 
+    // สรุปผลคะแนนออกมาเป็นเปอร์เซ็นต์ (0 - 100%)
     let percentage = 0;
     if (totalWeight > 0) {
         percentage = (totalScore / totalWeight) * 100.0;
@@ -198,10 +206,13 @@ export const calculateTripCompatibility = (user, trip) => {
     return result.total;
 };
 
-// Detailed version that returns per-factor scores for UI breakdown
+// ฟังก์ชันคำนวณความเข้ากันได้ระหว่าง "ผู้ใช้" กับ "ทริป" แบบละเอียด (ใช้สำหรับ Match Trips)
+// โดยใช้หลักการ Cosine Similarity เพื่อเทียบเวกเตอร์ของคุณลักษณะผู้ใช้กับคุณลักษณะทริป
 export const calculateTripCompatibilityDetailed = (user, trip) => {
     const styleU = normalizeTravelStyle(user.travelStyle);
     const styleC = normalizeTravelStyle(trip.creator && trip.creator.travelStyle ? trip.creator.travelStyle : null);
+    
+    // โครงสร้างสำหรับเก็บคะแนนแยกย่อยเพื่อแสดงผลบน UI (Breakdown)
     const breakdown = {
         budget: null,
         activityStyle: null,
@@ -210,7 +221,7 @@ export const calculateTripCompatibilityDetailed = (user, trip) => {
         groupMatch: null
     };
 
-    // A full or already-ended trip is not joinable, regardless of preference.
+    // กฎเหล็ก 1: หากทริปคนเต็มแล้ว หรือจำนวนคนที่กำลังไปถึงจำนวนสูงสุดแล้ว จะไม่สามารถเข้าร่วมได้ (คะแนน = 0)
     const goingCount = Array.isArray(trip.participants)
         ? trip.participants.filter(participant => !participant.status || participant.status === 'going').length
         : 0;
@@ -219,6 +230,7 @@ export const calculateTripCompatibilityDetailed = (user, trip) => {
         return { total: 0, breakdown, tripMatch: 0, cosineSimilarity: 0 };
     }
 
+    // กฎเหล็ก 2: หากทริปจบลงไปแล้ว (วันที่สิ้นสุดผ่านมาแล้ว) จะไม่สามารถเข้าร่วมได้ (คะแนน = 0)
     const lastTripDate = trip.endDate || trip.startDate;
     if (lastTripDate) {
         const tripDay = new Date(lastTripDate);
@@ -232,7 +244,7 @@ export const calculateTripCompatibilityDetailed = (user, trip) => {
     const userVector = [];
     const tripVector = [];
 
-    // 1. Budget vector (30%)
+    // 1. การคำนวณเวกเตอร์ด้านงบประมาณ (น้ำหนัก 30%)
     const rawUserBudget = user.travelStyle && Number(user.travelStyle.budget);
     const userBudgetTHB = styleU && styleU.budget !== null
         ? (Number.isFinite(rawUserBudget) && rawUserBudget > 10
@@ -242,11 +254,16 @@ export const calculateTripCompatibilityDetailed = (user, trip) => {
     const tripBudgetTHB = trip.budget !== undefined && trip.budget !== null
         ? Number(trip.budget)
         : null;
+        
     if (userBudgetTHB !== null && Number.isFinite(tripBudgetTHB)) {
+        // แปลงงบประมาณให้อยู่ในรูปเวกเตอร์ (Logarithmic mapping เพื่อเทียบสเกลจำนวนเงินให้สมจริง)
         const userBudgetBlock = encodeBudget(userBudgetTHB);
+        // หากทริปไม่ระบุงบ (งบ = 0) ถือว่าจับคู่ได้เต็ม 100% โดยใชัเวกเตอร์เดียวกับ User เลย
         const tripBudgetBlock = tripBudgetTHB === 0
             ? userBudgetBlock
             : encodeBudget(tripBudgetTHB);
+            
+        // เติมเวกเตอร์ลงในแกนหลัก พร้อมคูณด้วยรากที่สองของน้ำหนัก (Weight = 0.30)
         appendWeightedBlock(userVector, userBudgetBlock, MATCH_WEIGHTS.budget);
         appendWeightedBlock(tripVector, tripBudgetBlock, MATCH_WEIGHTS.budget);
         breakdown.budget = tripBudgetTHB === 0
@@ -254,21 +271,25 @@ export const calculateTripCompatibilityDetailed = (user, trip) => {
             : blockCosinePercentage(userBudgetBlock, tripBudgetBlock);
     }
 
-    // 2. Activity-style vector (20%)
+    // 2. การคำนวณเวกเตอร์ด้านสไตล์การทำกิจกรรม (น้ำหนัก 20%)
     const tripPace = trip.activityStyle != null ? trip.activityStyle : (styleC ? styleC.activityStyle : null);
     if (styleU && styleU.activityStyle !== null && tripPace !== null) {
+        // แปลงสเกล 1-10 ให้เป็นเวกเตอร์มุมบนวงกลม
         const userActivityBlock = encodeContinuous(styleU.activityStyle, 1, 10);
         const tripActivityBlock = encodeContinuous(tripPace, 1, 10);
+        
         appendWeightedBlock(userVector, userActivityBlock, MATCH_WEIGHTS.activityStyle);
         appendWeightedBlock(tripVector, tripActivityBlock, MATCH_WEIGHTS.activityStyle);
         breakdown.activityStyle = blockCosinePercentage(userActivityBlock, tripActivityBlock);
     }
 
-    // 3. Time-of-day vector (15%)
+    // 3. การคำนวณเวกเตอร์ด้านช่วงเวลาของวัน (น้ำหนัก 15%)
     const tripTime = (trip.timeOfDay && trip.timeOfDay.length > 0) ? trip.timeOfDay : (styleC ? styleC.timeOfDay : []);
     if (styleU && styleU.timeOfDay && styleU.timeOfDay.length > 0 && tripTime && tripTime.length > 0) {
+        // แปลงค่าหลายๆ ตัวเลือกให้อยู่ในรูป Multi-hot vector (0 หรือ 1 ตามตัวเลือกที่แมตช์)
         const userTimeBlock = encodeMultiHotUnit(styleU.timeOfDay, MATCH_TIMES);
         const tripTimeBlock = encodeMultiHotUnit(tripTime, MATCH_TIMES);
+        
         if (userTimeBlock.some(Boolean) && tripTimeBlock.some(Boolean)) {
             appendWeightedBlock(userVector, userTimeBlock, MATCH_WEIGHTS.timeOfDay);
             appendWeightedBlock(tripVector, tripTimeBlock, MATCH_WEIGHTS.timeOfDay);
@@ -276,11 +297,13 @@ export const calculateTripCompatibilityDetailed = (user, trip) => {
         }
     }
 
-    // 4. Interest/category vector (35%)
+    // 4. การคำนวณเวกเตอร์ด้านความสนใจและหมวดหมู่ทริป (น้ำหนัก 35%)
     const userInterests = Array.isArray(user.interests) ? user.interests : [];
     if (trip.category && userInterests.length > 0) {
+        // เทียบความสนใจของผู้ใช้กับหมวดหมู่ของทริป
         const userCategoryBlock = encodeMultiHotUnit(userInterests, MATCH_CATEGORIES);
         const tripCategoryBlock = encodeMultiHotUnit([trip.category], MATCH_CATEGORIES);
+        
         if (userCategoryBlock.some(Boolean) && tripCategoryBlock.some(Boolean)) {
             appendWeightedBlock(userVector, userCategoryBlock, MATCH_WEIGHTS.category);
             appendWeightedBlock(tripVector, tripCategoryBlock, MATCH_WEIGHTS.category);
@@ -288,11 +311,13 @@ export const calculateTripCompatibilityDetailed = (user, trip) => {
         }
     }
 
-    // Main algorithm: Cosine Similarity between the weighted User and Trip vectors.
+    // อัลกอริทึมหลัก: หาค่าความคล้ายคลึงของเวกเตอร์ (Cosine Similarity) 
+    // ยิ่งมุมระหว่างเวกเตอร์ของ User และ Trip ชี้ไปในทางเดียวกันมาก ค่าจะเข้าใกล้ 1 (แมตช์ 100%)
     const similarity = clamp(cosineSimilarity(userVector, tripVector), 0, 1);
     let percentage = similarity * 100;
     
-    // Feasibility is a post-processing rule, not a replacement for Cosine.
+    // กฎการคัดกรองเพิ่มเติม (Post-processing rule)
+    // ถ้างบประมาณของทริปสูงกว่างบที่ผู้ใช้ตั้งไว้มากกว่า 2 เท่า จะบังคับลดคะแนนสูงสุดไม่ให้เกิน 39% (เพื่อกันคนงบน้อยหลงไปทริปแพง)
     if (userBudgetTHB !== null && tripBudgetTHB > userBudgetTHB * 2) {
         percentage = Math.min(percentage, 39);
     }
