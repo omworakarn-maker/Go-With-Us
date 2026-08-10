@@ -211,15 +211,15 @@ struct QuestionnaireView: View {
                             
                         } else if displayedStep == 2 {
                             // Activity Style Step
-                            Text("🎯 คุณต้องการทำกิจกรรมตามแผนประมาณกี่กิจกรรมต่อวัน?")
+                            Text("🎯 วันนึงชอบเที่ยวประมาณกี่ที่?")
                                 .font(.title2).bold()
-                            Text("เลือกจำนวนที่ใกล้เคียงกับรูปแบบการท่องเที่ยวของคุณมากที่สุด")
+                            Text("สไตล์การจัดตารางเที่ยวในแต่ละวันของคุณเป็นแบบไหน?")
                                 .font(.subheadline).foregroundColor(.secondary)
                             
                             VStack(spacing: 12) {
-                                QuestionnaireActivityStyleCard(title: "1–2 กิจกรรมต่อวัน", subtitle: "ใช้เวลากับแต่ละกิจกรรมได้นานและไม่เร่งรีบ", value: 2, selectedValue: $activityStyle)
-                                QuestionnaireActivityStyleCard(title: "3–4 กิจกรรมต่อวัน", subtitle: "ทำกิจกรรมพอประมาณและยังมีเวลาพัก", value: 5, selectedValue: $activityStyle)
-                                QuestionnaireActivityStyleCard(title: "5 กิจกรรมขึ้นไปต่อวัน", subtitle: "ต้องการทำหลายกิจกรรมในหนึ่งวัน", value: 8, selectedValue: $activityStyle)
+                                QuestionnaireActivityStyleCard(title: "1-2 ที่ (สายชิล)", subtitle: "เน้นพักผ่อน อยู่ที่เดียวนานๆ ไม่รีบร้อน", value: 2, selectedValue: $activityStyle)
+                                QuestionnaireActivityStyleCard(title: "3-4 ที่ (สายพอดี)", subtitle: "เที่ยวสบายๆ ได้ไปหลายที่แต่ไม่เหนื่อยเกิน", value: 5, selectedValue: $activityStyle)
+                                QuestionnaireActivityStyleCard(title: "5 ที่ขึ้นไป (สายลุย)", subtitle: "ตารางแน่น เน้นเก็บให้ครบ ไปหลายที่", value: 8, selectedValue: $activityStyle)
                             }
                             .padding(.top, 20)
                             
