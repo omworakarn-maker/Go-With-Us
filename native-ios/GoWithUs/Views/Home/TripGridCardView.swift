@@ -44,9 +44,13 @@ struct TripGridCardView: View {
                 }
                 
                 // Category Badge (Mini)
-                Text(trip.category.rawValue)
-                    .font(.system(size: 8, weight: .bold))
-                    .foregroundColor(.black)
+                HStack(spacing: 3) {
+                    Text(trip.category.icon)
+                        .font(.system(size: 10))
+                    Text(trip.category.rawValue)
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundColor(.black)
+                }
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
                     .background(Color.white.opacity(0.9))

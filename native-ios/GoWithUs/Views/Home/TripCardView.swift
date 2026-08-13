@@ -44,26 +44,18 @@ struct TripCardView: View {
                     Spacer()
                     
                     // Category Badge
-                    HStack(spacing: 6) {
+                    HStack(spacing: 5) {
+                        Text(trip.category.icon)
+                            .font(.system(size: 13))
                         Text(trip.category.rawValue)
                             .font(.system(size: 10, weight: .bold))
                             .foregroundColor(.black)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(Color.white)
-                            .cornerRadius(20)
-                        
-                        ForEach(tags, id: \.self) { tag in
-                            Text("#\(tag)")
-                                .font(.system(size: 9, weight: .bold))
-                                .foregroundColor(.appPrimary)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 6)
-                                .background(Color.appPrimary.opacity(0.15))
-                                .background(Color.white)
-                                .cornerRadius(20)
-                        }
                     }
+                    .padding(.horizontal, 11)
+                    .padding(.vertical, 6)
+                    .background(Color.white.opacity(0.94))
+                    .cornerRadius(20)
+                    .shadow(color: .black.opacity(0.10), radius: 3, x: 0, y: 1)
                 }
                 .padding(12)
             }
@@ -129,6 +121,23 @@ struct TripCardView: View {
                             Image(systemName: "checkmark.seal.fill")
                                 .font(.system(size: 10))
                                 .foregroundColor(Color(hex: "#3B82F6"))
+                        }
+                    }
+                }
+
+                // Hashtags belong to the content and stay at the bottom of the card.
+                if !tags.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 7) {
+                            ForEach(tags, id: \.self) { tag in
+                                Text("#\(tag)")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundColor(.appPrimary)
+                                    .padding(.horizontal, 9)
+                                    .padding(.vertical, 5)
+                                    .background(Color.appPrimary.opacity(0.10))
+                                    .clipShape(Capsule())
+                            }
                         }
                     }
                 }
