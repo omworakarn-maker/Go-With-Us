@@ -13,9 +13,6 @@ struct CreateTripView: View {
     @State private var budgetType = "per_person"
     @State private var maxParticipants = "10"
     @State private var selectedCategoryRaw: String = TripCategory.adventure.rawValue
-    @State private var extraCategories: [String] = []
-    @State private var showAddCategory = false
-    @State private var newCategoryText: String = ""
     @State private var imageUrl = ""
     @State private var selectedImages: [UIImage] = []
     @State private var isPublic = true // Default to Public
@@ -72,7 +69,12 @@ struct CreateTripView: View {
             }
             
             // Category Matching
-            _selectedCategoryRaw = State(initialValue: draft.category)
+            let allowedCategories = Set(INTEREST_CATEGORIES.map(\.label))
+            _selectedCategoryRaw = State(
+                initialValue: allowedCategories.contains(draft.category)
+                    ? draft.category
+                    : TripCategory.adventure.rawValue
+            )
             
             // Tags from AI draft
             if let draftTags = draft.tags {
@@ -102,7 +104,11 @@ struct CreateTripView: View {
         _budget = State(initialValue: String(trip.budget))
         _budgetType = State(initialValue: trip.budgetType ?? "per_person")
         _maxParticipants = State(initialValue: String(trip.maxParticipants))
-        _selectedCategoryRaw = State(initialValue: trip.category.rawValue)
+        _selectedCategoryRaw = State(
+            initialValue: INTEREST_CATEGORIES.contains { $0.label == trip.category.rawValue }
+                ? trip.category.rawValue
+                : TripCategory.adventure.rawValue
+        )
         _imageUrl = State(initialValue: trip.imageUrl ?? "")
         _isPublic = State(initialValue: trip.isPublic)
         _itinerary = State(initialValue: trip.itinerary)
@@ -731,10 +737,8 @@ struct CreateTripView: View {
         }
         .tint(.black)
         .onAppear {
-            loadExtraCategories()
             synchronizeInjectedTrip()
         }
-        .sheet(isPresented: $showAddCategory) { addCategorySheet }
     }
 
     private var wizardHeader: some View {
@@ -806,18 +810,61 @@ struct CreateTripView: View {
     }
 
     private var categoryPicker: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("สไตล์ของทริป").font(.system(size: 11, weight: .bold)).foregroundColor(.gray)
-            Menu {
-                ForEach(TripCategory.allCases, id: \.self) { category in
-                    Button(category.rawValue) { selectedCategoryRaw = category.rawValue }
+        VStack(alignment: .leading, spacing: 12) {
+            Text("สไตล์ของทริป")
+                .font(.system(size: 15, weight: .bold))
+                .foregroundColor(.adaptiveText)
+            Text("เลือกหมวดหมู่หลัก 1 รายการ เพื่อจับคู่กับความสนใจของผู้ใช้ได้ตรงที่สุด")
+                .font(.caption)
+                .foregroundColor(.adaptiveSecondaryText)
+
+            LazyVGrid(
+                columns: [
+                    GridItem(.flexible(), spacing: 12),
+                    GridItem(.flexible(), spacing: 12),
+                    GridItem(.flexible(), spacing: 12)
+                ],
+                spacing: 12
+            ) {
+                ForEach(INTEREST_CATEGORIES) { category in
+                    let isSelected = selectedCategoryRaw == category.label
+                    Button {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        selectedCategoryRaw = category.label
+                    } label: {
+                        VStack(spacing: 8) {
+                            Text(category.icon)
+                                .font(.system(size: 30))
+                            Text(category.label)
+                                .font(.system(size: 12, weight: .bold))
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.75)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 88)
+                        .background(isSelected ? Color.appPrimary : Color.gray.opacity(0.06))
+                        .foregroundColor(isSelected ? .white : .adaptiveText)
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 14)
+                                .stroke(
+                                    isSelected ? Color.appPrimary : Color.gray.opacity(0.18),
+                                    lineWidth: isSelected ? 2 : 1
+                                )
+                        }
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                        .shadow(
+                            color: isSelected ? Color.appPrimary.opacity(0.22) : .clear,
+                            radius: 6,
+                            x: 0,
+                            y: 3
+                        )
+                        .contentShape(RoundedRectangle(cornerRadius: 14))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("สไตล์ทริป \(category.label)")
+                    .accessibilityAddTraits(isSelected ? .isSelected : [])
                 }
-                ForEach(extraCategories, id: \.self) { category in
-                    Button(category) { selectedCategoryRaw = category }
-                }
-                Divider()
-                Button("เพิ่มสไตล์...") { showAddCategory = true }
-            } label: { pickerLabel(selectedCategoryRaw) }
+            }
         }
     }
 
@@ -983,26 +1030,6 @@ struct CreateTripView: View {
         .background(Color.adaptiveBackground)
     }
 
-    private var addCategorySheet: some View {
-        NavigationView {
-            VStack {
-                TextField("ชื่อสไตล์ใหม่", text: $newCategoryText).padding().background(Color.gray.opacity(0.05)).cornerRadius(8)
-                Spacer()
-            }
-            .padding().navigationTitle("เพิ่มสไตล์")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("ยกเลิก") { showAddCategory = false } }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("บันทึก") {
-                        let value = newCategoryText.trimmingCharacters(in: .whitespacesAndNewlines)
-                        if !value.isEmpty { saveExtraCategory(value); selectedCategoryRaw = value }
-                        newCategoryText = ""; showAddCategory = false
-                    }
-                }
-            }
-        }
-    }
-
     private func synchronizeInjectedTrip() {
         if let trip = editingTrip {
             title = trip.title; destination = trip.destination
@@ -1018,22 +1045,6 @@ struct CreateTripView: View {
         }
     }
 
-    // Load saved extra categories and provide add-category sheet
-    private func loadExtraCategories() {
-        if let data = UserDefaults.standard.array(forKey: "extra_trip_categories_v1") as? [String] {
-            extraCategories = data
-        }
-    }
-
-    private func saveExtraCategory(_ category: String) {
-        var list = extraCategories
-        if !list.contains(category) {
-            list.insert(category, at: 0)
-            extraCategories = list
-            UserDefaults.standard.set(list, forKey: "extra_trip_categories_v1")
-        }
-    }
-    
     private func addTag() {
         let trimmed = tagInput.trimmingCharacters(in: .whitespacesAndNewlines)
             .replacingOccurrences(of: "#", with: "")
@@ -1052,6 +1063,10 @@ struct CreateTripView: View {
             }
             guard !destination.isEmpty else {
                 errorMessage = "กรุณาเลือกจังหวัดก่อนดำเนินการต่อ"
+                return
+            }
+            guard INTEREST_CATEGORIES.contains(where: { $0.label == selectedCategoryRaw }) else {
+                errorMessage = "กรุณาเลือกสไตล์ของทริปจากรายการที่กำหนด"
                 return
             }
         }
@@ -1084,6 +1099,11 @@ struct CreateTripView: View {
         
         guard !destination.isEmpty else {
             errorMessage = "กรุณากรอกสถานที่"
+            return
+        }
+
+        guard INTEREST_CATEGORIES.contains(where: { $0.label == selectedCategoryRaw }) else {
+            errorMessage = "กรุณาเลือกสไตล์ของทริปจากรายการที่กำหนด"
             return
         }
         
@@ -1250,7 +1270,8 @@ struct CreateTripView: View {
         5. จำนวนกิจกรรมต้องเหมาะกับจำนวนวัน งบประมาณ และช่วงเวลาที่ผู้ใช้เลือก ไม่อัดกิจกรรมมากเกินไป
         6. description เขียนสั้น 2–3 ประโยคในมุมเจ้าของทริปที่ชวนเพื่อนไปเที่ยว ห้ามกล่าวถึง AI
         7. ห้ามสร้างชื่อสถานที่หรือข้อเท็จจริงเฉพาะที่ไม่มั่นใจ และห้ามใช้อีโมจิ
-        8. ตอบ JSON เพียงก้อนเดียว ห้าม Markdown และห้ามข้อความอื่น
+        8. category ต้องเป็นหนึ่งในรายการนี้เท่านั้น: ทะเล, ภูเขา, แคมป์ปิ้ง, ผจญภัย, เที่ยวเมือง, คาเฟ่, อาหาร, ช้อปปิ้ง, ถ่ายรูป, คอนเสิร์ต, แฮงเอาต์, ไหว้พระ ห้ามใช้คำว่าอื่นๆ และห้ามสร้างหมวดหมู่ใหม่
+        9. ตอบ JSON เพียงก้อนเดียว ห้าม Markdown และห้ามข้อความอื่น
 
         JSON schema ที่ต้องตอบ:
         { 
@@ -1308,7 +1329,10 @@ struct CreateTripView: View {
                         if let t = dict["title"] as? String, title.isEmpty { self.title = t }
                         if let d = dict["destination"] as? String, destination.isEmpty { self.destination = d }
                         if let desc = dict["description"] as? String { self.description = desc }
-                        if let c = dict["category"] as? String { self.selectedCategoryRaw = c }
+                        if let c = dict["category"] as? String,
+                           INTEREST_CATEGORIES.contains(where: { $0.label == c }) {
+                            self.selectedCategoryRaw = c
+                        }
                         if let tTags = dict["tags"] as? [String] {
                             for tag in tTags {
                                 if !self.tags.contains(tag) { self.tags.append(tag) }
