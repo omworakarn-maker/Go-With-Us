@@ -396,7 +396,7 @@ struct TripDetailView: View {
                     compatibilityRow(icon: "clock.fill", label: "ช่วงเวลา", color: Color(hex: "#EF4444"), score: bd?.timeOfDay)
                 }
 
-                if bd?.budget == 0 {
+                if trip.matchBreakdown?.budget == 0 {
                     Text("ทริปนี้มีงบสูงกว่าที่คุณกำหนดเกิน 2 เท่า คะแนนรวมจึงไม่เกิน 39%")
                         .font(.system(size: 11, weight: .medium))
                         .foregroundColor(Color(hex: "#EF4444"))
