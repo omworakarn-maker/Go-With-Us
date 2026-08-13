@@ -385,10 +385,22 @@ struct TripDetailView: View {
                 // Factor list
                 VStack(alignment: .leading, spacing: 14) {
                     let bd = trip.matchBreakdown
-                    compatibilityRow(icon: "banknote", label: "งบประมาณ", color: Color(hex: "#3B82F6"), score: bd?.budget)
+                    compatibilityRow(
+                        icon: "banknote",
+                        label: bd?.budget == 0 ? "งบประมาณ (เกินงบมาก)" : "งบประมาณ",
+                        color: Color(hex: "#3B82F6"),
+                        score: bd?.budget
+                    )
                     compatibilityRow(icon: "list.number", label: "จำนวนกิจกรรมต่อวัน", color: Color(hex: "#8B5CF6"), score: bd?.activityStyle)
                     compatibilityRow(icon: "tag.fill", label: "ความชอบ", color: Color(hex: "#F59E0B"), score: bd?.category)
                     compatibilityRow(icon: "clock.fill", label: "ช่วงเวลา", color: Color(hex: "#EF4444"), score: bd?.timeOfDay)
+                }
+
+                if bd?.budget == 0 {
+                    Text("ทริปนี้มีงบสูงกว่าที่คุณกำหนดเกิน 2 เท่า คะแนนรวมจึงไม่เกิน 39%")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(Color(hex: "#EF4444"))
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
             .padding(18)

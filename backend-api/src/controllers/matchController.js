@@ -316,14 +316,17 @@ export const calculateTripCompatibilityDetailed = (user, trip) => {
         appendWeightedBlock(userVector, userBudgetBlock, MATCH_WEIGHTS.budget);
         // เพิ่มเวกเตอร์งบของทริปเข้าเวกเตอร์หลัก โดยคูณสเกลน้ำหนัก (0.30)
         appendWeightedBlock(tripVector, tripBudgetBlock, MATCH_WEIGHTS.budget);
-        // คะแนนงบที่แสดงบน UI ต้องสื่อถึงความสามารถในการจ่ายจริง
-        // หากทริปไม่เกินงบผู้ใช้ให้ 100; หากเกินงบให้ลดตามสัดส่วน
+        // คะแนนงบที่แสดงบน UI ต้องสื่อถึงความเข้ากันได้จริง
+        // หากเกินงบมากกว่า 2 เท่า ถือว่าไม่ผ่านเงื่อนไขด้านงบและให้ 0%
+        // หากเกินไม่ถึง 2 เท่า ให้ลดลงตามสัดส่วนกำลังจ่าย
         // (เวกเตอร์งบสำหรับคะแนนรวม Cosine ยังคงใช้สูตรเดิม)
         breakdown.budget = tripBudgetTHB === 0
             ? 100
             : tripBudgetTHB <= userBudgetTHB
                 ? 100
-                : Math.round(clamp(userBudgetTHB / tripBudgetTHB, 0, 1) * 100);
+                : tripBudgetTHB > userBudgetTHB * 2
+                    ? 0
+                    : Math.round(clamp(userBudgetTHB / tripBudgetTHB, 0, 1) * 100);
     }
 
     // 2. การคำนวณเวกเตอร์ด้านสไตล์การทำกิจกรรม (น้ำหนัก 20%)
