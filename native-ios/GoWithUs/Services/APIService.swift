@@ -9,7 +9,7 @@ class APIService {
     // private let baseURL = "http://192.168.1.88:3000/api" // Local backup
     
     // Base URL - Production (Render)
-    let baseURL = "https://go-with-us.onrender.com/api"
+    let baseURL = "https://go-with-us-czc8.onrender.com/api"
     
     private init() {}
     

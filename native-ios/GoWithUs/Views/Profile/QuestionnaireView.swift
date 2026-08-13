@@ -46,7 +46,7 @@ struct QuestionnaireView: View {
     @State private var endTime: Date = Calendar.current.date(bySettingHour: 18, minute: 0, second: 0, of: Date()) ?? Date()
     
     @State private var timeOfDay: [String] = []
-    @State private var interests: [String] = []
+    @State private var interests: Set<String> = []
     @State private var movingForward: Bool = true
     
     @State private var userName: String = "User"
@@ -267,7 +267,9 @@ struct QuestionnaireView: View {
                                         .padding()
                                         .background(isSelected ? Color.black : Color.gray.opacity(0.1))
                                         .cornerRadius(12)
+                                        .contentShape(RoundedRectangle(cornerRadius: 12))
                                     }
+                                    .buttonStyle(.plain)
                                 }
                             }
                             .padding(.top, 20)
@@ -300,10 +302,10 @@ struct QuestionnaireView: View {
                                         ) {
                                             triggerHapticFeedback()
                                             if interests.contains(cat.label) {
-                                                interests.removeAll { $0 == cat.label }
+                                                interests.remove(cat.label)
                                             } else {
                                                 if interests.count < 5 {
-                                                    interests.append(cat.label)
+                                                    interests.insert(cat.label)
                                                 }
                                             }
                                         }
@@ -321,9 +323,7 @@ struct QuestionnaireView: View {
                     }
                     .padding()
                 }
-                .onTapGesture {
-                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-                }
+                .scrollDismissesKeyboard(.interactively)
                 
                 if !errorMessage.isEmpty {
                     Text(errorMessage)
@@ -419,7 +419,7 @@ struct QuestionnaireView: View {
                     isBirthDateSet = true
                 }
                 if let existingInterests = user.interests {
-                    interests = existingInterests
+                    interests = Set(existingInterests)
                 }
                 if let style = user.travelStyle {
                     if let b = style.budget { budget = Double(b) }
@@ -447,7 +447,7 @@ struct QuestionnaireView: View {
                 
                 let updatedUser = try await AuthService.shared.updateProfile(
                     name: userName,
-                    interests: interests,
+                    interests: Array(interests).sorted(),
                     age: isOnboarding ? calculatedAge : nil,
                     birthDate: isOnboarding ? birthDate : nil,
                     travelStyle: travelStyle,
@@ -523,6 +523,7 @@ struct QuestionnaireInterestCard: View {
                     .stroke(isSelected ? Color.appPrimary : Color.gray.opacity(0.2), lineWidth: 1)
             )
             .cornerRadius(16)
+            .contentShape(RoundedRectangle(cornerRadius: 16))
             .shadow(color: isSelected ? Color.appPrimary.opacity(0.3) : Color.clear, radius: 5, x: 0, y: 3)
         }
         .buttonStyle(PlainButtonStyle())
@@ -567,6 +568,8 @@ struct QuestionnaireActivityStyleCard: View {
             .padding()
             .background(isSelected ? Color.black : Color.gray.opacity(0.1))
             .cornerRadius(12)
+            .contentShape(RoundedRectangle(cornerRadius: 12))
         }
+        .buttonStyle(.plain)
     }
 }

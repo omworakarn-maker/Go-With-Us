@@ -1,6 +1,6 @@
 import express from 'express';
 import { verifyToken } from '../middleware/auth.js';
-import { getProfile, updateProfile, getAllUsers, getAdminOverview, getAdminUsers, registerDeviceToken, getPublicProfile, updatePrivacySettings, checkUsername, reportUser, banUser, warnUser, getAllReports, requestVerification, getVerificationRequests, verifyUser } from '../controllers/userController.js';
+import { getProfile, updateProfile, getAllUsers, getAdminOverview, getAdminUsers, registerDeviceToken, getPublicProfile, updatePrivacySettings, checkUsername, reportUser, banUser, warnUser, getAllReports, requestVerification, getVerificationRequests, verifyUser, resetAccount, deleteAccount } from '../controllers/userController.js';
 
 const router = express.Router();
 
@@ -19,6 +19,8 @@ router.put('/profile', updateProfile);
 router.put('/:targetId/profile', updateProfile); // Admin can use this to edit others
 router.put('/privacy-settings', updatePrivacySettings);
 router.post('/device-token', registerDeviceToken);
+router.post('/account/reset', resetAccount);
+router.delete('/account', deleteAccount);
 
 // Moderation routes
 router.post('/:targetId/report', reportUser);

@@ -2,6 +2,82 @@ import bcrypt from 'bcryptjs';
 import prisma from '../utils/prismaClient.js';
 import { generateEmbedding } from '../utils/gemini.js';
 
+// Reset activity and profile preferences while keeping login credentials.
+export const resetAccount = async (req, res) => {
+    const userId = req.user.userId;
+
+    try {
+        await prisma.$transaction(async (tx) => {
+            await tx.report.deleteMany({
+                where: { OR: [{ reporterId: userId }, { reportedId: userId }] }
+            });
+            await tx.userMatch.deleteMany({
+                where: { OR: [{ likerId: userId }, { likedId: userId }] }
+            });
+            await tx.notification.deleteMany({ where: { userId } });
+            await tx.message.deleteMany({
+                where: { OR: [{ senderId: userId }, { receiverId: userId }] }
+            });
+            await tx.participant.deleteMany({ where: { userId } });
+            // Deleting owned trips also removes their participants and group messages.
+            await tx.trip.deleteMany({ where: { creatorId: userId } });
+            await tx.user.update({
+                where: { id: userId },
+                data: {
+                    gender: null,
+                    age: null,
+                    bio: null,
+                    birthDate: null,
+                    profileImage: null,
+                    gallery: [],
+                    interests: [],
+                    travelStyle: null,
+                    embedding: null,
+                    fcmToken: null,
+                    isProfilePublic: true,
+                    showGender: true,
+                    showAge: true,
+                    showBio: true,
+                    showInterests: true,
+                    showEmail: false,
+                    isVerified: false,
+                    verificationStatus: 'unverified',
+                    idCardImage: null,
+                    faceScanImage: null
+                }
+            });
+        });
+
+        res.json({ message: 'Account reset successfully' });
+    } catch (error) {
+        console.error('Reset account error:', error);
+        res.status(500).json({ message: 'Unable to reset account' });
+    }
+};
+
+// Permanently delete the signed-in user and all associated activity.
+export const deleteAccount = async (req, res) => {
+    const userId = req.user.userId;
+
+    try {
+        await prisma.$transaction(async (tx) => {
+            await tx.report.deleteMany({
+                where: { OR: [{ reporterId: userId }, { reportedId: userId }] }
+            });
+            await tx.userMatch.deleteMany({
+                where: { OR: [{ likerId: userId }, { likedId: userId }] }
+            });
+            await tx.notification.deleteMany({ where: { userId } });
+            await tx.user.delete({ where: { id: userId } });
+        });
+
+        res.json({ message: 'Account deleted successfully' });
+    } catch (error) {
+        console.error('Delete account error:', error);
+        res.status(500).json({ message: 'Unable to delete account' });
+    }
+};
+
 // Get current user profile
 export const getProfile = async (req, res) => {
     try {

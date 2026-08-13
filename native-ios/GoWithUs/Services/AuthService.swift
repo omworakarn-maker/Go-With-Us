@@ -58,6 +58,24 @@ class AuthService {
         _ = KeychainService.shared.deleteToken()
         UserDefaults.standard.removeObject(forKey: "current_user_id")
     }
+
+    // MARK: - Account Management
+    func resetAccount() async throws {
+        struct MessageResponse: Decodable { let message: String }
+        let _: MessageResponse = try await APIService.shared.request(
+            endpoint: "/users/account/reset",
+            method: .post
+        )
+    }
+
+    func deleteAccount() async throws {
+        struct MessageResponse: Decodable { let message: String }
+        let _: MessageResponse = try await APIService.shared.request(
+            endpoint: "/users/account",
+            method: .delete
+        )
+        logout()
+    }
     
     // MARK: - Get Current User
     func getCurrentUser() async throws -> User {

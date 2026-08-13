@@ -30,17 +30,24 @@ struct MatchTripView: View {
                         
                         Spacer()
                         
-                        // State for navigation
-                        NavigationLink(value: "placeholder") { EmptyView() } // Hack for destiny
                         Button(action: {
                             Task { await viewModel.fetchMatches(force: true) }
                         }) {
-                            Image(systemName: "arrow.clockwise")
-                                .font(.system(size: 20, weight: .bold))
-                                .foregroundColor(.adaptiveText)
-                                .rotationEffect(.degrees(viewModel.isLoading ? 360 : 0))
-                                .animation(viewModel.isLoading ? Animation.linear(duration: 1).repeatForever(autoreverses: false) : .default, value: viewModel.isLoading)
+                            ZStack {
+                                if viewModel.isLoading {
+                                    ProgressView()
+                                        .tint(.adaptiveText)
+                                } else {
+                                    Image(systemName: "arrow.clockwise")
+                                        .font(.system(size: 20, weight: .bold))
+                                        .foregroundColor(.adaptiveText)
+                                }
+                            }
+                            .frame(width: 28, height: 28)
                         }
+                        .buttonStyle(.plain)
+                        .disabled(viewModel.isLoading)
+                        .accessibilityLabel(viewModel.isLoading ? "กำลังโหลดทริป" : "รีเฟรชทริป")
                     }
                     .padding()
                     
@@ -247,7 +254,10 @@ class MatchTripViewModel: ObservableObject {
                 self.isLoading = false
             }
         } catch let error as URLError where error.code == .cancelled {
-            // Ignore cancellation
+            // ยกเลิกคำขอได้โดยไม่แสดง error แต่ต้องคืนสถานะ loading เสมอ
+            await MainActor.run {
+                self.isLoading = false
+            }
         } catch {
             await MainActor.run {
                 self.errorMessage = "เกิดข้อผิดพลาดในการโหลดข้อมูล"

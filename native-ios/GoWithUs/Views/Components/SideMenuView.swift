@@ -8,6 +8,10 @@ struct SideMenuView: View {
     @State private var showSettings = false
     @State private var showLogoutAlert = false
     @State private var showLanguageAlert = false
+    @State private var showResetConfirmation = false
+    @State private var showDeleteConfirmation = false
+    @State private var accountActionMessage: String?
+    @State private var isManagingAccount = false
     
     var body: some View {
         ZStack(alignment: .leading) {
@@ -39,6 +43,34 @@ struct SideMenuView: View {
             Button(SettingsManager.shared.localizedString(for: "ok"), role: .cancel) {}
         } message: {
             Text(SettingsManager.shared.localizedString(for: "language_change_message"))
+        }
+        .confirmationDialog(
+            "รีเซ็ตบัญชีหรือไม่?",
+            isPresented: $showResetConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("รีเซ็ตบัญชี", role: .destructive) { resetAccount() }
+            Button("ยกเลิก", role: .cancel) {}
+        } message: {
+            Text("ระบบจะล้างโปรไฟล์ แบบสอบถาม ทริป การเข้าร่วม แชท และประวัติการใช้งาน แต่คุณยังเข้าสู่ระบบด้วยอีเมลเดิมได้")
+        }
+        .confirmationDialog(
+            "ลบบัญชีถาวรหรือไม่?",
+            isPresented: $showDeleteConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("ลบบัญชีถาวร", role: .destructive) { deleteAccount() }
+            Button("ยกเลิก", role: .cancel) {}
+        } message: {
+            Text("บัญชีและข้อมูลทั้งหมดจะถูกลบถาวรและไม่สามารถกู้คืนได้")
+        }
+        .alert("จัดการบัญชี", isPresented: Binding(
+            get: { accountActionMessage != nil },
+            set: { if !$0 { accountActionMessage = nil } }
+        )) {
+            Button("ตกลง", role: .cancel) { accountActionMessage = nil }
+        } message: {
+            Text(accountActionMessage ?? "")
         }
         .tint(.black)
     }
@@ -245,8 +277,114 @@ struct SideMenuView: View {
                         }
                     }
                     .padding(.horizontal, 24)
+
+                    if authViewModel.currentUser != nil {
+                        Divider()
+                            .padding(.horizontal, 24)
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("จัดการบัญชี")
+                                .font(.caption)
+                                .fontWeight(.bold)
+                                .foregroundColor(.adaptiveSecondaryText)
+
+                            Button {
+                                showResetConfirmation = true
+                            } label: {
+                                accountManagementRow(
+                                    icon: "arrow.counterclockwise.circle",
+                                    title: "รีเซ็ตบัญชี",
+                                    color: .orange
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(isManagingAccount)
+
+                            Button {
+                                showDeleteConfirmation = true
+                            } label: {
+                                accountManagementRow(
+                                    icon: "trash",
+                                    title: "ลบบัญชีถาวร",
+                                    color: .red
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(isManagingAccount)
+
+                            if isManagingAccount {
+                                HStack(spacing: 8) {
+                                    ProgressView()
+                                    Text("กำลังดำเนินการ...")
+                                        .font(.caption)
+                                        .foregroundColor(.adaptiveSecondaryText)
+                                }
+                                .padding(.top, 4)
+                            }
+                        }
+                        .padding(.horizontal, 24)
+                    }
                 }
                 .padding(.top, 10)
+            }
+        }
+    }
+
+    private func accountManagementRow(icon: String, title: String, color: Color) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 19, weight: .semibold))
+                .frame(width: 24)
+            Text(title)
+                .font(.system(size: 16, weight: .bold))
+            Spacer()
+            Image(systemName: "chevron.right")
+                .font(.system(size: 12, weight: .bold))
+                .opacity(0.5)
+        }
+        .foregroundColor(color)
+        .padding(.vertical, 12)
+        .contentShape(Rectangle())
+    }
+
+    private func resetAccount() {
+        guard !isManagingAccount else { return }
+        isManagingAccount = true
+        Task {
+            do {
+                try await AuthService.shared.resetAccount()
+                MatchTripViewModel.invalidateCache()
+                await authViewModel.loadCurrentUser()
+                await MainActor.run {
+                    isManagingAccount = false
+                    accountActionMessage = "รีเซ็ตบัญชีเรียบร้อยแล้ว กรุณาตอบแบบสอบถามใหม่เพื่อรับคำแนะนำทริป"
+                }
+            } catch {
+                await MainActor.run {
+                    isManagingAccount = false
+                    accountActionMessage = "รีเซ็ตบัญชีไม่สำเร็จ กรุณาลองใหม่อีกครั้ง"
+                }
+            }
+        }
+    }
+
+    private func deleteAccount() {
+        guard !isManagingAccount else { return }
+        isManagingAccount = true
+        Task {
+            do {
+                try await AuthService.shared.deleteAccount()
+                await MainActor.run {
+                    isManagingAccount = false
+                    showSettings = false
+                    isShowing = false
+                    authViewModel.logout()
+                }
+            } catch {
+                await MainActor.run {
+                    isManagingAccount = false
+                    accountActionMessage = "ลบบัญชีไม่สำเร็จ กรุณาลองใหม่อีกครั้ง"
+                }
             }
         }
     }
