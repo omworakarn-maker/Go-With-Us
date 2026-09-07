@@ -1,4 +1,6 @@
 import SwiftUI
+import AVFoundation
+import Vision
 import PhotosUI
 
 struct ProfileView: View {
@@ -531,9 +533,8 @@ struct UserTripsSectionView: View {
 }
 
 // MARK: - Identity verification
-/// The flow verifies access to the registered email before accepting a selfie.
-/// Face liveness is intentionally not claimed here: it requires a dedicated
-/// liveness provider before the server may treat this as bank-grade verification.
+/// The flow verifies access to the registered email, then performs a basic
+/// on-device active-liveness challenge with Apple Vision before accepting a selfie.
 struct IdentityVerificationView: View {
     @EnvironmentObject private var authViewModel: AuthViewModel
     @Environment(\.dismiss) private var dismiss
@@ -541,6 +542,7 @@ struct IdentityVerificationView: View {
     @State private var otp = ""
     @State private var selfie: UIImage?
     @State private var showCamera = false
+    @State private var livenessPassed = false
     @State private var isSendingCode = false
     @State private var isSubmitting = false
     @State private var message = ""
@@ -558,7 +560,7 @@ struct IdentityVerificationView: View {
                             .foregroundColor(.appPrimary)
                         Text("ยืนยันตัวตนเพื่อความปลอดภัย")
                             .font(.title2.bold())
-                        Text("ยืนยันอีเมลก่อน แล้วจึงถ่ายเซลฟี่เพื่อส่งคำขอให้ผู้ดูแลตรวจสอบ")
+                        Text("ยืนยันอีเมลก่อน แล้วทำตามคำแนะนำการขยับใบหน้าเพื่อส่งคำขอให้ผู้ดูแลตรวจสอบ")
                             .font(.subheadline)
                             .foregroundColor(.adaptiveSecondaryText)
                             .multilineTextAlignment(.center)
@@ -601,22 +603,33 @@ struct IdentityVerificationView: View {
                     }
 
                     verificationStep(
-                        number: "2", icon: "person.crop.circle.badge.checkmark", title: "ถ่ายเซลฟี่ยืนยันใบหน้า",
-                        description: "ใช้กล้องหน้า ถ่ายในที่สว่าง มองตรง เห็นใบหน้าชัดเจน และไม่สวมหน้ากากหรือแว่นกันแดด"
+                        number: "2", icon: "person.crop.circle.badge.checkmark", title: "ตรวจสอบการมีตัวตนด้วยใบหน้า",
+                        description: "ใช้กล้องหน้าในที่สว่าง แล้วมองตรงและหันหน้าตามคำแนะนำ ระบบจะตรวจการเคลื่อนไหวด้วย Apple Vision"
                     ) {
                         if let selfie {
-                            Image(uiImage: selfie)
-                                .resizable()
-                                .scaledToFill()
-                                .frame(height: 210)
-                                .frame(maxWidth: .infinity)
-                                .clipShape(RoundedRectangle(cornerRadius: 16))
+                            ZStack(alignment: .bottomLeading) {
+                                Image(uiImage: selfie)
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(height: 210)
+                                    .frame(maxWidth: .infinity)
+                                    .clipShape(RoundedRectangle(cornerRadius: 16))
+
+                                Label("ตรวจการเคลื่อนไหวผ่านแล้ว", systemImage: "checkmark.seal.fill")
+                                    .font(.caption.bold())
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 8)
+                                    .background(Color.green.opacity(0.92))
+                                    .clipShape(Capsule())
+                                    .padding(12)
+                            }
                         } else {
                             VStack(spacing: 10) {
                                 Image(systemName: "face.smiling")
                                     .font(.system(size: 42))
                                     .foregroundColor(.appSecondary)
-                                Text("ยังไม่ได้ถ่ายเซลฟี่")
+                                Text("ยังไม่ได้ตรวจการเคลื่อนไหวใบหน้า")
                                     .font(.subheadline.weight(.semibold))
                                     .foregroundColor(.adaptiveSecondaryText)
                             }
@@ -626,7 +639,7 @@ struct IdentityVerificationView: View {
                             .clipShape(RoundedRectangle(cornerRadius: 16))
                         }
 
-                        Button(selfie == nil ? "เปิดกล้องหน้า" : "ถ่ายใหม่") {
+                        Button(selfie == nil ? "เริ่มตรวจใบหน้า" : "ตรวจใหม่") {
                             showCamera = true
                         }
                         .font(.subheadline.bold())
@@ -660,16 +673,15 @@ struct IdentityVerificationView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .topBarLeading) { Button("ปิด") { dismiss() } } }
         }
-        .sheet(isPresented: $showCamera) {
-            SelfieCameraPicker(image: $selfie)
-                .ignoresSafeArea()
+        .fullScreenCover(isPresented: $showCamera) {
+            ActiveLivenessView(image: $selfie, passed: $livenessPassed)
         }
         .alert("การยืนยันตัวตน", isPresented: $showMessage) {
             Button("ตกลง") { if message.contains("ส่งคำขอ") { dismiss() } }
         } message: { Text(message) }
     }
 
-    private var canSubmit: Bool { otp.count == 6 && selfie != nil }
+    private var canSubmit: Bool { otp.count == 6 && selfie != nil && livenessPassed }
 
     private func verificationStep<Content: View>(number: String, icon: String, title: String, description: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -728,28 +740,297 @@ struct IdentityVerificationView: View {
     }
 }
 
-private struct SelfieCameraPicker: UIViewControllerRepresentable {
+private struct ActiveLivenessView: View {
     @Environment(\.dismiss) private var dismiss
     @Binding var image: UIImage?
+    @Binding var passed: Bool
+    @State private var instruction = "จัดใบหน้าให้อยู่ในกรอบและมองตรง"
+    @State private var step = 0
+    @State private var errorMessage: String?
 
-    func makeCoordinator() -> Coordinator { Coordinator(parent: self) }
-    func makeUIViewController(context: Context) -> UIImagePickerController {
-        let picker = UIImagePickerController()
-        picker.sourceType = UIImagePickerController.isSourceTypeAvailable(.camera) ? .camera : .photoLibrary
-        picker.cameraDevice = .front
-        picker.cameraCaptureMode = .photo
-        picker.delegate = context.coordinator
-        return picker
-    }
-    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+    var body: some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
 
-    final class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
-        let parent: SelfieCameraPicker
-        init(parent: SelfieCameraPicker) { self.parent = parent }
-        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) { parent.dismiss() }
-        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
-            parent.image = info[.originalImage] as? UIImage
-            parent.dismiss()
+            ActiveLivenessCamera(
+                onStatus: { text, currentStep in
+                    instruction = text
+                    step = currentStep
+                    errorMessage = nil
+                },
+                onComplete: { capturedImage in
+                    image = capturedImage
+                    passed = true
+                    dismiss()
+                },
+                onError: { errorMessage = $0 }
+            )
+            .ignoresSafeArea()
+
+            VStack {
+                HStack {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .frame(width: 44, height: 44)
+                            .background(.black.opacity(0.55))
+                            .clipShape(Circle())
+                    }
+                    .accessibilityLabel("ปิด")
+                    Spacer()
+                }
+
+                Spacer()
+
+                VStack(spacing: 14) {
+                    if let errorMessage {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.title2)
+                            .foregroundColor(.yellow)
+                        Text(errorMessage)
+                            .font(.headline)
+                            .multilineTextAlignment(.center)
+                    } else {
+                        Text("ขั้นตอน \(min(step + 1, 4)) จาก 4")
+                            .font(.caption.bold())
+                            .foregroundColor(.white.opacity(0.75))
+                        ProgressView(value: Double(step), total: 4)
+                            .tint(.green)
+                        Text(instruction)
+                            .font(.title3.bold())
+                            .multilineTextAlignment(.center)
+                    }
+                }
+                .foregroundColor(.white)
+                .padding(20)
+                .frame(maxWidth: .infinity)
+                .background(.black.opacity(0.68))
+                .clipShape(RoundedRectangle(cornerRadius: 20))
+            }
+            .padding(20)
         }
+        .onAppear {
+            image = nil
+            passed = false
+        }
+    }
+}
+
+private struct ActiveLivenessCamera: UIViewControllerRepresentable {
+    let onStatus: (String, Int) -> Void
+    let onComplete: (UIImage) -> Void
+    let onError: (String) -> Void
+
+    func makeUIViewController(context: Context) -> LivenessCameraViewController {
+        let controller = LivenessCameraViewController()
+        controller.onStatus = onStatus
+        controller.onComplete = onComplete
+        controller.onError = onError
+        return controller
+    }
+
+    func updateUIViewController(_ uiViewController: LivenessCameraViewController, context: Context) {}
+}
+
+private final class LivenessCameraViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDelegate {
+    var onStatus: ((String, Int) -> Void)?
+    var onComplete: ((UIImage) -> Void)?
+    var onError: ((String) -> Void)?
+
+    private let session = AVCaptureSession()
+    private let sessionQueue = DispatchQueue(label: "com.gowithus.liveness.session")
+    private let videoQueue = DispatchQueue(label: "com.gowithus.liveness.video")
+    private var previewLayer: AVCaptureVideoPreviewLayer?
+    private var challengeStep = 0
+    private var stableFrames = 0
+    private var firstTurnDirection: CGFloat?
+    private var isProcessingFrame = false
+    private var didFinish = false
+    private var lastSampleBuffer: CMSampleBuffer?
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.backgroundColor = .black
+        configureCamera()
+    }
+
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        previewLayer?.frame = view.bounds
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        sessionQueue.async { [weak self] in self?.session.stopRunning() }
+    }
+
+    private func configureCamera() {
+        guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
+            reportError("การตรวจใบหน้าต้องทดสอบบน iPhone ที่มีกล้องหน้า")
+            return
+        }
+
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        case .authorized:
+            setupSession()
+        case .notDetermined:
+            AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
+                granted ? self?.setupSession() : self?.reportError("กรุณาอนุญาตการใช้กล้องในการตั้งค่า")
+            }
+        default:
+            reportError("กรุณาอนุญาตการใช้กล้องในการตั้งค่า")
+        }
+    }
+
+    private func setupSession() {
+        sessionQueue.async { [weak self] in
+            guard let self else { return }
+            session.beginConfiguration()
+            session.sessionPreset = .high
+
+            guard
+                let camera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front),
+                let input = try? AVCaptureDeviceInput(device: camera),
+                session.canAddInput(input)
+            else {
+                session.commitConfiguration()
+                reportError("ไม่พบกล้องหน้าสำหรับตรวจสอบใบหน้า")
+                return
+            }
+
+            session.addInput(input)
+            let output = AVCaptureVideoDataOutput()
+            output.alwaysDiscardsLateVideoFrames = true
+            output.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA]
+            output.setSampleBufferDelegate(self, queue: videoQueue)
+
+            guard session.canAddOutput(output) else {
+                session.commitConfiguration()
+                reportError("ไม่สามารถเริ่มระบบตรวจสอบใบหน้าได้")
+                return
+            }
+            session.addOutput(output)
+            if let connection = output.connection(with: .video) {
+                if connection.isVideoRotationAngleSupported(90) {
+                    connection.videoRotationAngle = 90
+                }
+                if connection.isVideoMirroringSupported {
+                    connection.isVideoMirrored = true
+                }
+            }
+            session.commitConfiguration()
+
+            DispatchQueue.main.async {
+                let layer = AVCaptureVideoPreviewLayer(session: self.session)
+                layer.videoGravity = .resizeAspectFill
+                layer.frame = self.view.bounds
+                self.view.layer.insertSublayer(layer, at: 0)
+                self.previewLayer = layer
+            }
+            session.startRunning()
+        }
+    }
+
+    func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
+        guard !didFinish, !isProcessingFrame else { return }
+        isProcessingFrame = true
+        lastSampleBuffer = sampleBuffer
+
+        let request = VNDetectFaceRectanglesRequest { [weak self] request, _ in
+            guard let self else { return }
+            defer { self.isProcessingFrame = false }
+            guard let face = (request.results as? [VNFaceObservation])?.first else {
+                self.stableFrames = 0
+                self.publishStatus("ไม่พบใบหน้า กรุณามองกล้องและอยู่ในที่สว่าง", step: self.challengeStep)
+                return
+            }
+            self.evaluate(face: face, sampleBuffer: sampleBuffer)
+        }
+
+        do {
+            try VNImageRequestHandler(cmSampleBuffer: sampleBuffer, orientation: .leftMirrored).perform([request])
+        } catch {
+            isProcessingFrame = false
+        }
+    }
+
+    private func evaluate(face: VNFaceObservation, sampleBuffer: CMSampleBuffer) {
+        let yaw = CGFloat(face.yaw?.doubleValue ?? 0)
+        let faceLargeEnough = face.boundingBox.width > 0.22 && face.boundingBox.height > 0.22
+
+        guard faceLargeEnough else {
+            stableFrames = 0
+            publishStatus("ขยับใบหน้าเข้ามาใกล้กล้องอีกเล็กน้อย", step: challengeStep)
+            return
+        }
+
+        switch challengeStep {
+        case 0:
+            check(abs(yaw) < 0.14, requiredFrames: 8, nextMessage: "หันหน้าไปด้านใดด้านหนึ่ง")
+        case 1:
+            if abs(yaw) > 0.28 {
+                firstTurnDirection = yaw > 0 ? 1 : -1
+                advance(to: 2, message: "หันหน้ากลับไปอีกด้าน")
+            } else {
+                stableFrames = 0
+            }
+        case 2:
+            if let firstTurnDirection, yaw * firstTurnDirection < -0.20 {
+                advance(to: 3, message: "มองตรงและอยู่นิ่ง")
+            } else {
+                stableFrames = 0
+            }
+        case 3:
+            if abs(yaw) < 0.12 {
+                stableFrames += 1
+                if stableFrames >= 10 { complete(with: sampleBuffer) }
+            } else {
+                stableFrames = 0
+            }
+        default:
+            break
+        }
+    }
+
+    private func check(_ condition: Bool, requiredFrames: Int, nextMessage: String) {
+        if condition {
+            stableFrames += 1
+            if stableFrames >= requiredFrames {
+                advance(to: challengeStep + 1, message: nextMessage)
+            }
+        } else {
+            stableFrames = 0
+        }
+    }
+
+    private func advance(to step: Int, message: String) {
+        challengeStep = step
+        stableFrames = 0
+        publishStatus(message, step: step)
+    }
+
+    private func complete(with sampleBuffer: CMSampleBuffer) {
+        guard !didFinish, let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
+        didFinish = true
+        let ciImage = CIImage(cvPixelBuffer: pixelBuffer).oriented(.leftMirrored)
+        let context = CIContext()
+        guard let cgImage = context.createCGImage(ciImage, from: ciImage.extent) else {
+            reportError("ไม่สามารถบันทึกภาพยืนยันได้")
+            return
+        }
+        let image = UIImage(cgImage: cgImage)
+        sessionQueue.async { [weak self] in self?.session.stopRunning() }
+        DispatchQueue.main.async { [weak self] in self?.onComplete?(image) }
+    }
+
+    private func publishStatus(_ message: String, step: Int) {
+        DispatchQueue.main.async { [weak self] in self?.onStatus?(message, step) }
+    }
+
+    private func reportError(_ message: String) {
+        DispatchQueue.main.async { [weak self] in self?.onError?(message) }
     }
 }

@@ -56,7 +56,7 @@
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>แอปต้องการเข้าถึงรูปภาพของคุณเพื่อเลือกรูปสำหรับสร้างทริป</string>
 	<key>NSCameraUsageDescription</key>
-	<string>แอปต้องการเข้าถึงกล้องถ่ายรูปเพื่อถ่ายภาพสำหรับทริป</string>
+	<string>แอปต้องการเข้าถึงกล้องเพื่อถ่ายภาพทริปและตรวจสอบการมีตัวตนด้วยการเคลื่อนไหวของใบหน้า</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>แอปต้องการเข้าถึงไมโครโฟนเพื่อบันทึกวิดีโอ</string>
 </dict>

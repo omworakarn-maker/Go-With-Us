@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 
 struct QuestionnaireView: View {
     @Environment(\.dismiss) var dismiss
@@ -8,6 +9,8 @@ struct QuestionnaireView: View {
     @State private var username = ""
     @State private var usernameStatus: UsernameStatus = .idle
     @State private var usernameCheckTask: Task<Void, Never>?
+    @State private var selectedProfileItem: PhotosPickerItem?
+    @State private var profileImage: UIImage?
     @State private var birthDate = Calendar.current.date(byAdding: .year, value: -18, to: Date()) ?? Date()
     @State private var isBirthDateSet = false
     
@@ -60,8 +63,10 @@ struct QuestionnaireView: View {
         guard !isSubmitting else { return false }
         switch displayedStep {
         case 0:
-            return !username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                && usernameStatus == .available && isBirthDateSet
+            let cleanedUsername = username.trimmingCharacters(in: .whitespacesAndNewlines)
+            let usernameIsValid = cleanedUsername.isEmpty || usernameStatus == .available
+            let hasRequiredImage = !isOnboarding || profileImage != nil
+            return usernameIsValid && isBirthDateSet && hasRequiredImage
         case 3:
             return !timeOfDay.isEmpty
         case 4:
@@ -150,6 +155,39 @@ struct QuestionnaireView: View {
                                 Text("ข้อมูลนี้ช่วยให้ผู้ร่วมทริปรู้จักคุณ และใช้สร้างโปรไฟล์ของคุณ")
                                     .font(.subheadline).foregroundColor(.secondary)
 
+                                VStack(spacing: 12) {
+                                    if let profileImage {
+                                        Image(uiImage: profileImage)
+                                            .resizable()
+                                            .scaledToFill()
+                                            .frame(width: 124, height: 124)
+                                            .clipShape(Circle())
+                                            .overlay(Circle().stroke(Color.appPrimary, lineWidth: 3))
+                                    } else {
+                                        Image(systemName: "person.crop.circle.badge.plus")
+                                            .font(.system(size: 86, weight: .light))
+                                            .foregroundColor(.appPrimary)
+                                    }
+
+                                    PhotosPicker(selection: $selectedProfileItem, matching: .images) {
+                                        Label(profileImage == nil ? "เลือกรูปโปรไฟล์" : "เปลี่ยนรูปโปรไฟล์", systemImage: "photo")
+                                            .font(.subheadline.bold())
+                                            .foregroundColor(.white)
+                                            .padding(.horizontal, 20)
+                                            .padding(.vertical, 11)
+                                            .background(Color.appPrimary)
+                                            .clipShape(Capsule())
+                                    }
+
+                                    if isOnboarding && profileImage == nil {
+                                        Text("จำเป็นต้องเลือกรูปโปรไฟล์ก่อนดำเนินการต่อ")
+                                            .font(.caption)
+                                            .foregroundColor(.red)
+                                    }
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 8)
+
                                 VStack(alignment: .leading, spacing: 8) {
                                     Text("Username").font(.headline)
                                     HStack {
@@ -170,7 +208,7 @@ struct QuestionnaireView: View {
                                     switch usernameStatus {
                                     case .available: Text("Username นี้ใช้งานได้").foregroundColor(.green)
                                     case .taken(let message), .invalid(let message): Text(message).foregroundColor(.red)
-                                    default: Text("ใช้อักษรอย่างน้อย 3 ตัว และต้องไม่ซ้ำกับผู้อื่น").foregroundColor(.secondary)
+                                    default: Text("เว้นว่างได้ ระบบจะสร้าง Username ที่ไม่ซ้ำให้อัตโนมัติ").foregroundColor(.secondary)
                                     }
                                 }
 
@@ -379,8 +417,12 @@ struct QuestionnaireView: View {
                         
                         if displayedStep == 0 {
                             let cleanedUsername = username.trimmingCharacters(in: .whitespacesAndNewlines)
-                            if cleanedUsername.isEmpty || usernameStatus != .available {
+                            if !cleanedUsername.isEmpty && usernameStatus != .available {
                                 errorMessage = "กรุณาระบุ Username ที่สามารถใช้งานได้"
+                                return
+                            }
+                            if isOnboarding && profileImage == nil {
+                                errorMessage = "กรุณาเลือกรูปโปรไฟล์"
                                 return
                             }
                             if !isBirthDateSet {
@@ -424,12 +466,11 @@ struct QuestionnaireView: View {
             .navigationTitle("แบบสอบถาม")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("ข้าม") {
-                        if isOnboarding {
-                            authViewModel.needsOnboarding = false
+                if !isOnboarding {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button("ปิด") {
+                            dismiss()
                         }
-                        dismiss()
                     }
                 }
             }
@@ -448,6 +489,11 @@ struct QuestionnaireView: View {
                 if let existingInterests = user.interests {
                     interests = Set(existingInterests)
                 }
+                if let profileImageString = user.profileImage,
+                   !profileImageString.isEmpty,
+                   let existingImage = ProfileView.decodeBase64Image(profileImageString) {
+                    profileImage = existingImage
+                }
                 if let style = user.travelStyle {
                     if let b = style.budget { budget = Double(b) }
                     if let a = style.activityStyle { activityStyle = Double(a) }
@@ -455,6 +501,20 @@ struct QuestionnaireView: View {
                 }
             } catch {
                 print("Could not fetch user for questionnaire: \(error)")
+            }
+        }
+        .onChange(of: selectedProfileItem) { _, newItem in
+            guard let newItem else { return }
+            Task {
+                guard let data = try? await newItem.loadTransferable(type: Data.self),
+                      let selectedImage = UIImage(data: data) else {
+                    await MainActor.run { errorMessage = "ไม่สามารถเปิดรูปที่เลือกได้" }
+                    return
+                }
+                await MainActor.run {
+                    profileImage = selectedImage
+                    errorMessage = ""
+                }
             }
         }
     }
@@ -471,6 +531,13 @@ struct QuestionnaireView: View {
                     activityStyle: Int(activityStyle),
                     timeOfDay: timeOfDay
                 )
+
+                var profileImageBase64: String?
+                if let profileImage,
+                   let resizedImage = profileImage.resized(toWidth: 512),
+                   let jpegData = resizedImage.jpegData(compressionQuality: 0.65) {
+                    profileImageBase64 = "data:image/jpeg;base64," + jpegData.base64EncodedString()
+                }
                 
                 let updatedUser = try await AuthService.shared.updateProfile(
                     name: userName,
@@ -478,8 +545,11 @@ struct QuestionnaireView: View {
                     age: isOnboarding ? calculatedAge : nil,
                     birthDate: isOnboarding ? birthDate : nil,
                     travelStyle: travelStyle,
+                    profileImage: profileImageBase64,
                     username: isOnboarding
-                        ? username.trimmingCharacters(in: .whitespacesAndNewlines)
+                        ? (username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                            ? nil
+                            : username.trimmingCharacters(in: .whitespacesAndNewlines))
                         : nil
                 )
                 

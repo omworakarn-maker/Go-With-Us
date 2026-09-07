@@ -1,8 +1,18 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import prisma from '../utils/prismaClient.js';
 import { sendVerificationEmail } from '../utils/emailService.js';
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+
+const generateUniqueUsername = async (tx) => {
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+        const candidate = `traveler_${crypto.randomBytes(4).toString('hex')}`;
+        const existing = await tx.user.findUnique({ where: { username: candidate }, select: { id: true } });
+        if (!existing) return candidate;
+    }
+    throw new Error('Unable to generate a unique username.');
+};
 
 // Register new user
 export const register = async (req, res, next) => {
@@ -228,13 +238,15 @@ export const verifyOTP = async (req, res, next) => {
         }
 
         const user = await prisma.$transaction(async (tx) => {
+            const generatedUsername = await generateUniqueUsername(tx);
             const createdUser = await tx.user.create({
                 data: {
                     name: pending.name,
                     email: pending.email,
                     password: pending.passwordHash,
                     role: 'user',
-                    isEmailVerified: true
+                    isEmailVerified: true,
+                    username: generatedUsername
                 }
             });
             await tx.pendingRegistration.delete({ where: { email } });
