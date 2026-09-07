@@ -83,6 +83,7 @@ struct ContentView: View {
                         onCreateTap: { showingCreateTrip = true },
                         badgeCounts: badgeCounts
                     )
+                    .offset(y: 12)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
