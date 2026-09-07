@@ -65,7 +65,7 @@ const VerificationForm: React.FC = () => {
         );
     }
 
-    if (user?.verificationStatus === 'verified') {
+    if (user?.role === 'admin' || user?.verificationStatus === 'verified') {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
                 <div className="max-w-md w-full bg-white rounded-3xl p-10 shadow-sm border border-gray-100 text-center relative">
@@ -80,8 +80,12 @@ const VerificationForm: React.FC = () => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
                         </svg>
                     </div>
-                    <h1 className="text-2xl font-bold text-gray-900 mb-2">ยืนยันเรียบร้อยแล้ว</h1>
-                    <p className="text-gray-500 mb-8">บัญชีของคุณได้รับการยืนยันตัวตนแล้ว</p>
+                    <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                        {user?.role === 'admin' ? 'บัญชีผู้ดูแลระบบ' : 'ยืนยันเรียบร้อยแล้ว'}
+                    </h1>
+                    <p className="text-gray-500 mb-8">
+                        {user?.role === 'admin' ? 'บัญชีผู้ดูแลระบบได้รับสิทธิ์โดยไม่ต้องยืนยันตัวตนเพิ่มเติม' : 'บัญชีของคุณได้รับการยืนยันตัวตนแล้ว'}
+                    </p>
                     <button
                         onClick={() => navigate('/profile')}
                         className="w-full py-4 bg-black text-white rounded-xl font-bold hover:bg-gray-800 transition-all active:scale-95 text-base"
