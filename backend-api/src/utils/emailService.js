@@ -1,12 +1,11 @@
 /**
- * Send OTP Verification Email using Resend HTTP API
+ * Send OTP verification email through SendGrid's HTTPS API.
  * @param {string} to - Recipient email
  * @param {string} otp - 6-digit OTP code
  */
 export const sendVerificationEmail = async (to, otp) => {
-  const RESEND_API_KEY = process.env.RESEND_API_KEY;
-  const gmailUser = process.env.EMAIL_USER;
-  const gmailAppPassword = process.env.EMAIL_APP_PASSWORD;
+  const apiKey = process.env.SENDGRID_API_KEY;
+  const fromEmail = process.env.SENDGRID_FROM_EMAIL;
 
   const htmlContent = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
@@ -22,58 +21,35 @@ export const sendVerificationEmail = async (to, otp) => {
     </div>
   `;
 
-  // Local/student deployment: send from the owner's Gmail without a custom domain.
-  if (gmailUser && gmailAppPassword) {
-    try {
-      const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: { user: gmailUser, pass: gmailAppPassword.replace(/\s/g, '') }
-      });
-      const info = await transporter.sendMail({
-        from: `GoWithUs <${gmailUser}>`,
-        to,
-        subject: `GoWithUs OTP: ${otp}`,
-        html: htmlContent
-      });
-      console.log(`✅ Verification email sent to ${to} via Gmail. ID: ${info.messageId}`);
-      return;
-    } catch (error) {
-      console.error('❌ Gmail SMTP Error:', error.message);
-      throw new Error('Failed to send verification email via Gmail');
-    }
-  }
-
-  if (!RESEND_API_KEY) {
-    console.warn('⚠️ Email is not configured. Set EMAIL_USER and EMAIL_APP_PASSWORD.');
+  if (!apiKey || !fromEmail) {
+    console.warn('⚠️ Email is not configured. Set SENDGRID_API_KEY and SENDGRID_FROM_EMAIL.');
     throw new Error('Email service is not configured');
   }
 
   try {
-    const response = await fetch('https://api.resend.com/emails', {
+    const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
+        'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        from: 'GoWithUs App <onboarding@resend.dev>',
-        to: to,
+        personalizations: [{ to: [{ email: to }] }],
+        from: { email: fromEmail, name: 'GoWithUs' },
         subject: `GoWithUs OTP: ${otp}`,
-        html: htmlContent
+        content: [{ type: 'text/html', value: htmlContent }]
       })
     });
 
-    const data = await response.json();
-
     if (response.ok) {
-      console.log(`✅ Verification email sent to ${to} via Resend. ID: ${data.id}`);
+      console.log(`✅ Verification email sent to ${to} via SendGrid.`);
     } else {
-      console.error(`❌ Resend API Error:`, data);
-      throw new Error(`Resend Error: ${data.message || 'Failed to send email'}`);
+      const errorText = await response.text();
+      console.error('❌ SendGrid API Error:', response.status, errorText);
+      throw new Error(`SendGrid Error: HTTP ${response.status}`);
     }
   } catch (error) {
-    console.error(`❌ Fetch Error sending email to ${to}:`, error);
-    throw new Error('Failed to send verification email via HTTP');
+    console.error(`❌ Error sending email to ${to}:`, error);
+    throw error;
   }
 };
-import nodemailer from 'nodemailer';

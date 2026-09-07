@@ -64,6 +64,20 @@ model User {
   @@map("users")
 }
 
+// Registration data is kept here only until the email OTP is verified.
+// A real User row is created after successful verification.
+model PendingRegistration {
+  email        String   @id
+  name         String
+  passwordHash String   @map("password_hash")
+  otpCode      String   @map("otp_code")
+  otpExpiresAt DateTime @map("otp_expires_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("pending_registrations")
+}
+
 // Trip/Activity model
 model Trip {
   id              String    @id @default(uuid())

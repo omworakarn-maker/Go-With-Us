@@ -116,8 +116,8 @@ class AuthViewModel: ObservableObject {
         errorMessage = nil
         
         do {
-            let user = try await AuthService.shared.register(name: name, email: email, password: password)
-            currentUser = user
+            try await AuthService.shared.register(name: name, email: email, password: password)
+            currentUser = nil
             showOTPVerification = true
             // Do NOT set needsOnboarding here, because it triggers a fullScreenCover conflict.
         } catch {
@@ -137,7 +137,7 @@ class AuthViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         do {
-            try await AuthService.shared.verifyOTP(email: email, otp: otp)
+            currentUser = try await AuthService.shared.verifyOTP(email: email, otp: otp)
             isAuthenticated = true
             showOTPVerification = false
             needsOnboarding = true // Trigger onboarding ONLY after OTP is verified
