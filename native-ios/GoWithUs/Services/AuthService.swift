@@ -31,7 +31,7 @@ class AuthService {
     }
     
     // MARK: - Register
-    func register(name: String, email: String, password: String) async throws -> User {
+    func register(name: String, email: String, password: String) async throws {
         struct RegisterRequest: Encodable {
             let name: String
             let email: String
@@ -39,19 +39,18 @@ class AuthService {
         }
         
         let request = RegisterRequest(name: name, email: email, password: password)
-        let response: AuthResponse = try await APIService.shared.request(
+        struct PendingRegistrationResponse: Decodable {
+            let message: String
+            let email: String
+        }
+
+        let _: PendingRegistrationResponse = try await APIService.shared.request(
             endpoint: "/auth/register",
             method: .post,
             body: request,
             requiresAuth: false
         )
         
-        // Save token to keychain
-        _ = KeychainService.shared.saveToken(response.token)
-        // Save user ID to UserDefaults
-        UserDefaults.standard.set(response.user.id, forKey: "current_user_id")
-        
-        return response.user
     }
     
     // MARK: - Logout
@@ -96,20 +95,22 @@ class AuthService {
     }
     
     // MARK: - Verify OTP
-    func verifyOTP(email: String, otp: String) async throws {
+    func verifyOTP(email: String, otp: String) async throws -> User {
         struct VerifyOTPRequest: Encodable {
             let email: String
             let otp: String
         }
-        struct EmptyResponse: Decodable {}
-        
         let request = VerifyOTPRequest(email: email, otp: otp)
-        let _: EmptyResponse = try await APIService.shared.request(
+        let response: AuthResponse = try await APIService.shared.request(
             endpoint: "/auth/verify-otp",
             method: .post,
             body: request,
             requiresAuth: false
         )
+
+        _ = KeychainService.shared.saveToken(response.token)
+        UserDefaults.standard.set(response.user.id, forKey: "current_user_id")
+        return response.user
     }
     
     // MARK: - Resend OTP

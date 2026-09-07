@@ -18,17 +18,14 @@ export const register = async (req, res, next) => {
             return res.status(400).json({ error: 'Password must be at least 6 characters.' });
         }
 
-        // Check if user exists
+        // Only completed registrations exist in the users table.
         const existingUser = await prisma.user.findUnique({
             where: { email },
-            select: { id: true, isEmailVerified: true }
+            select: { id: true }
         });
 
         if (existingUser) {
-            if (existingUser.isEmailVerified) {
-                return res.status(400).json({ error: 'Email already registered.' });
-            }
-            // If they are not verified, we allow them to re-register. We will just update their info below.
+            return res.status(400).json({ error: 'Email already registered.' });
         }
 
         // Hash password
@@ -36,58 +33,21 @@ export const register = async (req, res, next) => {
         
         // Generate OTP
         const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const otpHash = await bcrypt.hash(otpCode, 10);
         const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-        let user;
-        if (existingUser && !existingUser.isEmailVerified) {
-            // Overwrite existing unverified account
-            user = await prisma.user.update({
-                where: { email },
-                data: {
-                    name,
-                    password: hashedPassword,
-                    otpCode,
-                    otpExpiresAt,
-                }
-            });
-        } else {
-            // Create new user
-            user = await prisma.user.create({
-                data: {
-                    name,
-                    email,
-                    password: hashedPassword,
-                    role: 'user', // Default role
-                    otpCode,
-                    otpExpiresAt,
-                    isEmailVerified: false
-                },
-            });
-        }
-        
-        // Send OTP via Email (Non-blocking to speed up response)
-        sendVerificationEmail(email, otpCode).catch(err => {
-            console.error("Failed to send background email:", err);
+        await prisma.pendingRegistration.upsert({
+            where: { email },
+            update: { name, passwordHash: hashedPassword, otpCode: otpHash, otpExpiresAt },
+            create: { name, email, passwordHash: hashedPassword, otpCode: otpHash, otpExpiresAt }
         });
 
-        // Generate JWT token
-        const token = jwt.sign(
-            { userId: user.id, email: user.email, role: user.role },
-            JWT_SECRET,
-            { expiresIn: '7d' }
-        );
+        await sendVerificationEmail(email, otpCode);
 
-        res.status(201).json({
-            message: 'User registered successfully',
-            token,
-            user: {
-                id: user.id,
-                name: user.name,
-                email: user.email,
-                role: user.role,
-                username: null,
-                usernameUpdatedAt: null
-            },
+        res.status(202).json({
+            message: 'OTP sent. Complete verification to create the account.',
+            email,
+            otpExpiresAt
         });
     } catch (error) {
         next(error);
@@ -130,6 +90,7 @@ export const login = async (req, res, next) => {
                 isBanned: true,
                 isVerified: true,
                 verificationStatus: true,
+                isEmailVerified: true,
                 username: true,
                 usernameUpdatedAt: true,
             }
@@ -186,6 +147,7 @@ export const login = async (req, res, next) => {
                 showEmail: user.showEmail,
                 isVerified: user.isVerified,
                 verificationStatus: user.verificationStatus,
+                isEmailVerified: user.isEmailVerified,
                 username: user.username,
                 usernameUpdatedAt: user.usernameUpdatedAt,
             },
@@ -223,6 +185,7 @@ export const getCurrentUser = async (req, res, next) => {
                 isBanned: true,
                 isVerified: true,
                 verificationStatus: true,
+                isEmailVerified: true,
                 username: true,
                 usernameUpdatedAt: true
             },
@@ -250,37 +213,53 @@ export const verifyOTP = async (req, res, next) => {
             return res.status(400).json({ error: 'Email and OTP are required.' });
         }
         
-        const user = await prisma.user.findUnique({ where: { email } });
-        
-        if (!user) {
-            return res.status(404).json({ error: 'User not found.' });
+        const pending = await prisma.pendingRegistration.findUnique({ where: { email } });
+
+        if (!pending) {
+            return res.status(404).json({ error: 'No pending registration found.' });
         }
-        
-        if (user.isEmailVerified) {
-            return res.status(400).json({ error: 'Email is already verified.' });
+
+        if (!(await bcrypt.compare(otp, pending.otpCode))) {
+            return res.status(400).json({ error: 'Invalid OTP.' });
         }
-        
-        // Allow 000000 as a universal bypass for testing in case email fails to send on Render Free Tier
-        if (otp !== '000000') {
-            if (user.otpCode !== otp) {
-                return res.status(400).json({ error: 'Invalid OTP.' });
-            }
-            
-            if (!user.otpExpiresAt || user.otpExpiresAt < new Date()) {
-                return res.status(400).json({ error: 'OTP has expired. Please request a new one.' });
-            }
+
+        if (pending.otpExpiresAt < new Date()) {
+            return res.status(400).json({ error: 'OTP has expired. Please request a new one.' });
         }
-        
-        await prisma.user.update({
-            where: { email },
-            data: {
-                isEmailVerified: true,
-                otpCode: null,
-                otpExpiresAt: null
+
+        const user = await prisma.$transaction(async (tx) => {
+            const createdUser = await tx.user.create({
+                data: {
+                    name: pending.name,
+                    email: pending.email,
+                    password: pending.passwordHash,
+                    role: 'user',
+                    isEmailVerified: true
+                }
+            });
+            await tx.pendingRegistration.delete({ where: { email } });
+            return createdUser;
+        });
+
+        const token = jwt.sign(
+            { userId: user.id, email: user.email, role: user.role },
+            JWT_SECRET,
+            { expiresIn: '7d' }
+        );
+
+        res.status(201).json({
+            message: 'Email verified and account created successfully.',
+            token,
+            user: {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                username: user.username,
+                usernameUpdatedAt: user.usernameUpdatedAt,
+                isEmailVerified: user.isEmailVerified
             }
         });
-        
-        res.json({ message: 'Email verified successfully.' });
     } catch (error) {
         next(error);
     }
@@ -294,28 +273,22 @@ export const resendOTP = async (req, res, next) => {
             return res.status(400).json({ error: 'Email is required.' });
         }
         
-        const user = await prisma.user.findUnique({ where: { email } });
-        
-        if (!user) {
-            return res.status(404).json({ error: 'User not found.' });
-        }
-        
-        if (user.isEmailVerified) {
-            return res.status(400).json({ error: 'Email is already verified.' });
+        const pending = await prisma.pendingRegistration.findUnique({ where: { email } });
+
+        if (!pending) {
+            return res.status(404).json({ error: 'No pending registration found.' });
         }
         
         const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const otpHash = await bcrypt.hash(otpCode, 10);
         const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
         
-        await prisma.user.update({
+        await prisma.pendingRegistration.update({
             where: { email },
-            data: { otpCode, otpExpiresAt }
+            data: { otpCode: otpHash, otpExpiresAt }
         });
-        
-        // Send OTP via Email (Non-blocking)
-        sendVerificationEmail(email, otpCode).catch(err => {
-            console.error("Failed to send background email:", err);
-        });
+
+        await sendVerificationEmail(email, otpCode);
         
         res.json({ message: 'OTP sent successfully.' });
     } catch (error) {

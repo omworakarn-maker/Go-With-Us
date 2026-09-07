@@ -14,6 +14,22 @@ struct OTPVerificationView: View {
             Color.adaptiveBackground.ignoresSafeArea()
             
             VStack(spacing: 24) {
+                HStack {
+                    Button(action: goBack) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(Color.appPrimary)
+                            .frame(width: 44, height: 44)
+                            .background(Color.appPrimary.opacity(0.10))
+                            .clipShape(Circle())
+                    }
+                    .accessibilityLabel("ย้อนกลับ")
+
+                    Spacer()
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+
                 // Header
                 VStack(spacing: 8) {
                     Image(systemName: "envelope.badge")
@@ -139,6 +155,13 @@ struct OTPVerificationView: View {
                 }
             }
         }
+    }
+
+    private func goBack() {
+        timer?.invalidate()
+        viewModel.errorMessage = nil
+        viewModel.showOTPVerification = false
+        dismiss()
     }
     
     private func resendOTP() {
