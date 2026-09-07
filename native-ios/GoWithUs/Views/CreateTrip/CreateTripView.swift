@@ -1707,9 +1707,7 @@ struct TripMultiImagePickerView: View {
         Task {
             var loadedImages: [UIImage] = []
             for urlString in existingUrls {
-                if let url = URL(string: urlString),
-                   let (data, _) = try? await URLSession.shared.data(from: url),
-                   let image = UIImage(data: data) {
+                if let image = await loadExistingImage(from: urlString) {
                     loadedImages.append(image)
                 }
             }
@@ -1723,6 +1721,34 @@ struct TripMultiImagePickerView: View {
                 }
             }
         }
+    }
+
+    private func loadExistingImage(from source: String) async -> UIImage? {
+        // Trips created from the iOS app store images as data URLs. URLSession
+        // cannot reliably load those, so decode their Base64 payload directly.
+        if source.hasPrefix("data:image"),
+           let commaIndex = source.firstIndex(of: ",") {
+            let payloadStart = source.index(after: commaIndex)
+            let payload = String(source[payloadStart...])
+            guard let data = Data(base64Encoded: payload, options: .ignoreUnknownCharacters) else {
+                return nil
+            }
+            return UIImage(data: data)
+        }
+
+        // Also accept a plain Base64 value for compatibility with older trips.
+        if !source.hasPrefix("http"),
+           let data = Data(base64Encoded: source, options: .ignoreUnknownCharacters),
+           let image = UIImage(data: data) {
+            return image
+        }
+
+        guard let url = URL(string: source),
+              let (data, response) = try? await URLSession.shared.data(from: url),
+              ((response as? HTTPURLResponse)?.statusCode ?? 200) < 400 else {
+            return nil
+        }
+        return UIImage(data: data)
     }
 }
 

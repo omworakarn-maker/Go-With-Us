@@ -128,6 +128,10 @@ struct EditProfileView: View {
             Form {
                 // Profile Image Section
                 Section(header: Text("รูปโปรไฟล์ (สูงสุด 6 รูป)")) {
+                    Text("เลือกได้ตั้งแต่ 1–6 รูป ไม่จำเป็นต้องใส่ให้ครบ โดยรูปแรกที่เลือกจะเป็นรูปหลัก")
+                        .font(.caption)
+                        .foregroundColor(.adaptiveSecondaryText)
+
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 3), spacing: 16) {
                         ForEach(0..<6, id: \.self) { index in
                             ZStack(alignment: .topTrailing) {
@@ -409,19 +413,19 @@ struct EditProfileView: View {
                             // Convert profile images to base64 for backend
                             var profileImageBase64: String? = nil
                             var galleryBase64: [String] = []
+                            let imagesToSave = profileImages.compactMap { $0 }
                             
                             let userId = targetUser?.id ?? authViewModel.currentUser?.id ?? "unknown"
                             
-                            if let mainImage = profileImages[0],
+                            if let mainImage = imagesToSave.first,
                                let scaledImage = mainImage.resized(toWidth: 512),
                                let jpegData = scaledImage.jpegData(compressionQuality: 0.6) {
                                 profileImageBase64 = "data:image/jpeg;base64," + jpegData.base64EncodedString()
                                 UserDefaults.standard.set(jpegData, forKey: "local_profile_image_\(userId)")
                             }
                             
-                            for i in 1..<6 {
-                                if let img = profileImages[i],
-                                   let scaledImage = img.resized(toWidth: 512),
+                            for img in imagesToSave.dropFirst() {
+                                if let scaledImage = img.resized(toWidth: 512),
                                    let jpegData = scaledImage.jpegData(compressionQuality: 0.6) {
                                     galleryBase64.append("data:image/jpeg;base64," + jpegData.base64EncodedString())
                                 }
@@ -444,7 +448,7 @@ struct EditProfileView: View {
                                     birthDate: finalBirthDate,
                                     travelStyle: TravelStyle(budget: Int(budget), activityStyle: Int(activityStyle), timeOfDay: timeOfDay),
                                     profileImage: profileImageBase64,
-                                    gallery: galleryBase64.isEmpty ? nil : galleryBase64
+                                    gallery: galleryBase64
                                 )
                             } else {
                                 // Default self-update
@@ -458,7 +462,7 @@ struct EditProfileView: View {
                                     birthDate: finalBirthDate,
                                     travelStyle: TravelStyle(budget: Int(budget), activityStyle: Int(activityStyle), timeOfDay: timeOfDay),
                                     profileImage: profileImageBase64,
-                                    gallery: galleryBase64.isEmpty ? nil : galleryBase64
+                                    gallery: galleryBase64
                                 )
                             }
                             
