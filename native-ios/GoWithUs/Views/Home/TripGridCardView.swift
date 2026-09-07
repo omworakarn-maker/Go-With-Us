@@ -35,7 +35,7 @@ struct TripGridCardView: View {
                                 .padding(.vertical, 4)
                                 .background(
                                     LinearGradient(
-                                        colors: [Color.green.opacity(0.9), Color.blue.opacity(0.9)],
+                                        colors: [Color.green.opacity(0.9), Color.appSecondary.opacity(0.9)],
                                         startPoint: .leading,
                                         endPoint: .trailing
                                     )

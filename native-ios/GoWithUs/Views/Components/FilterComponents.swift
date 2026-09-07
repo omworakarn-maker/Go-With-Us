@@ -21,10 +21,10 @@ struct FilterButton: View {
             .foregroundColor(isSelected ? .white : .adaptiveText)
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
-            .background(isSelected ? Color.black : Color.adaptiveBackground)
+            .background(isSelected ? Color.appPrimary : Color.adaptiveBackground)
             .overlay(
                 RoundedRectangle(cornerRadius: 20)
-                    .stroke(isSelected ? Color.black : Color.gray.opacity(0.3), lineWidth: 1)
+                    .stroke(isSelected ? Color.appPrimary : Color.gray.opacity(0.3), lineWidth: 1)
             )
             .cornerRadius(20)
         }
@@ -84,7 +84,7 @@ struct ProvincePicker: View {
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(Color.blue)
+                        .background(Color.appSecondary)
                         .cornerRadius(12)
                         .padding(.horizontal, 24)
                 }
@@ -95,7 +95,7 @@ struct ProvincePicker: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("ยกเลิก") { dismiss() }
-                        .foregroundColor(.blue)
+                        .foregroundColor(.appSecondary)
                 }
             }
         }
@@ -151,7 +151,7 @@ struct DatePickerSheet: View {
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(startDate != nil ? Color.blue : Color.gray.opacity(0.4))
+                            .background(startDate != nil ? Color.appSecondary : Color.gray.opacity(0.4))
                             .cornerRadius(12)
                     }
                     .disabled(startDate == nil)
@@ -230,7 +230,7 @@ struct CategoryPicker: View {
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(Color.blue)
+                        .background(Color.appSecondary)
                         .cornerRadius(12)
                         .padding(.horizontal, 24)
                 }
@@ -241,7 +241,7 @@ struct CategoryPicker: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("ยกเลิก") { dismiss() }
-                        .foregroundColor(.blue)
+                        .foregroundColor(.appSecondary)
                 }
             }
         }

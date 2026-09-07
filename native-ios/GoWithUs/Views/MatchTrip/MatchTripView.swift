@@ -36,7 +36,7 @@ struct MatchTripView: View {
                             ZStack {
                                 if viewModel.isLoading {
                                     ProgressView()
-                                        .tint(.adaptiveText)
+                                        .tint(.appPrimary)
                                 } else {
                                     Image(systemName: "arrow.clockwise")
                                         .font(.system(size: 20, weight: .bold))
@@ -56,7 +56,7 @@ struct MatchTripView: View {
                             VStack {
                                 Spacer()
                                 ProgressView()
-                                    .tint(.adaptiveText)
+                                    .tint(.appPrimary)
                                 Spacer()
                             }
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -76,8 +76,8 @@ struct MatchTripView: View {
                                 }
                                 .padding(.horizontal, 24)
                                 .padding(.vertical, 12)
-                                .background(Color.adaptiveText)
-                                .foregroundColor(Color.adaptiveBackground)
+                                .background(Color.appPrimary)
+                                .foregroundColor(.white)
                                 .cornerRadius(20)
                             }
                             Spacer()

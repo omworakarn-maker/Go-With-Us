@@ -31,7 +31,7 @@ struct LeaveTripSheet: View {
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(Color.black)
+                        .background(Color.appPrimary)
                         .cornerRadius(14)
                 }
                 

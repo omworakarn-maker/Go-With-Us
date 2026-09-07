@@ -12,7 +12,7 @@ struct ChatView: View {
                 
                 if viewModel.isLoading && viewModel.conversations.isEmpty {
                     ProgressView()
-                        .tint(.adaptiveText)
+                        .tint(.appPrimary)
                 } else if viewModel.conversations.isEmpty && viewModel.mutualMatches.isEmpty {
                     VStack(spacing: 16) {
                         Image(systemName: "message")

@@ -174,7 +174,7 @@ struct HomeView: View {
                                     .foregroundColor(.white)
                                     .padding(.horizontal, 24)
                                     .padding(.vertical, 12)
-                                    .background(Color.black)
+                                    .background(Color.appPrimary)
                                     .cornerRadius(20)
                             }
                             Spacer()
@@ -255,7 +255,7 @@ extension HomeView {
         VStack(spacing: 12) {
             Spacer()
             ProgressView()
-                .tint(.adaptiveText)
+                .tint(.appPrimary)
             Text(SettingsManager.shared.localizedString(for: "loading_trips"))
                 .font(.system(size: 14))
                 .foregroundColor(.adaptiveText)

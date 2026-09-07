@@ -72,7 +72,7 @@ struct SideMenuView: View {
         } message: {
             Text(accountActionMessage ?? "")
         }
-        .tint(.black)
+        .tint(.appPrimary)
     }
     
     // MARK: - Main Menu
@@ -273,7 +273,7 @@ struct SideMenuView: View {
                                 set: { SettingsManager.shared.isHapticEnabled = $0 }
                             ))
                             .labelsHidden()
-                            .tint(.black)
+                            .tint(.appPrimary)
                         }
                     }
                     .padding(.horizontal, 24)
@@ -477,7 +477,7 @@ struct LogoutSheet: View {
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(Color.black)
+                        .background(Color.appPrimary)
                         .cornerRadius(14)
                 }
                 

@@ -198,7 +198,7 @@ struct TripDetailView: View {
             }
             Button("ยกเลิก", role: .cancel) {}
         }
-        .tint(.blue)
+        .tint(.appPrimary)
         .sheet(isPresented: $showInterestedSheet) {
             InterestTripSheet(viewModel: viewModel)
         }
@@ -301,34 +301,14 @@ struct TripDetailView: View {
                         .foregroundColor(.white)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 7)
-                        .background(Color.black)
+                        .background(Color.appPrimary)
                         .clipShape(Capsule())
                     }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            // Status
-            if trip.isFull {
-                HStack(spacing: 4) {
-                    Circle().fill(.red).frame(width: 6, height: 6)
-                    Text("เต็มแล้ว").font(.system(size: 12, weight: .bold))
-                }
-                .foregroundColor(Color(hex: "#DC2626"))
-                .padding(.horizontal, 14).padding(.vertical, 7)
-                .background(Color(hex: "#FEE2E2"))
-                .clipShape(Capsule())
-            } else {
-                HStack(spacing: 4) {
-                    Circle().fill(Color(hex: "#22C55E")).frame(width: 6, height: 6)
-                    Text("ว่าง \(trip.maxParticipants - trip.currentParticipants) คน")
-                        .font(.system(size: 12, weight: .bold))
-                }
-                .foregroundColor(Color(hex: "#16A34A"))
-                .padding(.horizontal, 14).padding(.vertical, 7)
-                .background(Color(hex: "#DCFCE7"))
-                .clipShape(Capsule())
-            }
+
         }
     }
     
@@ -372,7 +352,6 @@ struct TripDetailView: View {
             }
             
             HStack(spacing: 20) {
-                // Circular progress
                 ZStack {
                     Circle()
                         .stroke(Color.gray.opacity(0.15), lineWidth: 8)
@@ -385,7 +364,7 @@ struct TripDetailView: View {
                         )
                         .frame(width: 90, height: 90)
                         .rotationEffect(.degrees(-90))
-                    
+
                     VStack(spacing: 2) {
                         Text("\(score)%")
                             .font(.system(size: 22, weight: .black))
@@ -395,7 +374,7 @@ struct TripDetailView: View {
                             .foregroundColor(.adaptiveSecondaryText)
                     }
                 }
-                
+
                 // Factor list
                 VStack(alignment: .leading, spacing: 14) {
                     let bd = trip.matchBreakdown
@@ -405,7 +384,7 @@ struct TripDetailView: View {
                         color: Color(hex: "#3B82F6"),
                         score: bd?.budget
                     )
-                    compatibilityRow(icon: "list.number", label: "จำนวนกิจกรรมต่อวัน", color: Color(hex: "#8B5CF6"), score: bd?.activityStyle)
+                    compatibilityRow(icon: "list.number", label: "จำนวนกิจกรรมต่อวัน", color: Color.appSecondary, score: bd?.activityStyle)
                     compatibilityRow(icon: "tag.fill", label: "ความชอบ", color: Color(hex: "#F59E0B"), score: bd?.category)
                     compatibilityRow(icon: "clock.fill", label: "ช่วงเวลา", color: Color(hex: "#EF4444"), score: bd?.timeOfDay)
                 }
@@ -415,7 +394,7 @@ struct TripDetailView: View {
             .background(Color.adaptiveCardBackground)
             .cornerRadius(20)
             .shadow(color: scoreColor(score: score).opacity(0.10), radius: 12, x: 0, y: 4)
-            
+
             Text(scoreLabel(score: score))
                 .font(.system(size: 13, weight: .medium))
                 .foregroundColor(.adaptiveSecondaryText)
@@ -483,88 +462,103 @@ struct TripDetailView: View {
     
     private func scoreLabel(score: Int) -> String {
         switch score {
-        case 75...100: return "🎉 ไปได้แน่นอนไปกันรอด"
-        case 50...74:  return "👍 โอเคไปกันได้"
-        case 25...49:  return "🤔 ไม่ค่อยแนะนำ"
-        default:       return "😅 เข้าไม่ได้"
+        case 75...100: return "ความเหมาะสมสูง"
+        case 50...74:  return "ความเหมาะสมปานกลาง"
+        case 25...49:  return "ความเหมาะสมต่ำ"
+        default:       return "ความเหมาะสมต่ำมาก"
         }
     }
 
-    // MARK: - Info Cards
-    @ViewBuilder
+    // MARK: - Trip Summary
+    private func tripDateSummary(trip: Trip) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: SettingsManager.shared.currentLanguage == .thai ? "th_TH" : "en_US")
+        formatter.dateFormat = "d MMM yyyy"
+        let start = formatter.string(from: trip.startDate)
+        guard let end = trip.endDate,
+              !Calendar.current.isDate(trip.startDate, inSameDayAs: end) else {
+            return start
+        }
+        return "\(start) – \(formatter.string(from: end))"
+    }
+
+    private func tripDayCount(trip: Trip) -> Int {
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: trip.startDate)
+        let end = calendar.startOfDay(for: trip.endDate ?? trip.startDate)
+        return max(1, (calendar.dateComponents([.day], from: start, to: end).day ?? 0) + 1)
+    }
+
     private func infoCards(trip: Trip) -> some View {
-        HStack(spacing: 12) {
-            // Budget card
-            VStack(spacing: 6) {
-                ZStack {
-                    Circle()
-                        .fill(Color(hex: "#3B82F6").opacity(0.15))
-                        .frame(width: 40, height: 40)
-                    Image(systemName: "banknote")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundColor(Color(hex: "#3B82F6"))
-                }
-                Text("งบประมาณ (\(trip.budgetTypeLabel))")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(.adaptiveSecondaryText)
-                Text("\(formatBudget(trip.budget)) ฿")
-                    .font(.system(size: 15, weight: .black))
-                    .foregroundColor(.adaptiveText)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 18)
-            .background(Color.adaptiveCardBackground)
-            .cornerRadius(18)
-            
-            // People card
-            VStack(spacing: 6) {
-                ZStack {
-                    Circle()
-                        .fill(Color(hex: "#F43F5E").opacity(0.15))
-                        .frame(width: 40, height: 40)
-                    Image(systemName: "person.2")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundColor(Color(hex: "#F43F5E"))
-                }
-                Text("จำนวนคน")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(.adaptiveSecondaryText)
-                Text("\(trip.currentParticipants)/\(trip.maxParticipants)")
-                    .font(.system(size: 15, weight: .black))
-                    .foregroundColor(.adaptiveText)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 18)
-            .background(Color.adaptiveCardBackground)
-            .cornerRadius(18)
-
-            // Dates card
-            VStack(spacing: 6) {
-                ZStack {
-                    Circle()
-                        .fill(Color(hex: "#8B5CF6").opacity(0.15))
-                        .frame(width: 40, height: 40)
-                    Image(systemName: "calendar")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundColor(Color(hex: "#8B5CF6"))
-                }
-                Text("ระยะเวลา")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(.adaptiveSecondaryText)
-                Text(trip.formattedDateRange)
-                    .font(.system(size: 15, weight: .black))
-                    .foregroundColor(.adaptiveText)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.5)
-                    .multilineTextAlignment(.center)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 18)
-            .background(Color.adaptiveCardBackground)
-            .cornerRadius(18)
+        VStack(spacing: 0) {
+            tripSummaryRow(
+                icon: "banknote", color: Color(hex: "#3B82F6"),
+                title: "งบประมาณ",
+                value: "\(formatBudget(trip.budget)) บาท",
+                detail: trip.budgetTypeLabel
+            )
+            Divider()
+                .padding(.leading, 72)
+                .padding(.trailing, 18)
+            tripSummaryRow(
+                icon: "person.2", color: Color.appSecondary,
+                title: "ผู้ร่วมเดินทาง",
+                value: "\(trip.currentParticipants) จาก \(trip.maxParticipants) คน",
+                detail: trip.isFull ? "เต็มแล้ว" : "ว่าง \(max(0, trip.maxParticipants - trip.currentParticipants)) คน",
+                detailColor: trip.isFull ? Color(hex: "#EF4444") : Color(hex: "#16A34A")
+            )
+            Divider()
+                .padding(.leading, 72)
+                .padding(.trailing, 18)
+            tripSummaryRow(
+                icon: "calendar", color: Color.appSecondary,
+                title: "วันเดินทาง", value: tripDateSummary(trip: trip),
+                detail: "\(tripDayCount(trip: trip)) วัน"
+            )
         }
+        .background(Color.adaptiveBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 22))
+        .overlay(
+            RoundedRectangle(cornerRadius: 22)
+                .stroke(Color.primary.opacity(0.07), lineWidth: 1)
+        )
+        .shadow(color: Color.black.opacity(0.04), radius: 12, x: 0, y: 4)
     }
-    
+
+    private func tripSummaryRow(icon: String, color: Color, title: String, value: String, detail: String? = nil, detailColor: Color? = nil) -> some View {
+        HStack(alignment: .center, spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundColor(color)
+                .frame(width: 42, height: 42)
+                .background(color.opacity(0.09))
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+            VStack(alignment: .leading, spacing: 7) {
+                HStack(alignment: .center, spacing: 8) {
+                    Text(title)
+                        .font(.caption)
+                        .foregroundColor(.adaptiveSecondaryText)
+                    Spacer(minLength: 0)
+                    if let detail = detail {
+                        Text(detail)
+                            .font(.caption2.weight(.semibold))
+                            .foregroundColor(detailColor ?? color)
+                            .padding(.horizontal, 9)
+                            .padding(.vertical, 4)
+                            .background((detailColor ?? color).opacity(0.08))
+                            .clipShape(Capsule())
+                    }
+                }
+                Text(value)
+                    .font(.system(.headline, design: .rounded).weight(.semibold))
+                    .foregroundColor(.adaptiveText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
     // MARK: - Creator Section
     @ViewBuilder
     private func creatorSection(trip: Trip) -> some View {
@@ -594,7 +588,7 @@ struct TripDetailView: View {
                             if trip.creator.isVerified == true {
                                 Image(systemName: "checkmark.seal.fill")
                                     .font(.system(size: 11))
-                                    .foregroundColor(.blue)
+                                    .foregroundColor(.appSecondary)
                             }
                         }
                         
@@ -650,7 +644,7 @@ struct TripDetailView: View {
             HStack(spacing: 6) {
                 Image(systemName: "doc.text") // Minimal
                     .font(.system(size: 13))
-                    .foregroundColor(Color(hex: "#8B5CF6"))
+                    .foregroundColor(Color.appSecondary)
                 Text("รายละเอียด")
                     .font(.system(size: 16, weight: .bold))
                     .foregroundColor(.adaptiveText)
@@ -768,7 +762,7 @@ struct TripDetailView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "photo.stack") // Minimal
                         .font(.system(size: 13))
-                        .foregroundColor(Color(hex: "#EC4899"))
+                        .foregroundColor(Color.appSecondary)
                     Text("รูปภาพ")
                         .font(.system(size: 16, weight: .bold))
                         .foregroundColor(.adaptiveText)
@@ -850,7 +844,7 @@ struct TripDetailView: View {
                                         if p.user?.isVerified == true {
                                             Image(systemName: "checkmark.seal.fill")
                                                 .font(.system(size: 11))
-                                                .foregroundColor(.blue)
+                                                .foregroundColor(.appSecondary)
                                         }
                                         
                                         if isMe {
@@ -1192,7 +1186,7 @@ struct InterestTripSheet: View {
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(Color.black)
+                        .background(Color.appPrimary)
                         .cornerRadius(14)
                 }
                 

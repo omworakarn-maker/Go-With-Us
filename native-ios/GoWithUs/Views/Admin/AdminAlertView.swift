@@ -51,7 +51,7 @@ struct AdminAlertView: View {
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .padding()
-                                .background(Color.black)
+                                .background(Color.appPrimary)
                                 .cornerRadius(12)
                         }
                     }

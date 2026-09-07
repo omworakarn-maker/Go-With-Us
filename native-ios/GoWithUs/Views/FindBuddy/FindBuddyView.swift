@@ -12,7 +12,7 @@ struct FindBuddyView: View {
                 
                 if viewModel.isLoading {
                     ProgressView(SettingsManager.shared.localizedString(for: "loading_buddies"))
-                        .tint(.adaptiveText)
+                        .tint(.appPrimary)
                         .foregroundColor(.adaptiveText)
                 } else if let error = viewModel.errorMessage {
                     VStack(spacing: 16) {
@@ -46,7 +46,7 @@ struct FindBuddyView: View {
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 32)
                                 .padding(.vertical, 14)
-                                .background(Color.black)
+                                .background(Color.appPrimary)
                                 .cornerRadius(25)
                         }
                     }

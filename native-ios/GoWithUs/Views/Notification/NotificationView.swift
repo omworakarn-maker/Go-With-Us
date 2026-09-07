@@ -81,7 +81,7 @@ struct NotificationRow: View {
             HStack(alignment: .top, spacing: 12) {
                 // Icon
                 Circle()
-                    .fill(notification.isRead ? Color.gray.opacity(0.2) : Color.black)
+                    .fill(notification.isRead ? Color.gray.opacity(0.2) : Color.appPrimary)
                     .frame(width: 40, height: 40)
                     .overlay(
                         Image(systemName: iconName)
@@ -115,7 +115,7 @@ struct NotificationRow: View {
                 }
             }
             .padding()
-            .background(notification.isRead ? Color.clear : Color.blue.opacity(0.05))
+            .background(notification.isRead ? Color.clear : Color.appSecondary.opacity(0.05))
         }
         .buttonStyle(PlainButtonStyle())
     }

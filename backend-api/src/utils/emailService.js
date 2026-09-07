@@ -5,15 +5,8 @@
  */
 export const sendVerificationEmail = async (to, otp) => {
   const RESEND_API_KEY = process.env.RESEND_API_KEY;
-  
-  if (!RESEND_API_KEY) {
-    console.log(`\n======================================================`);
-    console.log(`📧 [MOCK EMAIL] To: ${to}`);
-    console.log(`🔑 [MOCK OTP] Your verification code is: ${otp}`);
-    console.log(`⚠️ [WARNING] RESEND_API_KEY is not set. Email not sent.`);
-    console.log(`======================================================\n`);
-    return;
-  }
+  const gmailUser = process.env.EMAIL_USER;
+  const gmailAppPassword = process.env.EMAIL_APP_PASSWORD;
 
   const htmlContent = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
@@ -28,6 +21,32 @@ export const sendVerificationEmail = async (to, otp) => {
       <p style="color: #999; font-size: 12px; text-align: center;">หากคุณไม่ได้สมัครสมาชิกแอป GoWithUs กรุณาละเว้นอีเมลฉบับนี้</p>
     </div>
   `;
+
+  // Local/student deployment: send from the owner's Gmail without a custom domain.
+  if (gmailUser && gmailAppPassword) {
+    try {
+      const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: { user: gmailUser, pass: gmailAppPassword.replace(/\s/g, '') }
+      });
+      const info = await transporter.sendMail({
+        from: `GoWithUs <${gmailUser}>`,
+        to,
+        subject: `GoWithUs OTP: ${otp}`,
+        html: htmlContent
+      });
+      console.log(`✅ Verification email sent to ${to} via Gmail. ID: ${info.messageId}`);
+      return;
+    } catch (error) {
+      console.error('❌ Gmail SMTP Error:', error.message);
+      throw new Error('Failed to send verification email via Gmail');
+    }
+  }
+
+  if (!RESEND_API_KEY) {
+    console.warn('⚠️ Email is not configured. Set EMAIL_USER and EMAIL_APP_PASSWORD.');
+    throw new Error('Email service is not configured');
+  }
 
   try {
     const response = await fetch('https://api.resend.com/emails', {
@@ -57,3 +76,4 @@ export const sendVerificationEmail = async (to, otp) => {
     throw new Error('Failed to send verification email via HTTP');
   }
 };
+import nodemailer from 'nodemailer';

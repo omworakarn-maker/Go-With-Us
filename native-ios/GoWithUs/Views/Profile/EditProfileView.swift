@@ -492,7 +492,7 @@ struct EditProfileView: View {
                 }
             }
 
-            .tint(.black)
+            .tint(.appPrimary)
             .onAppear {
                 let userToEdit = targetUser ?? authViewModel.currentUser
                 if let user = userToEdit {
@@ -583,12 +583,12 @@ struct InterestTag: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .background(isSelected ? Color.adaptiveText : Color.adaptiveCardTint)
-            .foregroundColor(isSelected ? Color.adaptiveBackground : .adaptiveText)
+            .background(isSelected ? Color.appPrimary : Color.adaptiveCardTint)
+            .foregroundColor(isSelected ? Color.white : .adaptiveText)
             .cornerRadius(20)
             .overlay(
                 RoundedRectangle(cornerRadius: 20)
-                    .stroke(isSelected ? Color.adaptiveText : Color.clear, lineWidth: 1)
+                    .stroke(isSelected ? Color.appPrimary : Color.clear, lineWidth: 1)
             )
         }
         .buttonStyle(PlainButtonStyle())
