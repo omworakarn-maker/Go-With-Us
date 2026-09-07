@@ -1,7 +1,6 @@
 import bcrypt from 'bcryptjs';
 import prisma from '../utils/prismaClient.js';
 import { generateEmbedding } from '../utils/gemini.js';
-import { sendVerificationEmail } from '../utils/emailService.js';
 
 // Reset activity and profile preferences while keeping login credentials.
 export const resetAccount = async (req, res) => {
@@ -722,46 +721,23 @@ export const getAllReports = async (req, res) => {
 
 // ==================== Identity Verification System ====================
 
-// Send a separate OTP before a user submits their identity-verification selfie.
-// This OTP is intentionally different from login: the route requires a valid JWT.
-export const sendIdentityVerificationOTP = async (req, res) => {
-    try {
-        const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
-        if (!user) return res.status(404).json({ error: 'User not found' });
-
-        const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-        const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
-        await prisma.user.update({
-            where: { id: user.id },
-            data: { otpCode, otpExpiresAt }
-        });
-        await sendVerificationEmail(user.email, otpCode);
-        res.json({ message: 'Verification code sent to your email' });
-    } catch (error) {
-        console.error('Error sending identity-verification OTP:', error);
-        res.status(500).json({ error: 'Unable to send verification code' });
-    }
-};
-
-// Email OTP + selfie are required before the request reaches an administrator.
-// A specialist liveness provider can be added here later without changing the app flow.
+// Email ownership is verified during registration. This endpoint accepts the
+// liveness selfie before the request reaches an administrator.
 export const submitIdentityVerification = async (req, res) => {
     try {
-        const { otp, faceScanImage } = req.body;
-        if (!otp || !faceScanImage) {
-            return res.status(400).json({ error: 'OTP and selfie image are required' });
+        const { faceScanImage } = req.body;
+        if (!faceScanImage) {
+            return res.status(400).json({ error: 'Selfie image is required' });
         }
         const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
         if (!user) return res.status(404).json({ error: 'User not found' });
-        if (user.otpCode !== otp || !user.otpExpiresAt || user.otpExpiresAt < new Date()) {
-            return res.status(400).json({ error: 'รหัสยืนยันไม่ถูกต้องหรือหมดอายุ' });
+        if (!user.isEmailVerified) {
+            return res.status(403).json({ error: 'กรุณายืนยันอีเมลก่อนยืนยันตัวตน' });
         }
 
         const updatedUser = await prisma.user.update({
             where: { id: user.id },
             data: {
-                otpCode: null,
-                otpExpiresAt: null,
                 faceScanImage,
                 verificationStatus: 'pending'
             }
@@ -817,9 +793,9 @@ export const getVerificationRequests = async (req, res) => {
                 name: true,
                 email: true,
                 profileImage: true,
-                idCardImage: true,
                 faceScanImage: true,
-                createdAt: true
+                isEmailVerified: true,
+                updatedAt: true
             },
             orderBy: { createdAt: 'desc' }
         });

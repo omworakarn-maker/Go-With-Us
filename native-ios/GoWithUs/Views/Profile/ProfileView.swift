@@ -533,138 +533,26 @@ struct UserTripsSectionView: View {
 }
 
 // MARK: - Identity verification
-/// The flow verifies access to the registered email, then performs a basic
-/// on-device active-liveness challenge with Apple Vision before accepting a selfie.
+/// Performs an on-device active-liveness challenge with Apple Vision before
+/// accepting a selfie. Email ownership is already verified during registration.
 struct IdentityVerificationView: View {
     @EnvironmentObject private var authViewModel: AuthViewModel
     @Environment(\.dismiss) private var dismiss
 
-    @State private var otp = ""
     @State private var selfie: UIImage?
     @State private var showCamera = false
     @State private var livenessPassed = false
-    @State private var isSendingCode = false
     @State private var isSubmitting = false
     @State private var message = ""
     @State private var showMessage = false
-
-    private var email: String { authViewModel.currentUser?.email ?? authViewModel.email }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
-                    VStack(spacing: 10) {
-                        Image(systemName: "checkmark.shield.fill")
-                            .font(.system(size: 44))
-                            .foregroundColor(.appPrimary)
-                        Text("ยืนยันตัวตนเพื่อความปลอดภัย")
-                            .font(.title2.bold())
-                        Text("ยืนยันอีเมลก่อน แล้วทำตามคำแนะนำการขยับใบหน้าเพื่อส่งคำขอให้ผู้ดูแลตรวจสอบ")
-                            .font(.subheadline)
-                            .foregroundColor(.adaptiveSecondaryText)
-                            .multilineTextAlignment(.center)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.bottom, 4)
-
-                    verificationStep(
-                        number: "1", icon: "envelope.badge.fill", title: "ยืนยันอีเมลด้วยรหัส OTP",
-                        description: "ระบบจะส่งรหัส 6 หลักไปที่ \(email)"
-                    ) {
-                        TextField("กรอกรหัส 6 หลัก", text: $otp)
-                            .keyboardType(.numberPad)
-                            .textContentType(.oneTimeCode)
-                            .font(.title3.monospacedDigit().weight(.bold))
-                            .multilineTextAlignment(.center)
-                            .tint(.appPrimary)
-                            .padding(14)
-                            .background(Color.adaptiveGroupedBackground)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                            .onChange(of: otp) { _, newValue in
-                                otp = String(newValue.filter(\.isNumber).prefix(6))
-                            }
-
-                        Button {
-                            sendOTP()
-                        } label: {
-                            HStack {
-                                if isSendingCode { ProgressView().tint(.white) }
-                                Text(isSendingCode ? "กำลังส่งรหัส…" : "ส่งรหัสไปยังอีเมล")
-                            }
-                            .font(.subheadline.bold())
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 13)
-                            .background(Color.appPrimary)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                        }
-                        .disabled(isSendingCode)
-                    }
-
-                    verificationStep(
-                        number: "2", icon: "person.crop.circle.badge.checkmark", title: "ตรวจสอบการมีตัวตนด้วยใบหน้า",
-                        description: "ใช้กล้องหน้าในที่สว่าง แล้วมองตรงและหันหน้าตามคำแนะนำ ระบบจะตรวจการเคลื่อนไหวด้วย Apple Vision"
-                    ) {
-                        if let selfie {
-                            ZStack(alignment: .bottomLeading) {
-                                Image(uiImage: selfie)
-                                    .resizable()
-                                    .scaledToFill()
-                                    .frame(height: 210)
-                                    .frame(maxWidth: .infinity)
-                                    .clipShape(RoundedRectangle(cornerRadius: 16))
-
-                                Label("ตรวจการเคลื่อนไหวผ่านแล้ว", systemImage: "checkmark.seal.fill")
-                                    .font(.caption.bold())
-                                    .foregroundColor(.white)
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 8)
-                                    .background(Color.green.opacity(0.92))
-                                    .clipShape(Capsule())
-                                    .padding(12)
-                            }
-                        } else {
-                            VStack(spacing: 10) {
-                                Image(systemName: "face.smiling")
-                                    .font(.system(size: 42))
-                                    .foregroundColor(.appSecondary)
-                                Text("ยังไม่ได้ตรวจการเคลื่อนไหวใบหน้า")
-                                    .font(.subheadline.weight(.semibold))
-                                    .foregroundColor(.adaptiveSecondaryText)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 160)
-                            .background(Color.appSecondary.opacity(0.07))
-                            .clipShape(RoundedRectangle(cornerRadius: 16))
-                        }
-
-                        Button(selfie == nil ? "เริ่มตรวจใบหน้า" : "ตรวจใหม่") {
-                            showCamera = true
-                        }
-                        .font(.subheadline.bold())
-                        .foregroundColor(.appPrimary)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 13)
-                        .background(Color.appPrimary.opacity(0.10))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                    }
-
-                    Button {
-                        submit()
-                    } label: {
-                        HStack {
-                            if isSubmitting { ProgressView().tint(.white) }
-                            Text(isSubmitting ? "กำลังส่งคำขอ…" : "ส่งคำขอยืนยันตัวตน")
-                        }
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(canSubmit ? Color.appPrimary : Color.gray.opacity(0.35))
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
-                    }
-                    .disabled(!canSubmit || isSubmitting)
+                    verificationHeader
+                    faceVerificationCard
+                    submitVerificationButton
                 }
                 .padding(24)
             }
@@ -681,7 +569,116 @@ struct IdentityVerificationView: View {
         } message: { Text(message) }
     }
 
-    private var canSubmit: Bool { otp.count == 6 && selfie != nil && livenessPassed }
+    private var canSubmit: Bool { selfie != nil && livenessPassed }
+
+    private var verificationHeader: some View {
+        VStack(spacing: 10) {
+            Image(systemName: "checkmark.shield.fill")
+                .font(.system(size: 44))
+                .foregroundColor(.appPrimary)
+            Text("ยืนยันตัวตนเพื่อความปลอดภัย")
+                .font(.title2.bold())
+            Text("ทำตามคำแนะนำการขยับใบหน้า แล้วส่งคำขอให้ผู้ดูแลตรวจสอบ")
+                .font(.subheadline)
+                .foregroundColor(.adaptiveSecondaryText)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.bottom, 4)
+    }
+
+    private var faceVerificationCard: some View {
+        verificationStep(
+            number: "1",
+            icon: "person.crop.circle.badge.checkmark",
+            title: "ตรวจสอบการมีตัวตนด้วยใบหน้า",
+            description: "ใช้กล้องหน้าในที่สว่าง แล้วทำตามคำแนะนำบนหน้าจอ ระบบจะตรวจการเคลื่อนไหวด้วย Apple Vision"
+        ) {
+            facePreparationNotice
+            selfiePreview
+            faceScanButton
+        }
+    }
+
+    private var facePreparationNotice: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundColor(.orange)
+            Text("ก่อนเริ่ม กรุณาถอดแว่น หน้ากาก และหมวก เพื่อให้กล้องมองเห็นใบหน้าอย่างชัดเจน")
+                .font(.subheadline.weight(.medium))
+                .foregroundColor(Color.adaptiveText)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.orange.opacity(0.10))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    @ViewBuilder
+    private var selfiePreview: some View {
+        if let selfie {
+            ZStack(alignment: .bottomLeading) {
+                Image(uiImage: selfie)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(height: 210)
+                    .frame(maxWidth: .infinity)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+
+                Label("ตรวจการเคลื่อนไหวผ่านแล้ว", systemImage: "checkmark.seal.fill")
+                    .font(.caption.bold())
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(Color.green.opacity(0.92))
+                    .clipShape(Capsule())
+                    .padding(12)
+            }
+        } else {
+            VStack(spacing: 10) {
+                Image(systemName: "face.smiling")
+                    .font(.system(size: 42))
+                    .foregroundColor(.appSecondary)
+                Text("ยังไม่ได้ตรวจการเคลื่อนไหวใบหน้า")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(.adaptiveSecondaryText)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 160)
+            .background(Color.appSecondary.opacity(0.07))
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+        }
+    }
+
+    private var faceScanButton: some View {
+        Button(selfie == nil ? "เริ่มตรวจใบหน้า" : "ตรวจใหม่") {
+            showCamera = true
+        }
+        .font(.subheadline.bold())
+        .foregroundColor(.appPrimary)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 13)
+        .background(Color.appPrimary.opacity(0.10))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    private var submitVerificationButton: some View {
+        Button {
+            submit()
+        } label: {
+            HStack {
+                if isSubmitting { ProgressView().tint(.white) }
+                Text(isSubmitting ? "กำลังส่งคำขอ…" : "ส่งคำขอยืนยันตัวตน")
+            }
+            .font(.headline)
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            .background(canSubmit ? Color.appPrimary : Color.gray.opacity(0.35))
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+        }
+        .disabled(!canSubmit || isSubmitting)
+    }
 
     private func verificationStep<Content: View>(number: String, icon: String, title: String, description: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -709,27 +706,13 @@ struct IdentityVerificationView: View {
         .clipShape(RoundedRectangle(cornerRadius: 20))
     }
 
-    private func sendOTP() {
-        Task {
-            isSendingCode = true
-            defer { isSendingCode = false }
-            do {
-                try await AuthService.shared.sendIdentityVerificationOTP()
-                message = "ส่งรหัสยืนยันไปยังอีเมลแล้ว รหัสมีอายุ 10 นาที"
-            } catch {
-                message = error.localizedDescription
-            }
-            showMessage = true
-        }
-    }
-
     private func submit() {
         guard let selfie else { return }
         Task {
             isSubmitting = true
             defer { isSubmitting = false }
             do {
-                try await AuthService.shared.submitIdentityVerification(otp: otp, selfie: selfie)
+                try await AuthService.shared.submitIdentityVerification(selfie: selfie)
                 await authViewModel.loadCurrentUser()
                 message = "ส่งคำขอยืนยันตัวตนแล้ว กรุณารอผู้ดูแลตรวจสอบ"
             } catch {
@@ -767,6 +750,11 @@ private struct ActiveLivenessView: View {
             )
             .ignoresSafeArea()
 
+            FaceGuideOverlay()
+                .ignoresSafeArea()
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+
             VStack {
                 HStack {
                     Button {
@@ -793,11 +781,23 @@ private struct ActiveLivenessView: View {
                         Text(errorMessage)
                             .font(.headline)
                             .multilineTextAlignment(.center)
+                        Button {
+                            guard let settingsURL = URL(string: UIApplication.openSettingsURLString) else { return }
+                            UIApplication.shared.open(settingsURL)
+                        } label: {
+                            Label("เปิดการตั้งค่าเพื่ออนุญาตกล้อง", systemImage: "gear")
+                                .font(.subheadline.bold())
+                                .foregroundColor(.black)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 11)
+                                .background(Color.white)
+                                .clipShape(Capsule())
+                        }
                     } else {
-                        Text("ขั้นตอน \(min(step + 1, 4)) จาก 4")
+                        Text("ขั้นตอน \(min(step + 1, 5)) จาก 5")
                             .font(.caption.bold())
                             .foregroundColor(.white.opacity(0.75))
-                        ProgressView(value: Double(step), total: 4)
+                        ProgressView(value: Double(step), total: 5)
                             .tint(.green)
                         Text(instruction)
                             .font(.title3.bold())
@@ -819,6 +819,46 @@ private struct ActiveLivenessView: View {
     }
 }
 
+private struct FaceGuideOverlay: View {
+    var body: some View {
+        GeometryReader { geometry in
+            let guideWidth = min(geometry.size.width * 0.70, 290)
+            let guideHeight = min(guideWidth * 1.28, geometry.size.height * 0.48)
+            let guideRect = CGRect(
+                x: (geometry.size.width - guideWidth) / 2,
+                y: max(geometry.safeAreaInsets.top + 72, geometry.size.height * 0.18),
+                width: guideWidth,
+                height: guideHeight
+            )
+
+            Canvas { context, size in
+                var dimmedArea = Path(CGRect(origin: .zero, size: size))
+                dimmedArea.addEllipse(in: guideRect)
+                context.fill(
+                    dimmedArea,
+                    with: .color(.black.opacity(0.30)),
+                    style: FillStyle(eoFill: true)
+                )
+
+                context.stroke(
+                    Path(ellipseIn: guideRect),
+                    with: .color(.white.opacity(0.95)),
+                    style: StrokeStyle(lineWidth: 3, dash: [10, 7])
+                )
+            }
+
+            Text("จัดดวงตา จมูก และคางให้อยู่ภายในกรอบ")
+                .font(.caption.bold())
+                .foregroundColor(.white)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(.black.opacity(0.58))
+                .clipShape(Capsule())
+                .position(x: geometry.size.width / 2, y: guideRect.maxY + 24)
+        }
+    }
+}
+
 private struct ActiveLivenessCamera: UIViewControllerRepresentable {
     let onStatus: (String, Int) -> Void
     let onComplete: (UIImage) -> Void
@@ -836,6 +876,18 @@ private struct ActiveLivenessCamera: UIViewControllerRepresentable {
 }
 
 private final class LivenessCameraViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDelegate {
+    private enum LivenessChallenge: CaseIterable, Equatable {
+        case turnLeft, turnRight, smile
+
+        var instruction: String {
+            switch self {
+            case .turnLeft: return "หันหน้าไปทางซ้ายและค้างไว้"
+            case .turnRight: return "หันหน้าไปทางขวาและค้างไว้"
+            case .smile: return "มองตรงและยิ้มให้เห็นฟัน"
+            }
+        }
+    }
+
     var onStatus: ((String, Int) -> Void)?
     var onComplete: ((UIImage) -> Void)?
     var onError: ((String) -> Void)?
@@ -846,10 +898,16 @@ private final class LivenessCameraViewController: UIViewController, AVCaptureVid
     private var previewLayer: AVCaptureVideoPreviewLayer?
     private var challengeStep = 0
     private var stableFrames = 0
-    private var firstTurnDirection: CGFloat?
+    private var baselinePitch: CGFloat = 0
+    private var baselineMouthWidth: CGFloat = 0
+    private var baselineMouthOpening: CGFloat = 0
+    private var calibrationSamples = 0
+    private lazy var challenges = LivenessChallenge.allCases.shuffled()
     private var isProcessingFrame = false
     private var didFinish = false
     private var lastSampleBuffer: CMSampleBuffer?
+    private var missingFaceFrames = 0
+    private var isShowingTrackingWarning = false
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -868,7 +926,11 @@ private final class LivenessCameraViewController: UIViewController, AVCaptureVid
     }
 
     private func configureCamera() {
-        guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
+        #if targetEnvironment(simulator)
+        reportError("การตรวจใบหน้าต้องทดสอบบน iPhone ที่มีกล้องหน้า")
+        return
+        #else
+        guard AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front) != nil else {
             reportError("การตรวจใบหน้าต้องทดสอบบน iPhone ที่มีกล้องหน้า")
             return
         }
@@ -883,6 +945,7 @@ private final class LivenessCameraViewController: UIViewController, AVCaptureVid
         default:
             reportError("กรุณาอนุญาตการใช้กล้องในการตั้งค่า")
         }
+        #endif
     }
 
     private func setupSession() {
@@ -918,6 +981,7 @@ private final class LivenessCameraViewController: UIViewController, AVCaptureVid
                     connection.videoRotationAngle = 90
                 }
                 if connection.isVideoMirroringSupported {
+                    connection.automaticallyAdjustsVideoMirroring = false
                     connection.isVideoMirrored = true
                 }
             }
@@ -939,13 +1003,22 @@ private final class LivenessCameraViewController: UIViewController, AVCaptureVid
         isProcessingFrame = true
         lastSampleBuffer = sampleBuffer
 
-        let request = VNDetectFaceRectanglesRequest { [weak self] request, _ in
+        let request = VNDetectFaceLandmarksRequest { [weak self] request, _ in
             guard let self else { return }
             defer { self.isProcessingFrame = false }
             guard let face = (request.results as? [VNFaceObservation])?.first else {
                 self.stableFrames = 0
-                self.publishStatus("ไม่พบใบหน้า กรุณามองกล้องและอยู่ในที่สว่าง", step: self.challengeStep)
+                self.missingFaceFrames += 1
+                if self.missingFaceFrames >= 6 && !self.isShowingTrackingWarning {
+                    self.isShowingTrackingWarning = true
+                    self.publishStatus("ไม่พบใบหน้า กรุณาจัดใบหน้าให้อยู่ในกรอบ", step: self.challengeStep)
+                }
                 return
+            }
+            self.missingFaceFrames = 0
+            if self.isShowingTrackingWarning {
+                self.isShowingTrackingWarning = false
+                self.publishStatus(self.instructionForCurrentStep(), step: self.challengeStep)
             }
             self.evaluate(face: face, sampleBuffer: sampleBuffer)
         }
@@ -959,47 +1032,112 @@ private final class LivenessCameraViewController: UIViewController, AVCaptureVid
 
     private func evaluate(face: VNFaceObservation, sampleBuffer: CMSampleBuffer) {
         let yaw = CGFloat(face.yaw?.doubleValue ?? 0)
+        let pitch = CGFloat(face.pitch?.doubleValue ?? 0)
+        let mouthWidth = face.landmarks?.outerLips.map { region in
+            let points = region.normalizedPoints
+            guard let minimumX = points.map(\.x).min(), let maximumX = points.map(\.x).max() else { return 0 }
+            return maximumX - minimumX
+        } ?? 0
+        let mouthOpening = face.landmarks?.innerLips.map { region in
+            let points = region.normalizedPoints
+            guard let minimumY = points.map(\.y).min(), let maximumY = points.map(\.y).max() else { return 0 }
+            return maximumY - minimumY
+        } ?? 0
         let faceLargeEnough = face.boundingBox.width > 0.22 && face.boundingBox.height > 0.22
 
         guard faceLargeEnough else {
             stableFrames = 0
-            publishStatus("ขยับใบหน้าเข้ามาใกล้กล้องอีกเล็กน้อย", step: challengeStep)
+            if !isShowingTrackingWarning {
+                isShowingTrackingWarning = true
+                publishStatus("ขยับใบหน้าเข้ามาใกล้กล้องอีกเล็กน้อย", step: challengeStep)
+            }
             return
         }
 
-        switch challengeStep {
-        case 0:
-            check(abs(yaw) < 0.14, requiredFrames: 8, nextMessage: "หันหน้าไปด้านใดด้านหนึ่ง")
-        case 1:
-            if abs(yaw) > 0.28 {
-                firstTurnDirection = yaw > 0 ? 1 : -1
-                advance(to: 2, message: "หันหน้ากลับไปอีกด้าน")
+        if isShowingTrackingWarning {
+            isShowingTrackingWarning = false
+            publishStatus(instructionForCurrentStep(), step: challengeStep)
+        }
+
+        if challengeStep == 0 {
+            if abs(yaw) < 0.14 {
+                stableFrames += 1
+                baselinePitch += pitch
+                if mouthWidth > 0 { baselineMouthWidth += mouthWidth }
+                if mouthOpening > 0 { baselineMouthOpening += mouthOpening }
+                calibrationSamples += 1
+                if stableFrames >= 12 {
+                    let divisor = CGFloat(max(calibrationSamples, 1))
+                    baselinePitch /= divisor
+                    baselineMouthWidth /= divisor
+                    baselineMouthOpening /= divisor
+                    advance(to: 1, message: challenges[0].instruction)
+                }
             } else {
                 stableFrames = 0
+                baselinePitch = 0
+                baselineMouthWidth = 0
+                baselineMouthOpening = 0
+                calibrationSamples = 0
             }
-        case 2:
-            if let firstTurnDirection, yaw * firstTurnDirection < -0.20 {
-                advance(to: 3, message: "มองตรงและอยู่นิ่ง")
-            } else {
-                stableFrames = 0
-            }
-        case 3:
-            if abs(yaw) < 0.12 {
+            return
+        }
+
+        if challengeStep >= 1 && challengeStep <= challenges.count {
+            evaluate(
+                challenge: challenges[challengeStep - 1],
+                yaw: yaw,
+                mouthWidth: mouthWidth,
+                mouthOpening: mouthOpening
+            )
+            return
+        }
+
+        if challengeStep == challenges.count + 1 {
+            if abs(yaw) < 0.12 && abs(pitch - baselinePitch) < 0.12 {
                 stableFrames += 1
                 if stableFrames >= 10 { complete(with: sampleBuffer) }
             } else {
                 stableFrames = 0
             }
-        default:
-            break
         }
     }
 
-    private func check(_ condition: Bool, requiredFrames: Int, nextMessage: String) {
+    private func evaluate(
+        challenge: LivenessChallenge,
+        yaw: CGFloat,
+        mouthWidth: CGFloat,
+        mouthOpening: CGFloat
+    ) {
+        let condition: Bool
+        let requiredFrames: Int
+
+        switch challenge {
+        case .turnLeft:
+            // The Vision request uses `.leftMirrored` for the front camera.
+            // Mirroring reverses Vision's horizontal sign on the user-facing preview.
+            condition = yaw > 0.30
+            requiredFrames = 8
+        case .turnRight:
+            condition = yaw < -0.30
+            requiredFrames = 8
+        case .smile:
+            let smileThreshold = max(baselineMouthWidth * 1.12, baselineMouthWidth + 0.025)
+            let openingThreshold = max(baselineMouthOpening * 1.65, baselineMouthOpening + 0.035)
+            condition = abs(yaw) < 0.18
+                && mouthWidth > smileThreshold
+                && mouthOpening > openingThreshold
+            requiredFrames = 12
+        }
+
         if condition {
             stableFrames += 1
             if stableFrames >= requiredFrames {
-                advance(to: challengeStep + 1, message: nextMessage)
+                let nextStep = challengeStep + 1
+                let nextMessage = nextStep <= challenges.count
+                    ? challenges[nextStep - 1].instruction
+                    : "มองหน้าตรงและอยู่นิ่งเพื่อถ่ายรูป"
+                advance(to: nextStep, message: nextMessage)
             }
         } else {
             stableFrames = 0
@@ -1009,7 +1147,19 @@ private final class LivenessCameraViewController: UIViewController, AVCaptureVid
     private func advance(to step: Int, message: String) {
         challengeStep = step
         stableFrames = 0
+        missingFaceFrames = 0
+        isShowingTrackingWarning = false
         publishStatus(message, step: step)
+    }
+
+    private func instructionForCurrentStep() -> String {
+        if challengeStep == 0 {
+            return "จัดใบหน้าให้อยู่ในกรอบและมองตรง"
+        }
+        if challengeStep >= 1 && challengeStep <= challenges.count {
+            return challenges[challengeStep - 1].instruction
+        }
+        return "มองหน้าตรงและอยู่นิ่งเพื่อถ่ายรูป"
     }
 
     private func complete(with sampleBuffer: CMSampleBuffer) {

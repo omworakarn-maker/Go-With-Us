@@ -130,16 +130,8 @@ class AuthService {
     }
 
     // MARK: - Identity verification
-    func sendIdentityVerificationOTP() async throws {
-        struct MessageResponse: Decodable { let message: String }
-        let _: MessageResponse = try await APIService.shared.request(
-            endpoint: "/users/verify/email-otp", method: .post
-        )
-    }
-
-    func submitIdentityVerification(otp: String, selfie: UIImage) async throws {
+    func submitIdentityVerification(selfie: UIImage) async throws {
         struct VerificationRequest: Encodable {
-            let otp: String
             let faceScanImage: String
         }
         struct MessageResponse: Decodable { let message: String }
@@ -147,7 +139,6 @@ class AuthService {
             throw APIError.serverError("ไม่สามารถเตรียมรูปภาพได้")
         }
         let request = VerificationRequest(
-            otp: otp,
             faceScanImage: "data:image/jpeg;base64,\(data.base64EncodedString())"
         )
         let _: MessageResponse = try await APIService.shared.request(

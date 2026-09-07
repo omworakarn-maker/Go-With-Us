@@ -8,9 +8,9 @@ interface VerificationRequest {
     name: string;
     email: string;
     profileImage: string | null;
-    idCardImage: string;
     faceScanImage: string;
-    createdAt: string;
+    isEmailVerified: boolean;
+    updatedAt: string;
 }
 
 const AdminVerification: React.FC = () => {
@@ -65,7 +65,7 @@ const AdminVerification: React.FC = () => {
                     <div className="flex items-center justify-between mb-8">
                         <div>
                             <h1 className="text-xl font-bold text-gray-900">ตรวจสอบการยืนยันตัวตน</h1>
-                            <p className="text-sm text-gray-500 mt-1">คำขอทั้งหมดที่รอการตรวจสอบเทียบดูบัตรประชาชนและใบหน้า</p>
+                            <p className="text-sm text-gray-500 mt-1">ตรวจรูปใบหน้าจากขั้นตอนตรวจการเคลื่อนไหวของบัญชีที่ยืนยันอีเมลแล้ว</p>
                         </div>
                         <button
                             onClick={() => navigate(-1)}
@@ -104,19 +104,31 @@ const AdminVerification: React.FC = () => {
                                         </div>
                                         <div className="ml-auto text-right">
                                             <p className="text-xs font-semibold text-gray-400">ส่งคำขอเมื่อ</p>
-                                            <p className="text-sm font-bold">{new Date(req.createdAt).toLocaleString('th-TH')}</p>
+                                            <p className="text-sm font-bold">{new Date(req.updatedAt).toLocaleString('th-TH')}</p>
                                         </div>
                                     </div>
 
+                                    <div className="flex flex-wrap gap-2">
+                                        <span className={`px-3 py-1.5 rounded-full text-xs font-bold ${req.isEmailVerified ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                            {req.isEmailVerified ? '✓ ยืนยันอีเมลแล้ว' : 'ยังไม่ยืนยันอีเมล'}
+                                        </span>
+                                        <span className="px-3 py-1.5 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold">
+                                            ✓ ส่งรูปผ่านขั้นตอนตรวจการเคลื่อนไหวแล้ว
+                                        </span>
+                                    </div>
+
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        {/* ID Card */}
+                                        {/* Existing profile image for visual comparison */}
                                         <div className="space-y-2">
                                             <p className="text-[11px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" /></svg>
-                                                รูปบัตรประชาชน / Passport
+                                                รูปโปรไฟล์ปัจจุบัน
                                             </p>
                                             <div className="w-full aspect-[4/3] bg-gray-100 rounded-xl overflow-hidden border border-gray-200 group relative">
-                                                <img src={req.idCardImage} alt="ID Card" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+                                                {req.profileImage ? (
+                                                    <img src={req.profileImage} alt="รูปโปรไฟล์" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center text-gray-400">ไม่มีรูปโปรไฟล์</div>
+                                                )}
                                             </div>
                                         </div>
 
@@ -124,7 +136,7 @@ const AdminVerification: React.FC = () => {
                                         <div className="space-y-2">
                                             <p className="text-[11px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                                รูปถ่ายใบหน้า
+                                                รูปจากการตรวจการเคลื่อนไหวใบหน้า
                                             </p>
                                             <div className="w-full aspect-[4/3] bg-gray-100 rounded-xl overflow-hidden border border-gray-200 group relative">
                                                 <img src={req.faceScanImage} alt="Face Scan" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
@@ -138,14 +150,14 @@ const AdminVerification: React.FC = () => {
                                             onClick={() => handleVerify(req.id, 'rejected')}
                                             className="px-6 py-2.5 bg-white border-2 border-red-500 text-red-500 text-sm font-bold rounded-xl hover:bg-red-50 transition-all active:scale-95"
                                         >
-                                            ปฏิเสธ (รูปไม่ชัดเจน)
+                                            ปฏิเสธคำขอ
                                         </button>
                                         <button
                                             onClick={() => handleVerify(req.id, 'verified')}
                                             className="px-6 py-2.5 bg-green-500 text-white text-sm font-bold rounded-xl hover:bg-green-600 transition-all shadow-md active:scale-95 flex items-center gap-2"
                                         >
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>
-                                            ยืนยัน (ข้อมูลตรงกัน)
+                                            อนุมัติการยืนยันตัวตน
                                         </button>
                                     </div>
                                 </div>

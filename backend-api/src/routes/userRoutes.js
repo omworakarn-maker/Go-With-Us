@@ -1,6 +1,6 @@
 import express from 'express';
 import { verifyToken } from '../middleware/auth.js';
-import { getProfile, updateProfile, getAllUsers, getAdminOverview, getAdminUsers, registerDeviceToken, getPublicProfile, updatePrivacySettings, checkUsername, reportUser, banUser, warnUser, getAllReports, requestVerification, getVerificationRequests, verifyUser, resetAccount, deleteAccount, sendIdentityVerificationOTP, submitIdentityVerification } from '../controllers/userController.js';
+import { getProfile, updateProfile, getAllUsers, getAdminOverview, getAdminUsers, registerDeviceToken, getPublicProfile, updatePrivacySettings, checkUsername, reportUser, banUser, warnUser, getAllReports, requestVerification, getVerificationRequests, verifyUser, resetAccount, deleteAccount, submitIdentityVerification } from '../controllers/userController.js';
 
 const router = express.Router();
 
@@ -29,7 +29,6 @@ router.post('/:targetId/warn', warnUser);
 router.get('/reports/all', getAllReports);
 
 // Identity Verification routes
-router.post('/verify/email-otp', sendIdentityVerificationOTP);
 router.post('/verify/selfie', submitIdentityVerification);
 router.post('/verify/request', requestVerification);
 router.get('/verify/requests', getVerificationRequests); // Admin only internally checked
