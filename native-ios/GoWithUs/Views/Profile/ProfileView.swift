@@ -246,7 +246,18 @@ struct VerificationStatusView: View {
     let user: User
     @Binding var showVerification: Bool
     var body: some View {
-        if user.isVerified == true {
+        if user.role == .admin {
+            HStack(spacing: 5) {
+                Image(systemName: "checkmark.shield.fill")
+                Text(SettingsManager.shared.currentLanguage == .thai ? "ผู้ดูแลระบบ" : "Administrator")
+                    .font(.system(size: 13, weight: .bold))
+            }
+            .foregroundColor(.appPrimary)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(Color.appPrimary.opacity(0.1))
+            .cornerRadius(20)
+        } else if user.isVerified == true {
             HStack(spacing: 5) {
                 Image(systemName: "checkmark.seal.fill")
                     .foregroundColor(.green)

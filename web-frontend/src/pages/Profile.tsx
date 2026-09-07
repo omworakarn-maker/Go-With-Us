@@ -193,7 +193,12 @@ const Profile: React.FC = () => {
                                         <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${profile.role === 'admin' ? 'bg-black text-white' : 'bg-gray-100 text-gray-600'}`}>
                                             {profile.role}
                                         </span>
-                                        {profile.isVerified ? (
+                                        {profile.role === 'admin' ? (
+                                            <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-[10px] font-bold tracking-widest flex items-center gap-1">
+                                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>
+                                                ผู้ดูแลระบบ
+                                            </span>
+                                        ) : profile.isVerified ? (
                                             <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-[10px] font-bold tracking-widest flex items-center gap-1">
                                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>
                                                 ยืนยันตัวตนแล้ว

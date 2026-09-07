@@ -115,7 +115,7 @@ export const login = async (req, res, next) => {
         }
         
         // Ensure email is verified
-        if (user.isEmailVerified === false) {
+        if (user.isEmailVerified === false && user.role !== 'admin') {
             return res.status(401).json({ error: 'Please verify your email address before logging in.', needsVerification: true });
         }
 
@@ -124,6 +124,22 @@ export const login = async (req, res, next) => {
 
         if (!isValidPassword) {
             return res.status(401).json({ error: 'Invalid email or password.' });
+        }
+
+        // Admin roles are assigned by the system and do not use the end-user
+        // email or face-verification flow.
+        if (user.role === 'admin' && (!user.isEmailVerified || !user.isVerified || user.verificationStatus !== 'verified')) {
+            await prisma.user.update({
+                where: { id: user.id },
+                data: {
+                    isEmailVerified: true,
+                    isVerified: true,
+                    verificationStatus: 'verified'
+                }
+            });
+            user.isEmailVerified = true;
+            user.isVerified = true;
+            user.verificationStatus = 'verified';
         }
 
         // Generate JWT token
