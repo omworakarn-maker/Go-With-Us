@@ -148,7 +148,7 @@ struct UserProfileView: View {
                                     if let gender = displayUser.gender {
                                         infoCard(
                                             icon: "person.fill",
-                                            iconColor: Color(hex: "#8B5CF6"),
+                                            iconColor: Color.appSecondary,
                                             label: "เพศ",
                                             value: gender == "male" ? "ชาย" : gender == "female" ? "หญิง" : "อื่นๆ"
                                         )
@@ -171,7 +171,7 @@ struct UserProfileView: View {
                                     HStack(spacing: 6) {
                                         Image(systemName: "doc.text.fill")
                                             .font(.system(size: 12))
-                                            .foregroundColor(Color(hex: "#EC4899"))
+                                            .foregroundColor(Color.appSecondary)
                                         Text("ประวัติส่วนตัว")
                                             .font(.system(size: 12, weight: .bold))
                                             .foregroundColor(.adaptiveSecondaryText)
@@ -272,7 +272,7 @@ struct UserProfileView: View {
             }
             .presentationDetents([.height(340)])
         }
-        .tint(.black)
+        .tint(.appPrimary)
         .alert(actionMessage, isPresented: $showingActionMessage) {
             Button("ตกลง", role: .cancel) { }
         }
@@ -416,7 +416,7 @@ struct WarnUserSheet: View {
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(Color.black)
+                        .background(Color.appPrimary)
                         .cornerRadius(12)
                 }
                 
@@ -466,7 +466,7 @@ struct ReportUserSheet: View {
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(Color.black)
+                        .background(Color.appPrimary)
                         .cornerRadius(12)
                 }
                 
@@ -574,7 +574,7 @@ struct UserActionSheet: View {
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(Color.black)
+                        .background(Color.appPrimary)
                         .cornerRadius(12)
                 }
                 .padding(.top, 8)

@@ -56,6 +56,21 @@ struct QuestionnaireView: View {
     private var totalSteps: Int { isOnboarding ? 5 : 4 }
     private var displayedStep: Int { currentStep + (isOnboarding ? 0 : 1) }
 
+    private var canContinue: Bool {
+        guard !isSubmitting else { return false }
+        switch displayedStep {
+        case 0:
+            return !username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                && usernameStatus == .available && isBirthDateSet
+        case 3:
+            return !timeOfDay.isEmpty
+        case 4:
+            return !interests.isEmpty
+        default:
+            return true
+        }
+    }
+
     private enum UsernameStatus: Equatable {
         case idle, checking, available
         case taken(String)
@@ -100,10 +115,10 @@ struct QuestionnaireView: View {
     
     // Time slots
     let timeSlots = [
-        ("morning", "ช่วงเช้า (06:00 - 11:00 น.)", "เช่น ชมพระอาทิตย์ขึ้น, เยี่ยมชมตลาดเช้า"),
-        ("noon", "ช่วงกลางวัน (11:00 - 16:00 น.)", "เช่น รับประทานอาหาร, พักผ่อนในคาเฟ่, เข้าชมพิพิธภัณฑ์"),
-        ("evening", "ช่วงเย็น (16:00 - 20:00 น.)", "เช่น เดินพักผ่อน, ชมพระอาทิตย์ตก, รับประทานอาหารค่ำ"),
-        ("night", "ช่วงกลางคืน (20:00 น. เป็นต้นไป)", "เช่น สัมผัสบรรยากาศยามค่ำคืน, เข้าร่วมงานสังสรรค์")
+        ("morning", "ช่วงเช้า (06:00 - 11:00 น.)", "เหมาะสำหรับคนที่ชอบออกจากที่พักเร็ว เช่น ดูพระอาทิตย์ขึ้น เดินตลาดเช้า หรือรับประทานอาหารเช้า"),
+        ("noon", "ช่วงกลางวัน (11:00 - 16:00 น.)", "เหมาะสำหรับคนที่ชอบเที่ยวช่วงสายถึงบ่าย เช่น เข้าชมสถานที่ท่องเที่ยว แวะคาเฟ่ หรือรับประทานอาหารกลางวัน"),
+        ("evening", "ช่วงเย็น (16:00 - 20:00 น.)", "เหมาะสำหรับคนที่ชอบเที่ยวช่วงเย็นก่อนค่ำ เช่น เดินเล่น ชมพระอาทิตย์ตก หรือรับประทานอาหารเย็น"),
+        ("night", "ช่วงกลางคืน (20:00 น. เป็นต้นไป)", "เหมาะสำหรับคนที่ชอบออกเที่ยวหลังค่ำ เช่น เดินตลาดกลางคืน ชมแสงไฟในเมือง หรือฟังดนตรีสด")
     ]
     
     private var timeFormatter: DateFormatter {
@@ -119,7 +134,7 @@ struct QuestionnaireView: View {
                 // Progress
                 ProgressView(value: Double(currentStep + 1), total: Double(totalSteps))
                     .padding(.horizontal)
-                    .tint(.black)
+                    .tint(.appPrimary)
                 
                 Text("\(SettingsManager.shared.localizedString(for: "step_prefix")) \(currentStep + 1) \(SettingsManager.shared.localizedString(for: "step_suffix")) \(totalSteps)")
                     .font(.caption)
@@ -176,9 +191,9 @@ struct QuestionnaireView: View {
 
                             } else if displayedStep == 1 {
                                 // Budget Step
-                                Text("💰 งบประมาณเฉลี่ยต่อวัน (Budget / บาท)")
+                                Text("💰 งบประมาณเฉลี่ยต่อทริป (Budget per Trip)")
                                     .font(.title2).bold()
-                            Text("ระบุงบประมาณที่คุณพึงพอใจในการใช้จ่ายระหว่างทริป (ต่อวัน)")
+                            Text("ระบุงบประมาณที่คุณสะดวกใช้จ่ายสำหรับหนึ่งทริป (บาท)")
                                 .font(.subheadline).foregroundColor(.secondary)
                             
                             VStack(spacing: 30) {
@@ -189,7 +204,7 @@ struct QuestionnaireView: View {
                                         .keyboardType(.numberPad)
                                         .multilineTextAlignment(.center)
                                         .frame(maxWidth: 200)
-                                        .tint(.black)
+                                        .tint(.appPrimary)
                                     
                                     Text("฿")
                                         .font(.title)
@@ -197,7 +212,7 @@ struct QuestionnaireView: View {
                                 }
                                 
                                 Slider(value: budgetSliderBinding, in: 0...Double(budgetSteps.count - 1), step: 1)
-                                    .tint(.black)
+                                    .tint(.appPrimary)
                                 
                                 HStack {
                                     Text("ประหยัด (100฿)")
@@ -211,15 +226,15 @@ struct QuestionnaireView: View {
                             
                         } else if displayedStep == 2 {
                             // Activity Style Step
-                            Text("🎯 วันนึงชอบเที่ยวประมาณกี่ที่?")
+                            Text("🎯 จำนวนสถานที่ท่องเที่ยวต่อวัน (Places per Day)")
                                 .font(.title2).bold()
-                            Text("สไตล์การจัดตารางเที่ยวในแต่ละวันของคุณเป็นแบบไหน?")
+                            Text("เลือกจำนวนสถานที่ที่คุณสะดวกเที่ยวในหนึ่งวัน")
                                 .font(.subheadline).foregroundColor(.secondary)
                             
                             VStack(spacing: 12) {
-                                QuestionnaireActivityStyleCard(title: "1-2 ที่ (สายชิล)", subtitle: "เน้นพักผ่อน อยู่ที่เดียวนานๆ ไม่รีบร้อน", value: 2, selectedValue: $activityStyle)
-                                QuestionnaireActivityStyleCard(title: "3-4 ที่ (สายพอดี)", subtitle: "เที่ยวสบายๆ ได้ไปหลายที่แต่ไม่เหนื่อยเกิน", value: 5, selectedValue: $activityStyle)
-                                QuestionnaireActivityStyleCard(title: "5 ที่ขึ้นไป (สายลุย)", subtitle: "ตารางแน่น เน้นเก็บให้ครบ ไปหลายที่", value: 8, selectedValue: $activityStyle)
+                                QuestionnaireActivityStyleCard(title: "1–2 สถานที่ต่อวัน", subtitle: "ต้องการใช้เวลาในแต่ละสถานที่อย่างเต็มที่ และมีเวลาพักผ่อนระหว่างวัน", value: 2, selectedValue: $activityStyle)
+                                QuestionnaireActivityStyleCard(title: "3–4 สถานที่ต่อวัน", subtitle: "ต้องการเที่ยวหลายสถานที่ โดยแบ่งเวลาเที่ยวและพักผ่อนให้สมดุล", value: 5, selectedValue: $activityStyle)
+                                QuestionnaireActivityStyleCard(title: "5 สถานที่ขึ้นไปต่อวัน", subtitle: "ต้องการเที่ยวให้หลากหลายในหนึ่งวัน และใช้เวลาในแต่ละสถานที่ไม่นาน", value: 8, selectedValue: $activityStyle)
                             }
                             .padding(.top, 20)
                             
@@ -265,7 +280,7 @@ struct QuestionnaireView: View {
                                             }
                                         }
                                         .padding()
-                                        .background(isSelected ? Color.black : Color.gray.opacity(0.1))
+                                        .background(isSelected ? Color.appPrimary : Color.gray.opacity(0.1))
                                         .cornerRadius(12)
                                         .contentShape(RoundedRectangle(cornerRadius: 12))
                                     }
@@ -276,24 +291,31 @@ struct QuestionnaireView: View {
                         } else if displayedStep == 4 {
                             // Interests Step
                             HStack {
-                                Text("✨ สไตล์การเที่ยวของคุณ")
+                                Text("✨ ความสนใจด้านการท่องเที่ยว (Travel Interests)")
                                     .font(.title2).bold()
                                 Spacer()
                             }
-                            Text("เลือกสไตล์การท่องเที่ยวที่คุณชอบ (เลือกได้สูงสุด 5 ข้อ) เพื่อให้เราแนะนำทริปที่โดนใจคุณมากที่สุด")
+                            Text("เลือกหมวดหมู่ที่คุณสนใจได้สูงสุด 5 ข้อ เพื่อให้เราแนะนำทริปที่เหมาะกับคุณ")
                                 .font(.subheadline).foregroundColor(.secondary)
                             
+                            HStack {
+                                Label("เลื่อนซ้าย–ขวาเพื่อดูตัวเลือก", systemImage: "arrow.left.arrow.right")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                                Text("เลือกแล้ว \(interests.count)/5")
+                                    .font(.caption.bold())
+                            }
+                            .padding(.top, 8)
+
                             ForEach(INTEREST_SECTIONS) { section in
+                                VStack(alignment: .leading, spacing: 12) {
                                 Text(section.title)
                                     .font(.headline)
-                                    .padding(.top, 16)
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                 
-                                LazyVGrid(columns: [
-                                    GridItem(.flexible(), spacing: 12),
-                                    GridItem(.flexible(), spacing: 12),
-                                    GridItem(.flexible(), spacing: 12)
-                                ], spacing: 16) {
+                                ScrollView(.horizontal, showsIndicators: true) {
+                                    LazyHStack(spacing: 12) {
                                     ForEach(section.categories) { cat in
                                         QuestionnaireInterestCard(
                                             label: cat.label,
@@ -309,10 +331,15 @@ struct QuestionnaireView: View {
                                                 }
                                             }
                                         }
+                                        .frame(width: 112)
                                     }
+                                    }
+                                    .padding(.vertical, 6)
+                                    .padding(.horizontal, 4)
                                 }
+                                }
+                                .padding(.top, 16)
                             }
-                            .padding(.top, 20)
                         }
                         } // Closes Group
                         .transition(.asymmetric(
@@ -387,10 +414,10 @@ struct QuestionnaireView: View {
                         }
                     }
                     .frame(width: 120, height: 50)
-                    .background(Color.black)
+                    .background(canContinue ? Color.appPrimary : Color.gray)
                     .foregroundColor(.white)
                     .cornerRadius(25)
-                    .disabled(isSubmitting)
+                    .disabled(!canContinue)
                 }
                 .padding()
             }
@@ -567,7 +594,7 @@ struct QuestionnaireActivityStyleCard: View {
                 }
             }
             .padding()
-            .background(isSelected ? Color.black : Color.gray.opacity(0.1))
+            .background(isSelected ? Color.appPrimary : Color.gray.opacity(0.1))
             .cornerRadius(12)
             .contentShape(RoundedRectangle(cornerRadius: 12))
         }

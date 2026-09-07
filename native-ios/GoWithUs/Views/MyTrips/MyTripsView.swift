@@ -75,7 +75,7 @@ struct MyTripsView: View {
                                             .font(.headline)
                                             .foregroundColor(.white)
                                             .padding()
-                                            .background(Color.black)
+                                            .background(Color.appPrimary)
                                             .cornerRadius(12)
                                     }
                                 }

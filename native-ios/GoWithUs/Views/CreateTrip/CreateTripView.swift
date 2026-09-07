@@ -172,7 +172,7 @@ struct CreateTripView: View {
             ZStack {
                 Color.adaptiveBackground
                     .ignoresSafeArea()
-                    .tint(.black)
+                    .tint(.appPrimary)
                 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 24) {
@@ -189,7 +189,7 @@ struct CreateTripView: View {
                                 .foregroundColor(.gray)
 
                             ProgressView(value: Double(creationStep + 1), total: 4)
-                                .tint(.black)
+                                .tint(.appPrimary)
                                 .padding(.top, 6)
                             Text("ขั้นตอนที่ \(creationStep + 1) จาก 4")
                                 .font(.caption)
@@ -316,7 +316,7 @@ struct CreateTripView: View {
                                         .font(.system(size: 11, weight: .bold))
                                         .foregroundColor(.white)
                                         .padding(.horizontal, 10).padding(.vertical, 6)
-                                        .background(Color.black)
+                                        .background(Color.appPrimary)
                                         .cornerRadius(12)
                                     }
                                     .disabled(isGeneratingAI)
@@ -338,7 +338,7 @@ struct CreateTripView: View {
                                 ZStack(alignment: .topLeading) {
                                     TextEditor(text: $description)
                                         .foregroundColor(.adaptiveText)
-                                        .tint(.adaptiveText)
+                                        .tint(.appPrimary)
                                         .frame(minHeight: 120)
                                         .padding(8)
                                         .scrollContentBackground(.hidden) // Remove white background
@@ -397,7 +397,7 @@ struct CreateTripView: View {
                                 HStack {
                                     TextField("เช่น ทะเล, คาเฟ่, ธรรมชาติ", text: $tagInput)
                                         .foregroundColor(.adaptiveText)
-                                        .tint(.adaptiveText)
+                                        .tint(.appPrimary)
                                         .onSubmit {
                                             addTag()
                                         }
@@ -530,7 +530,7 @@ struct CreateTripView: View {
                                                 }
                                             }
                                             .padding()
-                                            .background(isSelected ? Color.adaptiveText : Color.gray.opacity(0.05))
+                                            .background(isSelected ? Color.appPrimary : Color.gray.opacity(0.05))
                                             .cornerRadius(12)
                                         }
                                         .buttonStyle(PlainButtonStyle())
@@ -611,7 +611,7 @@ struct CreateTripView: View {
                                     .foregroundColor(.white)
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 16)
-                                    .background(Color.adaptiveText)
+                                    .background(Color.appPrimary)
                                     .cornerRadius(12)
                                 }
                                 .disabled(isLoading)
@@ -657,7 +657,7 @@ struct CreateTripView: View {
                 Text("คุณแน่ใจหรือไม่ว่าต้องการลบทริปนี้? การดำเนินการนี้ไม่สามารถย้อนกลับได้")
             }
         }
-        .tint(.black)
+        .tint(.appPrimary)
         .onAppear { 
             loadExtraCategories()
             if description.isEmpty {
@@ -697,7 +697,7 @@ struct CreateTripView: View {
                     TextField("ชื่อสไตล์ใหม่", text: $newCategoryText)
                         .padding()
                         .background(Color.gray.opacity(0.05))
-                        .tint(.adaptiveText)
+                        .tint(.appPrimary)
                         .cornerRadius(8)
 
                     Spacer()
@@ -769,7 +769,7 @@ struct CreateTripView: View {
                 Text("คุณแน่ใจหรือไม่ว่าต้องการลบทริปนี้?")
             }
         }
-        .tint(.black)
+        .tint(.appPrimary)
         .onAppear {
             synchronizeInjectedTrip()
         }
@@ -784,7 +784,7 @@ struct CreateTripView: View {
                 .font(.system(size: 14, weight: .medium))
                 .foregroundColor(.gray)
             ProgressView(value: Double(creationStep + 1), total: 4)
-                .tint(.black)
+                .tint(.appPrimary)
             Text("ขั้นตอนที่ \(creationStep + 1) จาก 4")
                 .font(.caption)
                 .foregroundColor(.gray)
@@ -936,7 +936,7 @@ struct CreateTripView: View {
                         .font(.system(size: 11, weight: .bold))
                         .foregroundColor(.white)
                         .padding(.horizontal, 10).padding(.vertical, 6)
-                        .background(Color.black).cornerRadius(12)
+                        .background(Color.appPrimary).cornerRadius(12)
                 }.disabled(isGeneratingAI)
             }
             TextField("ความต้องการพิเศษให้ AI (ไม่จำเป็น)", text: $aiPrompt)
@@ -993,7 +993,7 @@ struct CreateTripView: View {
             Text(title).font(.system(size: 13, weight: .bold))
                 .foregroundColor(selected ? .white : .adaptiveText)
                 .frame(maxWidth: .infinity).padding(.vertical, 12)
-                .background(selected ? Color.adaptiveText : Color.gray.opacity(0.08)).cornerRadius(10)
+                .background(selected ? Color.appPrimary : Color.gray.opacity(0.08)).cornerRadius(10)
         }
     }
 
@@ -1014,7 +1014,7 @@ struct CreateTripView: View {
                         Image(systemName: selected ? "checkmark.circle.fill" : "circle")
                     }
                     .foregroundColor(selected ? .white : .adaptiveText)
-                    .padding().background(selected ? Color.adaptiveText : Color.gray.opacity(0.05)).cornerRadius(12)
+                    .padding().background(selected ? Color.appPrimary : Color.gray.opacity(0.05)).cornerRadius(12)
                 }
             }
         }
@@ -1454,7 +1454,7 @@ private struct WizardPrimaryButtonStyle: ButtonStyle {
             .foregroundColor(.white)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 15)
-            .background(Color.adaptiveText.opacity(configuration.isPressed ? 0.75 : 1))
+            .background(Color.appPrimary.opacity(configuration.isPressed ? 0.75 : 1))
             .cornerRadius(12)
     }
 }
@@ -1622,7 +1622,7 @@ struct TripMultiImagePickerView: View {
                         .foregroundColor(.gray)
                     TextField("หรือวาง URL รูปภาพ", text: $imageUrl)
                         .foregroundColor(.adaptiveText)
-                        .tint(.adaptiveText)
+                        .tint(.appPrimary)
                         .font(.system(size: 14))
                 }
                 .padding(12)
@@ -1818,7 +1818,7 @@ struct TripDateInputView: View {
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(Color.adaptiveText)
+                            .background(Color.appPrimary)
                             .cornerRadius(14)
                     }
                     .padding(.horizontal)
@@ -1863,7 +1863,7 @@ struct FormField: View {
             
             TextField(placeholder, text: $text)
                 .foregroundColor(.adaptiveText)
-                .tint(.adaptiveText)
+                .tint(.appPrimary)
                 .keyboardType(keyboardType)
                 .padding()
                 .background(Color.gray.opacity(0.05))

@@ -187,7 +187,7 @@ struct DayCell: View {
             // Selection circle
             if isStartDate || isEndDate {
                 Circle()
-                    .fill(Color.black)
+                    .fill(Color.appPrimary)
                     .frame(width: 40, height: 40)
             }
             

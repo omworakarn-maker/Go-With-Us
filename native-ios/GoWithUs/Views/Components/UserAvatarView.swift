@@ -17,7 +17,7 @@ struct UserAvatarView: View {
     var body: some View {
         ZStack {
             Circle()
-                .fill(Color.black)
+                .fill(Color.appPrimary)
                 .frame(width: size, height: size)
             
             if let displayUser = displayUser {
@@ -41,4 +41,3 @@ struct UserAvatarView: View {
         .compositingGroup() // Ensure it transitions cohesively as a single layer
     }
 }
-

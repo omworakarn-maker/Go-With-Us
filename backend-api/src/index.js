@@ -10,7 +10,7 @@ import matchRoutes from './routes/matchRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
-// Load environment variables
+// Load environment variables from the local .env file.
 dotenv.config();
 
 const app = express();

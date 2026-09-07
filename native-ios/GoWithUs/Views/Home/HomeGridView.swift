@@ -140,7 +140,7 @@ struct HomeGridView: View {
                         VStack(spacing: 12) {
                             Spacer()
                             ProgressView()
-                                .tint(.adaptiveText)
+                                .tint(.appPrimary)
                             Text(SettingsManager.shared.localizedString(for: "loading_trips"))
                                 .font(.system(size: 14))
                                 .foregroundColor(.adaptiveText)

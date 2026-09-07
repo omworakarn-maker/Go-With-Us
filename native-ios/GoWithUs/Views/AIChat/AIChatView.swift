@@ -122,7 +122,7 @@ struct AIChatView: View {
                             }
                             HStack(spacing: 16) {
                                 DraftInfoPill(icon: "banknote", text: "\(draft.budget) ฿", color: Color(hex: "#2ECC71"))
-                                DraftInfoPill(icon: "person.2", text: "สูงสุด \(draft.maxParticipants) คน", color: .purple)
+                                DraftInfoPill(icon: "person.2", text: "สูงสุด \(draft.maxParticipants) คน", color: .appSecondary)
                             }
                         }
                         

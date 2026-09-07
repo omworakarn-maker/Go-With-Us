@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 // MARK: - Auth Service
 class AuthService {
@@ -124,6 +125,32 @@ class AuthService {
             method: .post,
             body: request,
             requiresAuth: false
+        )
+    }
+
+    // MARK: - Identity verification
+    func sendIdentityVerificationOTP() async throws {
+        struct MessageResponse: Decodable { let message: String }
+        let _: MessageResponse = try await APIService.shared.request(
+            endpoint: "/users/verify/email-otp", method: .post
+        )
+    }
+
+    func submitIdentityVerification(otp: String, selfie: UIImage) async throws {
+        struct VerificationRequest: Encodable {
+            let otp: String
+            let faceScanImage: String
+        }
+        struct MessageResponse: Decodable { let message: String }
+        guard let data = selfie.jpegData(compressionQuality: 0.65) else {
+            throw APIError.serverError("ไม่สามารถเตรียมรูปภาพได้")
+        }
+        let request = VerificationRequest(
+            otp: otp,
+            faceScanImage: "data:image/jpeg;base64,\(data.base64EncodedString())"
+        )
+        let _: MessageResponse = try await APIService.shared.request(
+            endpoint: "/users/verify/selfie", method: .post, body: request
         )
     }
     

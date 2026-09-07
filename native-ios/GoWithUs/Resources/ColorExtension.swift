@@ -41,10 +41,18 @@ extension Color {
     static let adaptiveBackground = Color(.systemBackground)
     
     /// Secondary/card background — slightly off-white in light, dark gray in dark
-    static let adaptiveCardBackground = Color(.secondarySystemBackground)
+    static let adaptiveCardBackground = Color(UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor.secondarySystemBackground
+            : UIColor(red: 244 / 255.0, green: 248 / 255.0, blue: 252 / 255.0, alpha: 1)
+    })
     
     /// Grouped background for forms/lists
-    static let adaptiveGroupedBackground = Color(.systemGroupedBackground)
+    static let adaptiveGroupedBackground = Color(UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor.systemGroupedBackground
+            : UIColor(red: 244 / 255.0, green: 248 / 255.0, blue: 252 / 255.0, alpha: 1)
+    })
     
     /// Primary text — black in light, white in dark
     static let adaptiveText = Color(.label)

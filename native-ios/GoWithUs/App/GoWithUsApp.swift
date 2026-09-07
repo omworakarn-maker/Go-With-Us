@@ -29,6 +29,7 @@ struct GoWithUsApp: App {
                 }
             }
             .ignoresSafeArea(edges: .top)
+            .tint(.appPrimary)
             .animation(.easeInOut(duration: 0.5), value: showSplash)
             .onAppear {
                 NotificationPoller.shared.startPolling()

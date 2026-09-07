@@ -40,7 +40,7 @@ struct ChatInputBar: View {
                 text = ""
             }) {
                 Circle()
-                    .fill(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? Color.gray.opacity(0.3) : Color.black)
+                    .fill(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? Color.gray.opacity(0.3) : Color.appPrimary)
                     .frame(width: 44, height: 44)
                     .overlay(
                         Image(systemName: "paperplane.fill")
