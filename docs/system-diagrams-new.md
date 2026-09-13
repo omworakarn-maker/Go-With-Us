@@ -171,47 +171,234 @@ flowchart LR
 
 ## 7. System Architecture Diagram
 
+แผนภาพนี้เริ่มจากผู้ใช้เปิดแอป แล้วแสดงเส้นทางไปยังหน้าจอหลัก การส่งคำขอไปยัง Backend และตำแหน่งที่จัดเก็บข้อมูล โดยแบ่งสีตามหน้าที่ของระบบ
+
+### 7.1 เส้นทางของผู้ใช้ตั้งแต่เปิดแอป
+
 ```mermaid
-flowchart TB
-    subgraph CLIENT[Client Layer]
-        IOS[iOS App<br/>SwiftUI]
-        ADMIN[Admin Backoffice<br/>React]
+flowchart TD
+    START([ผู้ใช้เปิดแอป GoWithUs]) --> AUTH{เข้าสู่ระบบแล้วหรือยัง}
+
+    AUTH -- ยัง --> LOGIN[หน้าเข้าสู่ระบบ]
+    LOGIN --> REG[สมัครสมาชิก]
+    REG --> OTP[ยืนยันอีเมลด้วย OTP]
+    OTP --> QUIZ[ตอบแบบสอบถาม 4 ปัจจัย]
+    QUIZ --> SAVE[บันทึก interests และ travelStyle]
+    SAVE --> MAIN
+    LOGIN -->|เข้าสู่ระบบสำเร็จ| MAIN
+    AUTH -- แล้ว --> MAIN[หน้าหลักของแอป]
+
+    MAIN --> HOME[หน้าหลัก<br/>ดูรายการทริป]
+    MAIN --> MATCH[แมตช์ทริป<br/>ดูทริปที่เหมาะสม]
+    MAIN --> CREATE[สร้างทริป]
+    MAIN --> CHAT[แชท]
+    MAIN --> PROFILE[โปรไฟล์]
+
+    HOME --> DETAIL[ดูรายละเอียดทริป]
+    DETAIL --> JOIN[เข้าร่วมหรือออกจากทริป]
+    HOME --> FAVORITE[บันทึกทริปโปรด]
+
+    MATCH --> SCORE[คำนวณคะแนนจาก<br/>ความสนใจ งบ กิจกรรม และช่วงเวลา]
+    SCORE --> DETAIL
+
+    CREATE --> TRIPFORM[กรอกข้อมูลและกำหนดการ]
+    TRIPFORM --> CREATED[บันทึกทริปใหม่]
+
+    CHAT --> GROUPCHAT[แชทกลุ่มของทริป]
+    CHAT --> PRIVATECHAT[ข้อความส่วนตัว]
+
+    PROFILE --> EDIT[แก้ไขข้อมูลส่วนตัว]
+    PROFILE --> VERIFY[ยืนยันตัวตนด้วยใบหน้า]
+    PROFILE --> QUESTION[แก้ไขคำตอบแบบสอบถาม]
+
+    MAIN --> MORE[เมนูเพิ่มเติม]
+    MORE --> MYTRIPS[ทริปของฉัน]
+    MORE --> FAVORITES[รายการโปรด]
+    MORE --> AIHELP[ผู้ช่วยวางแผนทริป]
+    MORE --> SETTINGS[ตั้งค่าและออกจากระบบ]
+
+    classDef start fill:#5B4BDB,color:#FFFFFF,stroke:#4338CA,stroke-width:2px;
+    classDef decision fill:#FFF4CC,color:#3D3200,stroke:#D7A900,stroke-width:2px;
+    classDef auth fill:#FFE8E8,color:#5A1717,stroke:#E36A6A;
+    classDef screen fill:#E9F2FF,color:#123765,stroke:#6EA8E8;
+    classDef action fill:#E8F8EF,color:#16482B,stroke:#63B884;
+    classDef menu fill:#F3EAFE,color:#432265,stroke:#A57ADB;
+
+    class START,MAIN start;
+    class AUTH decision;
+    class LOGIN,REG,OTP,QUIZ auth;
+    class HOME,MATCH,CREATE,CHAT,PROFILE,MORE screen;
+    class SAVE,DETAIL,JOIN,FAVORITE,SCORE,TRIPFORM,CREATED,GROUPCHAT,PRIVATECHAT,EDIT,VERIFY,QUESTION action;
+    class MYTRIPS,FAVORITES,AIHELP,SETTINGS menu;
+```
+
+### 7.2 การเชื่อมต่อจากหน้าจอไปยังระบบหลังบ้าน
+
+```mermaid
+flowchart LR
+    USER([ผู้ใช้]) --> IOS
+
+    subgraph APP[แอปพลิเคชัน iOS — SwiftUI]
+        IOS[หน้าจอและ Navigation]
+        VM[ViewModel<br/>จัดการข้อมูลของหน้าจอ]
+        SERVICE[Service<br/>ส่งและรับข้อมูล]
+        TOKEN[JWT Token<br/>ยืนยันผู้ใช้]
+        IOS --> VM
+        VM --> SERVICE
+        TOKEN --> SERVICE
     end
 
-    subgraph SERVER[Application Layer]
-        EXPRESS[Node.js / Express API]
-        AUTH[JWT Authentication]
-        WS[WebSocket Service]
-        MATCH[Trip Matching Service]
-        AI[AI Service]
-        NOTI[Notification Service]
+    SERVICE -->|HTTPS และ JSON| API
+    SERVICE <-->|ข้อความแบบทันที| WS
+
+    subgraph BACKEND[Backend API — Node.js และ Express]
+        API[API Routes]
+        AUTHAPI[สมัคร เข้าสู่ระบบ และ OTP]
+        USERAPI[โปรไฟล์และแบบสอบถาม]
+        TRIPAPI[ทริปและผู้เข้าร่วม]
+        MATCHAPI[คำนวณคะแนนแมตช์ทริป]
+        MESSAGEAPI[ข้อความและห้องแชท]
+        NOTIAPI[การแจ้งเตือน]
+        AIAPI[ผู้ช่วยสร้างกำหนดการ]
+        WS[WebSocket Server]
+
+        API --> AUTHAPI
+        API --> USERAPI
+        API --> TRIPAPI
+        API --> MATCHAPI
+        API --> MESSAGEAPI
+        API --> NOTIAPI
+        API --> AIAPI
     end
 
-    subgraph DATA[Data Layer]
-        PRISMA[Prisma ORM]
-        PG[(PostgreSQL)]
+    AUTHAPI --> PRISMA
+    USERAPI --> PRISMA
+    TRIPAPI --> PRISMA
+    MATCHAPI --> PRISMA
+    MESSAGEAPI --> PRISMA
+    NOTIAPI --> PRISMA
+    WS --> MESSAGEAPI
+
+    subgraph DATA[ชั้นจัดเก็บข้อมูล]
+        PRISMA[Prisma ORM<br/>ตัวกลางเชื่อมฐานข้อมูล]
+        DB[(PostgreSQL Database)]
+        PRISMA --> DB
     end
 
-    subgraph EXTERNAL[External Services]
-        EMAIL[Email OTP Provider]
-        GEMINI[Gemini API]
-        FIREBASE[Firebase Cloud Messaging]
-        VISION[Apple Vision<br/>ทำงานบนอุปกรณ์]
+    subgraph TABLES[ข้อมูลสำคัญในฐานข้อมูล]
+        USERS[(users<br/>บัญชี โปรไฟล์ แบบสอบถาม)]
+        TRIPS[(trips<br/>ข้อมูลและกำหนดการทริป)]
+        PARTICIPANTS[(participants<br/>สมาชิกในทริป)]
+        MESSAGES[(messages<br/>ข้อความสนทนา)]
+        REPORTS[(user_reports<br/>รายงานผู้ใช้)]
+        NOTIFICATIONS[(notifications<br/>การแจ้งเตือน)]
     end
 
-    IOS --> EXPRESS
-    ADMIN --> EXPRESS
-    EXPRESS --> AUTH
-    EXPRESS --> WS
-    EXPRESS --> MATCH
-    EXPRESS --> AI
-    EXPRESS --> NOTI
-    EXPRESS --> PRISMA
-    PRISMA --> PG
-    EXPRESS --> EMAIL
-    AI --> GEMINI
-    NOTI --> FIREBASE
-    IOS --> VISION
+    DB --> USERS
+    DB --> TRIPS
+    DB --> PARTICIPANTS
+    DB --> MESSAGES
+    DB --> REPORTS
+    DB --> NOTIFICATIONS
+
+    AUTHAPI -->|ส่งรหัส OTP| EMAIL[บริการส่งอีเมล]
+    AIAPI -->|สร้างกำหนดการ| GEMINI[Gemini API]
+    NOTIAPI -->|ส่ง Push Notification| FCM[Firebase Cloud Messaging]
+    IOS -->|ตรวจใบหน้าบนอุปกรณ์| VISION[Apple Vision Framework]
+
+    classDef person fill:#5B4BDB,color:#FFFFFF,stroke:#4338CA,stroke-width:2px;
+    classDef app fill:#E9F2FF,color:#123765,stroke:#6EA8E8;
+    classDef backend fill:#E8F8EF,color:#16482B,stroke:#63B884;
+    classDef data fill:#FFF4CC,color:#3D3200,stroke:#D7A900;
+    classDef external fill:#F3EAFE,color:#432265,stroke:#A57ADB;
+
+    class USER person;
+    class IOS,VM,SERVICE,TOKEN app;
+    class API,AUTHAPI,USERAPI,TRIPAPI,MATCHAPI,MESSAGEAPI,NOTIAPI,AIAPI,WS backend;
+    class PRISMA,DB,USERS,TRIPS,PARTICIPANTS,MESSAGES,REPORTS,NOTIFICATIONS data;
+    class EMAIL,GEMINI,FCM,VISION external;
+```
+
+### 7.3 แผนผังการทำงานฝั่งระบบ (Activity Diagram)
+
+แผนภาพนี้แสดงการทำงานของ Backend ตั้งแต่รับคำขอจากแอป ตรวจสอบความถูกต้อง ประมวลผลตามประเภทงาน ติดต่อฐานข้อมูล และส่งผลลัพธ์กลับไปแสดงบนหน้าจอ
+
+```mermaid
+flowchart TD
+    START([แอป iOS ส่งคำขอมายังระบบ]) --> RECEIVE[Backend API รับคำขอ]
+    RECEIVE --> TYPE{เป็นการสมัครหรือเข้าสู่ระบบหรือไม่}
+
+    TYPE -- ใช่ --> AUTHDATA[ตรวจสอบอีเมล รหัสผ่าน หรือ OTP]
+    AUTHDATA --> AUTHDB[(ตรวจสอบข้อมูลบัญชีใน PostgreSQL)]
+    AUTHDB --> AUTHOK{ข้อมูลถูกต้องหรือไม่}
+    AUTHOK -- ไม่ --> AUTHERR[ส่งข้อความแจ้งข้อผิดพลาด]
+    AUTHOK -- ใช่ --> TOKEN[สร้าง JWT Token]
+    TOKEN --> AUTHRESULT[ส่งข้อมูลผู้ใช้และ Token กลับไปยังแอป]
+
+    TYPE -- ไม่ใช่ --> CHECKTOKEN[ตรวจสอบ JWT Token]
+    CHECKTOKEN --> VALID{Token ถูกต้องหรือไม่}
+    VALID -- ไม่ --> DENY[ปฏิเสธคำขอและให้เข้าสู่ระบบใหม่]
+    VALID -- ใช่ --> ROUTE{ผู้ใช้ต้องการทำอะไร}
+
+    ROUTE -- จัดการโปรไฟล์หรือแบบสอบถาม --> PROFILE[ตรวจสอบและเตรียมข้อมูลผู้ใช้]
+    PROFILE --> SAVEPROFILE[บันทึก interests และ travelStyle]
+
+    ROUTE -- ดูหรือค้นหาทริป --> GETTRIP[อ่านข้อมูลทริป]
+    MATCH --> SORT[เรียงทริปตามคะแนน]
+
+    ROUTE -- สร้างหรือแก้ไขทริป --> TRIPDATA[ตรวจสอบรายละเอียดทริป]
+    TRIPDATA --> TRIPOK{ข้อมูลครบและถูกต้องหรือไม่}
+    TRIPOK -- ไม่ --> DATAERR[ส่งข้อความให้แก้ไขข้อมูล]
+    TRIPOK -- ใช่ --> SAVETRIP[บันทึกข้อมูลทริป]
+
+    ROUTE -- เข้าร่วมหรือออกจากทริป --> MEMBER[ตรวจสอบทริป จำนวนที่ว่าง และสถานะสมาชิก]
+    MEMBER --> MEMBEROK{ทำรายการได้หรือไม่}
+    MEMBEROK -- ไม่ --> MEMBERERR[แจ้งสาเหตุที่ทำรายการไม่ได้]
+    MEMBEROK -- ใช่ --> SAVEMEMBER[เพิ่มหรือแก้ไขข้อมูลผู้เข้าร่วม]
+
+    ROUTE -- ส่งหรืออ่านข้อความ --> MESSAGE[อ่านหรือบันทึกข้อความ]
+    MESSAGE --> REALTIME[ส่งข้อความแบบทันทีผ่าน WebSocket]
+
+    ROUTE -- เรียกใช้ผู้ช่วยวางแผน --> AIREQUEST[ส่งรายละเอียดทริปให้ Gemini]
+    AIREQUEST --> AICHECK{ได้รับคำตอบสำเร็จหรือไม่}
+    AICHECK -- ไม่ --> AIERR[แจ้งว่าไม่สามารถสร้างกำหนดการได้]
+    AICHECK -- ใช่ --> SAVEPLAN[ตรวจสอบและบันทึกกำหนดการ]
+
+    SAVEPROFILE --> DBW[(บันทึกลง PostgreSQL)]
+    GETTRIP --> DBR[(อ่านข้อมูลจาก PostgreSQL)]
+    DBR --> MATCH
+    SAVETRIP --> DBW
+    SAVEMEMBER --> DBW
+    MESSAGE --> DBW
+    SAVEPLAN --> DBW
+
+    DBW --> RESULT[เตรียมผลลัพธ์เป็น JSON]
+    SORT --> RESULT
+    REALTIME --> RESULT
+    RESULT --> RESPONSE[Backend ส่งผลลัพธ์กลับไปยังแอป]
+    RESPONSE --> DISPLAY([แอปแสดงผลให้ผู้ใช้])
+
+    AUTHERR --> END([จบการทำงาน])
+    AUTHRESULT --> END
+    DENY --> END
+    DATAERR --> END
+    MEMBERERR --> END
+    AIERR --> END
+    DISPLAY --> END
+
+    classDef start fill:#5B4BDB,color:#FFFFFF,stroke:#4338CA,stroke-width:2px;
+    classDef decision fill:#FFF4CC,color:#3D3200,stroke:#D7A900,stroke-width:2px;
+    classDef process fill:#E9F2FF,color:#123765,stroke:#6EA8E8;
+    classDef database fill:#E8F8EF,color:#16482B,stroke:#63B884,stroke-width:2px;
+    classDef error fill:#FFE8E8,color:#5A1717,stroke:#E36A6A;
+    classDef result fill:#F3EAFE,color:#432265,stroke:#A57ADB;
+
+    class START,END,DISPLAY start;
+    class TYPE,AUTHOK,VALID,ROUTE,TRIPOK,MEMBEROK,AICHECK decision;
+    class RECEIVE,AUTHDATA,CHECKTOKEN,PROFILE,SAVEPROFILE,GETTRIP,MATCH,SORT,TRIPDATA,SAVETRIP,MEMBER,SAVEMEMBER,MESSAGE,REALTIME,AIREQUEST,SAVEPLAN process;
+    class AUTHDB,DBR,DBW database;
+    class AUTHERR,DENY,DATAERR,MEMBERERR,AIERR error;
+    class TOKEN,AUTHRESULT,RESULT,RESPONSE result;
 ```
 
 ## 8. Entity Relationship Diagram
@@ -573,7 +760,6 @@ flowchart LR
 | showEmail | Boolean | Default: false | แสดงอีเมลหรือไม่ |
 | interests | String[] | Default: [] | หมวดหมู่ความสนใจของผู้ใช้ |
 | travelStyle | JSON | Nullable | คำตอบรูปแบบการท่องเที่ยว |
-| embedding | JSON | Nullable | ข้อมูลเวกเตอร์สำหรับระบบแนะนำ |
 | fcmToken | String | Nullable | Token สำหรับ Push Notification |
 | isEmailVerified | Boolean | Default: false | สถานะยืนยันอีเมล |
 | otpCode | String | Nullable | รหัส OTP กรณีที่เกี่ยวข้องกับบัญชี |
@@ -584,6 +770,41 @@ flowchart LR
 | faceScanImage | Text | Nullable | รูปใบหน้าที่ส่งตรวจสอบ |
 | createdAt | DateTime | Default: now | วันที่สร้างบัญชี |
 | updatedAt | DateTime | Auto update | วันที่แก้ไขข้อมูลล่าสุด |
+
+#### โครงสร้างข้อมูลแบบสอบถามภายในตาราง users
+
+ข้อมูลแบบสอบถามทั้ง 4 ปัจจัยเก็บอยู่ในตาราง `users` โดยแบ่งเป็น 2 ฟิลด์หลัก คือ `travelStyle` และ `interests` โดย `travelStyle` เป็น JSON ที่มีข้อมูลย่อย 3 ค่า ส่วนความสนใจเก็บใน `interests` แยกต่างหาก
+
+| ฟิลด์ใน users | คีย์ย่อยภายใน JSON | ชนิดข้อมูล | ตัวอย่าง | ข้อมูลจากคำถาม |
+|---|---|---|---|---|
+| `travelStyle` | `budget` | Number | `1500` | งบประมาณเฉลี่ยต่อทริป |
+| `travelStyle` | `activityStyle` | Number | `5` | จำนวนสถานที่หรือกิจกรรมต่อวัน |
+| `travelStyle` | `timeOfDay` | String[] | `["morning", "evening"]` | ช่วงเวลาที่ชอบทำกิจกรรม |
+| `interests` | ไม่อยู่ใน JSON | String[] | `["ทะเล", "อาหาร", "คาเฟ่"]` | หมวดหมู่ที่ผู้ใช้สนใจ |
+
+```mermaid
+flowchart LR
+    USER[(users)] --> TS[travelStyle ชนิด JSON]
+    TS --> B[budget<br/>งบประมาณ]
+    TS --> A[activityStyle<br/>จำนวนกิจกรรมต่อวัน]
+    TS --> T[timeOfDay<br/>ช่วงเวลาที่ชอบ]
+    USER --> I[interests ชนิด String Array<br/>หมวดความสนใจ]
+```
+
+ตัวอย่างค่าที่บันทึกในผู้ใช้หนึ่งคน:
+
+```json
+{
+  "interests": ["ทะเล", "อาหาร", "คาเฟ่"],
+  "travelStyle": {
+    "budget": 1500,
+    "activityStyle": 5,
+    "timeOfDay": ["morning", "evening"]
+  }
+}
+```
+
+ดังนั้น `budget`, `activityStyle` และ `timeOfDay` เป็นคีย์ย่อยภายในคอลัมน์ `travelStyle` ไม่ใช่คอลัมน์แยก ส่วน `interests` เป็นคอลัมน์แยกในตาราง `users`
 
 ### 19.2 ตาราง pending_registrations
 
@@ -625,7 +846,6 @@ flowchart LR
 | imageUrl | Text | Nullable | รูปหน้าปกทริป |
 | gallery | String[] | Default: [] | รูปภาพเพิ่มเติมของทริป |
 | itinerary | JSON | Nullable | กำหนดการเดินทาง |
-| embedding | JSON | Nullable | เวกเตอร์สำหรับระบบแนะนำ |
 | creator_id | String | FK → users.id, Index | ผู้สร้างทริป |
 | summary | Text | Nullable | สรุปข้อมูลทริป |
 | groupAnalysis | Text | Nullable | ผลวิเคราะห์กลุ่ม |
@@ -836,6 +1056,234 @@ flowchart TB
     K --> TOTAL
     L --> TOTAL
 ```
+
+### 20.5 ภาพรวมวิธีคำนวณคะแนนความเหมาะสมของทริป
+
+ระบบนำคำตอบของผู้ใช้มาเทียบกับข้อมูลของแต่ละทริปทีละด้าน จากนั้นรวมเป็นคะแนนเต็ม 100 คะแนน โดยใช้คำว่า **คะแนนความเหมาะสม** เพื่อให้อ่านเข้าใจง่าย
+
+```mermaid
+flowchart TD
+    START([ผู้ใช้ตอบแบบสอบถาม]) --> SAVE[บันทึกงบประมาณ จำนวนกิจกรรม ช่วงเวลา และความสนใจ]
+    SAVE --> CHECK{ทริปเต็มหรือจบแล้วหรือไม่}
+    CHECK -- ใช่ --> ZERO[ให้คะแนน 0 และไม่นำมาแนะนำ]
+    CHECK -- ไม่ --> B[คำนวณคะแนนงบประมาณ 30%]
+    CHECK -- ไม่ --> A[คำนวณคะแนนจำนวนกิจกรรม 20%]
+    CHECK -- ไม่ --> T[คำนวณคะแนนช่วงเวลา 15%]
+    CHECK -- ไม่ --> C[คำนวณคะแนนความสนใจ 35%]
+    B --> SUM[รวมคะแนนตามน้ำหนัก]
+    A --> SUM
+    T --> SUM
+    C --> SUM
+    SUM --> LIMIT{ราคาทริปสูงกว่างบผู้ใช้เกิน 2 เท่าหรือไม่}
+    LIMIT -- ใช่ --> CAP[จำกัดคะแนนรวมไม่เกิน 39%]
+    LIMIT -- ไม่ --> ROUND[ปัดคะแนนเป็นจำนวนเต็ม]
+    CAP --> ROUND
+    ROUND --> SHOW[แสดงเปอร์เซ็นต์ความเหมาะสมบนแอป]
+```
+
+### 20.6 วิธีคำนวณคะแนนงบประมาณ — น้ำหนัก 30%
+
+```mermaid
+flowchart TD
+    S[รับงบของผู้ใช้และราคาทริป] --> Q{ผู้ใช้มีงบพอจ่ายหรือทริปฟรีหรือไม่}
+    Q -- ใช่ --> FULL[คะแนนงบประมาณ 100]
+    Q -- ไม่ --> HALF{งบผู้ใช้น้อยกว่าครึ่งหนึ่งของราคาทริปหรือไม่}
+    HALF -- ใช่ --> NONE[คะแนนงบประมาณ 0]
+    HALF -- ไม่ --> CAL[คะแนน = งบผู้ใช้ ÷ ราคาทริป × 100]
+    CAL --> R[ปัดเป็นจำนวนเต็ม]
+```
+
+ตัวอย่าง: ผู้ใช้มีงบ 1,500 บาท และทริปราคา 2,000 บาท จะได้ `(1,500 ÷ 2,000) × 100 = 75 คะแนน`
+
+```mermaid
+flowchart LR
+    U[งบผู้ใช้ 1,500 บาท] --> F[1,500 ÷ 2,000 × 100]
+    T[ราคาทริป 2,000 บาท] --> F
+    F --> R[ได้ 75 คะแนน]
+    R --> W[คิดตามน้ำหนัก 30%]
+    W --> P[75 × 0.30 = 22.5 คะแนน]
+```
+
+ตัวอย่างกรณีอื่น:
+
+| งบผู้ใช้ | ราคาทริป | วิธีคิด | คะแนนงบประมาณ |
+|---:|---:|---|---:|
+| 3,000 บาท | 2,000 บาท | งบเพียงพอ | 100 |
+| 1,500 บาท | 2,000 บาท | 1,500 ÷ 2,000 × 100 | 75 |
+| 900 บาท | 2,000 บาท | ต่ำกว่าครึ่งหนึ่งของราคาทริป | 0 |
+
+หากคำตอบเดิมเก็บเป็นระดับ ระบบจะแปลงเป็นเงินบาทก่อน: ระดับ 1–2 = 500 บาท, 3–4 = 1,000 บาท, 5–6 = 2,000 บาท, 7–8 = 5,000 บาท และ 9–10 = 8,000 บาท
+
+### 20.7 วิธีคำนวณคะแนนจำนวนกิจกรรม — น้ำหนัก 20%
+
+คำตอบในแบบสอบถามมี 3 ตัวเลือก ระบบจะแปลงข้อความที่ผู้ใช้เลือกเป็นค่าตัวเลข `2`, `5` หรือ `8` เพื่อใช้คำนวณ โดยเลขน้อยหมายถึงเที่ยวสบาย ๆ และเลขมากหมายถึงเที่ยวหลายสถานที่ในหนึ่งวัน
+
+| ตัวเลือกที่แสดงในแบบสอบถาม | คำอธิบายในแบบสอบถาม | ค่าที่ระบบบันทึก |
+|---|---|---:|
+| 1–2 สถานที่ต่อวัน | ใช้เวลาในแต่ละสถานที่อย่างเต็มที่ และมีเวลาพักผ่อนระหว่างวัน | `2` |
+| 3–4 สถานที่ต่อวัน | เที่ยวหลายสถานที่ โดยแบ่งเวลาเที่ยวและพักผ่อนให้สมดุล | `5` |
+| 5 สถานที่ขึ้นไปต่อวัน | เที่ยวให้หลากหลายในหนึ่งวัน และใช้เวลาในแต่ละสถานที่ไม่นาน | `8` |
+
+```mermaid
+flowchart LR
+    U[ระดับกิจกรรมของผู้ใช้] --> D[หาค่าความต่างแบบไม่ติดลบ]
+    T[ระดับกิจกรรมของทริป] --> D
+    D --> F[คะแนน = 1 - ค่าความต่าง ÷ 6]
+    F --> P[คูณ 100 และปัดเป็นจำนวนเต็ม]
+    P --> RANGE[จำกัดคะแนนให้อยู่ระหว่าง 0 ถึง 100]
+```
+
+ตัวอย่าง: ผู้ใช้เลือกระดับ `5` แต่ทริปเป็นระดับ `8` ค่าความต่างเท่ากับ `3` จึงได้ `(1 - 3 ÷ 6) × 100 = 50 คะแนน`
+
+```mermaid
+flowchart LR
+    U[ผู้ใช้เลือกระดับ 5] --> D[หาความต่าง 8 - 5 = 3]
+    T[ทริปอยู่ระดับ 8] --> D
+    D --> F["1 - 3 ÷ 6 = 0.50"]
+    F --> S["0.50 × 100 = 50 คะแนน"]
+    S --> W["50 × 0.20 = 10 คะแนน"]
+```
+
+| คำตอบของผู้ใช้ | ลักษณะกิจกรรมของทริป | ค่าผู้ใช้ | ค่าทริป | ความต่าง | คะแนนกิจกรรม |
+|---|---|---:|---:|---:|---:|
+| 3–4 สถานที่ต่อวัน | 3–4 สถานที่ต่อวัน | 5 | 5 | 0 | 100 |
+| 3–4 สถานที่ต่อวัน | 5 สถานที่ขึ้นไปต่อวัน | 5 | 8 | 3 | 50 |
+| 1–2 สถานที่ต่อวัน | 5 สถานที่ขึ้นไปต่อวัน | 2 | 8 | 6 | 0 |
+
+### 20.8 วิธีคำนวณคะแนนช่วงเวลา — น้ำหนัก 15%
+
+ระบบมี 4 ช่วงเวลา ได้แก่ เช้า กลางวัน เย็น และกลางคืน คำตอบจะถูกเปลี่ยนเป็นเลข `1` เมื่อเลือก และ `0` เมื่อไม่เลือก แล้วนำไปคำนวณ Cosine Similarity
+
+```mermaid
+flowchart LR
+    U[เวลาที่ผู้ใช้เลือก] --> UV[สร้างชุดตัวเลข 4 ช่อง]
+    T[เวลาของทริป] --> TV[สร้างชุดตัวเลข 4 ช่อง]
+    UV --> COS[คำนวณความเหมือนด้วย Cosine Similarity]
+    TV --> COS
+    COS --> P[คูณ 100 และปัดเป็นจำนวนเต็ม]
+```
+
+ตัวอย่าง: ผู้ใช้เลือกเช้าและเย็น ได้ `[1,0,1,0]` ส่วนทริปเลือกเช้า ได้ `[1,0,0,0]` ระบบจะคำนวณความเหมือนของชุดตัวเลขทั้งสอง
+
+ตัวอย่างคำนวณทีละขั้น:
+
+| ช่วงเวลา | เช้า | กลางวัน | เย็น | กลางคืน |
+|---|---:|---:|---:|---:|
+| ผู้ใช้เลือก | 1 | 0 | 1 | 0 |
+| ทริปกำหนด | 1 | 0 | 0 | 0 |
+
+```mermaid
+flowchart LR
+    A["คูณช่องเดียวกัน<br/>1×1 + 0×0 + 1×0 + 0×0 = 1"] --> B["ขนาดชุดผู้ใช้<br/>√2 = 1.414"]
+    B --> C["ขนาดชุดทริป<br/>√1 = 1"]
+    C --> D["1 ÷ (1.414 × 1) = 0.707"]
+    D --> E["0.707 × 100 = 71 คะแนน"]
+```
+
+### 20.9 วิธีคำนวณคะแนนความสนใจ — น้ำหนัก 35%
+
+ระบบมีหมวดความสนใจ 13 หมวด เช่น ทะเล ภูเขา คาเฟ่ อาหาร และผจญภัย ระบบนำความสนใจของผู้ใช้ไปเทียบกับหมวดหลักและแท็กของทริป โดยใช้ข้อมูลทริปไม่เกิน 3 หมวด
+
+```mermaid
+flowchart LR
+    U[ความสนใจของผู้ใช้] --> UV[สร้างชุดตัวเลข 13 ช่อง]
+    T[หมวดหลักและแท็กของทริป] --> TV[สร้างชุดตัวเลข 13 ช่อง]
+    UV --> COS[คำนวณความเหมือนด้วย Cosine Similarity]
+    TV --> COS
+    COS --> P[คูณ 100 และปัดเป็นจำนวนเต็ม]
+```
+
+ในแต่ละช่อง หมวดที่เลือกแทนด้วย `1` และหมวดที่ไม่เลือกแทนด้วย `0` ยิ่งมีหมวดตรงกันมาก คะแนนยิ่งสูง
+
+ตัวอย่างแบบย่อ: สมมติพิจารณาเพียง 5 หมวดเพื่อให้เห็นภาพ ผู้ใช้ชอบ `ทะเล คาเฟ่ อาหาร` ส่วนทริปเป็น `ทะเล อาหาร`
+
+| หมวด | ทะเล | ภูเขา | คาเฟ่ | อาหาร | ผจญภัย |
+|---|---:|---:|---:|---:|---:|
+| ผู้ใช้ | 1 | 0 | 1 | 1 | 0 |
+| ทริป | 1 | 0 | 0 | 1 | 0 |
+
+```mermaid
+flowchart LR
+    A[หมวดที่ตรงกัน 2 ช่อง] --> B[ผลคูณรวม = 2]
+    B --> C[ขนาดชุดผู้ใช้ = √3]
+    C --> D[ขนาดชุดทริป = √2]
+    D --> E["2 ÷ (√3 × √2) = 0.816"]
+    E --> F["0.816 × 100 = 82 คะแนน"]
+    F --> G["82 × 0.35 = 28.7 คะแนน"]
+```
+
+หมายเหตุ: ในระบบจริงใช้ครบทั้ง 13 หมวด แต่หลักการคำนวณเหมือนกับตัวอย่างนี้
+
+### 20.10 สูตร Cosine Similarity แบบอ่านง่าย
+
+Cosine Similarity ใช้วัดว่าชุดตัวเลขของผู้ใช้และทริปมีรูปแบบใกล้กันเพียงใด โดยไม่สนใจว่าชุดใดมีขนาดใหญ่กว่า
+
+`คะแนนความเหมือน = ผลรวมของเลขแต่ละช่องที่คูณกัน ÷ (ขนาดของชุดผู้ใช้ × ขนาดของชุดทริป)`
+
+หรือเขียนเป็นสูตรได้ว่า `cosine(A,B) = (A · B) / (||A|| × ||B||)`
+
+```mermaid
+flowchart LR
+    A[ชุดตัวเลขของผู้ใช้] --> DOT[คูณเลขช่องเดียวกันแล้วบวกทั้งหมด]
+    B[ชุดตัวเลขของทริป] --> DOT
+    A --> NA[หาขนาดของชุดผู้ใช้]
+    B --> NB[หาขนาดของชุดทริป]
+    DOT --> DIV[นำผลคูณรวมหารด้วยขนาดทั้งสองชุด]
+    NA --> DIV
+    NB --> DIV
+    DIV --> SCORE[ได้ค่าระหว่าง 0 ถึง 1]
+    SCORE --> PERCENT[คูณ 100 เป็นเปอร์เซ็นต์]
+```
+
+ถ้าชุดตัวเลขยาวไม่เท่ากัน หรือชุดใดชุดหนึ่งเป็นศูนย์ทั้งหมด ระบบจะให้คะแนนส่วนนี้เป็น `0`
+
+ตัวอย่างสั้นที่สุด:
+
+```mermaid
+flowchart LR
+    A[A = 1,0,1] --> DOT[ผลคูณรวม = 1×1 + 0×1 + 1×0 = 1]
+    B[B = 1,1,0] --> DOT
+    DOT --> N[ขนาด A = √2 และขนาด B = √2]
+    N --> C["1 ÷ (√2 × √2) = 0.50"]
+    C --> P[ความเหมือน 50%]
+```
+
+### 20.11 วิธีรวมคะแนนทั้งหมด
+
+| ด้านที่เปรียบเทียบ | น้ำหนัก | วิธีคิด |
+|---|---:|---|
+| ความสนใจ | 35% | Cosine Similarity ของชุดหมวดความสนใจ |
+| งบประมาณ | 30% | เทียบงบผู้ใช้กับราคาทริป |
+| จำนวนกิจกรรม | 20% | ดูระยะห่างระหว่างระดับ 2, 5 และ 8 |
+| ช่วงเวลา | 15% | Cosine Similarity ของช่วงเวลาที่เลือก |
+
+`คะแนนรวม = (คะแนนความสนใจ × 0.35) + (คะแนนงบประมาณ × 0.30) + (คะแนนกิจกรรม × 0.20) + (คะแนนช่วงเวลา × 0.15)`
+
+หากข้อมูลบางด้านไม่มี ระบบจะไม่นำด้านนั้นมาหาร แต่จะใช้เฉพาะคะแนนและน้ำหนักของด้านที่มีข้อมูล ตัวอย่างเช่น ถ้ามีเฉพาะความสนใจและงบประมาณ ระบบจะหารด้วยน้ำหนักรวม `0.35 + 0.30 = 0.65`
+
+ตัวอย่างรวมคะแนนจากตัวอย่างก่อนหน้า:
+
+| ด้าน | คะแนนที่คำนวณได้ | น้ำหนัก | คะแนนหลังคูณน้ำหนัก |
+|---|---:|---:|---:|
+| ความสนใจ | 82 | 35% | 82 × 0.35 = 28.70 |
+| งบประมาณ | 75 | 30% | 75 × 0.30 = 22.50 |
+| จำนวนกิจกรรม | 50 | 20% | 50 × 0.20 = 10.00 |
+| ช่วงเวลา | 71 | 15% | 71 × 0.15 = 10.65 |
+| **รวม** |  | **100%** | **71.85 ≈ 72 คะแนน** |
+
+```mermaid
+flowchart LR
+    C[ความสนใจ 28.70] --> S[28.70 + 22.50 + 10.00 + 10.65]
+    B[งบประมาณ 22.50] --> S
+    A[กิจกรรม 10.00] --> S
+    T[ช่วงเวลา 10.65] --> S
+    S --> R[รวม 71.85]
+    R --> P[ปัดเป็น 72%]
+```
+
+ตัวอย่างเมื่อข้อมูลไม่ครบ: ถ้ามีเฉพาะความสนใจ `82` และงบประมาณ `75` จะได้ `((82 × 0.35) + (75 × 0.30)) ÷ (0.35 + 0.30) = 78.77` แล้วปัดเป็น `79%`
+
+ตัวอย่างกฎจำกัดคะแนน: หากผู้ใช้มีงบ 1,000 บาท แต่ทริปราคา 2,500 บาท ซึ่งสูงกว่า 2 เท่าของงบผู้ใช้ ต่อให้คะแนนด้านอื่นรวมได้ 80% ระบบจะลดคะแนนสุดท้ายเหลือไม่เกิน `39%`
 
 ## ขอบเขตที่ไม่นำเสนอ
 
