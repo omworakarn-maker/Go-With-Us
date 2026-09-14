@@ -23,10 +23,17 @@ struct Message: Codable, Identifiable, Equatable {
 struct ChatUser: Codable, Identifiable {
     let id: String
     let name: String
+    let username: String? = nil
     let email: String
     var avatarUrl: String? // Future proofing
     var profileImage: String?
     var gallery: [String]?
+
+    var displayHandle: String {
+        guard let username = username?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !username.isEmpty else { return name }
+        return username.hasPrefix("@") ? username : "@\(username)"
+    }
 }
 
 // MARK: - Conversation Model

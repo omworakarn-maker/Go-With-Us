@@ -13,11 +13,11 @@ struct LeaveTripSheet: View {
                 .padding(.top, 32)
             
             VStack(spacing: 8) {
-                Text("ยืนยันการออกจากทริป")
+                Text(SettingsManager.shared.text(thai: "ยืนยันการออกจากทริป", english: "Confirm leaving"))
                     .font(.system(size: 22, weight: .black))
                     .foregroundColor(.adaptiveText)
                 
-                Text("คุณต้องการออกจากทริปนี้ใช่หรือไม่?")
+                Text(SettingsManager.shared.text(thai: "คุณต้องการออกจากทริปนี้ใช่หรือไม่?", english: "Would you like to leave this trip?"))
                     .font(.system(size: 15))
                     .foregroundColor(.adaptiveSecondaryText)
             }
@@ -26,7 +26,7 @@ struct LeaveTripSheet: View {
                 Button(action: {
                     dismiss()
                 }) {
-                    Text("ยกเลิก")
+                    Text(SettingsManager.shared.text(thai: "ยกเลิก", english: "Cancel"))
                         .font(.system(size: 15, weight: .bold))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
@@ -49,7 +49,7 @@ struct LeaveTripSheet: View {
                         if viewModel.isLeaving {
                             ProgressView().tint(.white).scaleEffect(0.8)
                         }
-                        Text(viewModel.isLeaving ? "กำลังออก..." : "ยืนยัน")
+                        Text(viewModel.isLeaving ? tr("กำลังออก...", "Leaving…") : tr("ยืนยัน", "Confirm"))
                             .font(.system(size: 15, weight: .bold))
                     }
                     .foregroundColor(.white)
@@ -67,10 +67,10 @@ struct LeaveTripSheet: View {
             Spacer()
         }
         .presentationDetents([.height(280)])
-        .alert("ไม่สามารถออกจากทริปได้", isPresented: $showErrorAlert) {
-            Button("ตกลง", role: .cancel) {}
+        .alert(SettingsManager.shared.text(thai: "ไม่สามารถออกจากทริปได้", english: "Unable to leave trip"), isPresented: $showErrorAlert) {
+            Button(SettingsManager.shared.text(thai: "ตกลง", english: "OK"), role: .cancel) {}
         } message: {
-            Text(viewModel.errorMessage ?? "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง")
+            Text(viewModel.errorMessage ?? tr("เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง", "Something went wrong. Please try again."))
         }
     }
 }

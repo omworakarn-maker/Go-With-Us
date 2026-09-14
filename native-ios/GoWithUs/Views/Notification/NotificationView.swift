@@ -16,7 +16,7 @@ struct NotificationView: View {
                         Image(systemName: "bell.slash")
                             .font(.system(size: 48))
                             .foregroundColor(.gray)
-                        Text("ไม่มีการแจ้งเตือน")
+                        Text(tr("ไม่มีการแจ้งเตือน", "No notifications"))
                             .font(.system(size: 16, weight: .medium))
                             .foregroundColor(.gray)
                     }
@@ -36,7 +36,7 @@ struct NotificationView: View {
                                         await viewModel.deleteNotification(id: notification.id)
                                     }
                                 } label: {
-                                    Label("ลบ", systemImage: "trash")
+                                    Label(tr("ลบ", "Delete"), systemImage: "trash")
                                 }
                             }
                         }
@@ -47,12 +47,12 @@ struct NotificationView: View {
                     }
                 }
             }
-            .navigationTitle("การแจ้งเตือน")
+            .navigationTitle(tr("การแจ้งเตือน", "Notifications"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     if !viewModel.notifications.isEmpty {
-                        Button("ลบทั้งหมด") {
+                        Button(tr("ลบทั้งหมด", "Delete all")) {
                             Task { await viewModel.clearAllNotifications() }
                         }
                         .foregroundColor(.red)
@@ -60,7 +60,7 @@ struct NotificationView: View {
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("ปิด") {
+                    Button(tr("ปิด", "Close")) {
                         dismiss()
                     }
                 }

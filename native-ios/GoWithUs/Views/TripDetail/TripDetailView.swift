@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct TripDetailView: View {
+    @ObservedObject private var settings = SettingsManager.shared
     let tripId: String
     let autoShowJoin: Bool
     @StateObject private var viewModel: TripDetailViewModel
@@ -47,7 +48,7 @@ struct TripDetailView: View {
             if viewModel.isLoading && viewModel.trip == nil {
                 VStack(spacing: 12) {
                     ProgressView().tint(.appPrimary).scaleEffect(1.2)
-                    Text("กำลังโหลด…")
+                    Text(tr("กำลังโหลด…", "Loading…"))
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(.adaptiveSecondaryText)
                 }
@@ -167,18 +168,18 @@ struct TripDetailView: View {
                 viewModel.showJoinSheet = true
             }
         }
-        .alert("ยืนยันการลบ", isPresented: $showDeleteAlert) {
-            Button("ยกเลิก", role: .cancel) {}
-            Button("ลบ", role: .destructive) {
+        .alert(tr("ยืนยันการลบ", "Confirm deletion"), isPresented: $showDeleteAlert) {
+            Button(tr("ยกเลิก", "Cancel"), role: .cancel) {}
+            Button(tr("ลบ", "Delete"), role: .destructive) {
                 Task { if await viewModel.deleteTrip() { dismiss() } }
             }
-        } message: { Text("คุณต้องการลบทริปนี้ใช่หรือไม่?") }
-        .alert("เตะออกจากทริป", isPresented: Binding(
+        } message: { Text(tr("คุณต้องการลบทริปนี้ใช่หรือไม่?", "Are you sure you want to delete this trip?")) }
+        .alert(tr("เตะออกจากทริป", "Remove from trip"), isPresented: Binding(
             get: { kickParticipantId != nil },
             set: { if !$0 { kickParticipantId = nil } }
         )) {
-            Button("ยกเลิก", role: .cancel) { kickParticipantId = nil }
-            Button("เตะ ออก", role: .destructive) {
+            Button(tr("ยกเลิก", "Cancel"), role: .cancel) { kickParticipantId = nil }
+            Button(tr("เตะ ออก", "Remove"), role: .destructive) {
                 if let uid = kickParticipantId {
                     Task {
                         await viewModel.removeParticipant(userId: uid)
@@ -187,16 +188,18 @@ struct TripDetailView: View {
                 }
             }
         } message: {
-            Text("ต้องการนำ \(kickParticipantName) ออกจากทริปนี้ใช่หรือไม่?")
+            Text(SettingsManager.shared.currentLanguage == .thai
+                 ? "ต้องการนำ \(kickParticipantName) ออกจากทริปนี้ใช่หรือไม่?"
+                 : "Remove \(kickParticipantName) from this trip?")
         }
-        .confirmationDialog("เลือกแอปแผนที่", isPresented: $showMapOptions, titleVisibility: .visible) {
+        .confirmationDialog(tr("เลือกแอปแผนที่", "Choose a map app"), isPresented: $showMapOptions, titleVisibility: .visible) {
             Button("Apple Maps") {
                 openAppleMaps(location: mapLocationToOpen)
             }
             Button("Google Maps") {
                 openGoogleMaps(location: mapLocationToOpen)
             }
-            Button("ยกเลิก", role: .cancel) {}
+            Button(tr("ยกเลิก", "Cancel"), role: .cancel) {}
         }
         .tint(.appPrimary)
         .sheet(isPresented: $showInterestedSheet) {
@@ -272,7 +275,7 @@ struct TripDetailView: View {
             HStack(spacing: 4) {
                 Image(systemName: "mappin.circle.fill")
                     .foregroundColor(.red)
-                Text(trip.destination)
+                Text(localizedPlaceName(trip.destination))
             }
             .font(.system(size: 15, weight: .bold))
             .foregroundColor(.adaptiveSecondaryText)
@@ -296,7 +299,7 @@ struct TripDetailView: View {
                         HStack(spacing: 5) {
                             let iconName = INTEREST_CATEGORIES.first(where: { $0.label == style })?.icon ?? "✈️"
                             Text(iconName).font(.system(size: 11))
-                            Text(style).font(.system(size: 12, weight: .bold))
+                            Text(localizedInterestName(style)).font(.system(size: 12, weight: .bold))
                         }
                         .foregroundColor(.white)
                         .padding(.horizontal, 14)
@@ -325,7 +328,7 @@ struct TripDetailView: View {
                 HStack(spacing: 5) {
                     Image(systemName: "mappin.circle")
                         .foregroundColor(Color(hex: "#EF4444"))
-                    Text(trip.destination)
+                    Text(localizedPlaceName(trip.destination))
                 }
                 HStack(spacing: 5) {
                     Image(systemName: "calendar")
@@ -346,7 +349,7 @@ struct TripDetailView: View {
                 Image(systemName: "heart.fill")
                     .font(.system(size: 13))
                     .foregroundColor(Color(hex: "#10B981"))
-                Text("ความเข้ากันของคุณ")
+                Text(tr("ความเข้ากันของคุณ", "Your compatibility"))
                     .font(.system(size: 16, weight: .bold))
                     .foregroundColor(.adaptiveText)
             }
@@ -369,7 +372,7 @@ struct TripDetailView: View {
                         Text("\(score)%")
                             .font(.system(size: 22, weight: .black))
                             .foregroundColor(scoreColor(score: score))
-                        Text("แมตช์")
+                        Text(tr("แมตช์", "Match"))
                             .font(.system(size: 10, weight: .medium))
                             .foregroundColor(.adaptiveSecondaryText)
                     }
@@ -380,13 +383,15 @@ struct TripDetailView: View {
                     let bd = trip.matchBreakdown
                     compatibilityRow(
                         icon: "banknote",
-                        label: "งบประมาณ",
+                        label: tr("งบประมาณ", "Budget"),
                         color: Color(hex: "#3B82F6"),
-                        score: bd?.budget
+                        score: bd?.budget,
+                        warningBelow: 50,
+                        warningText: tr("งบประมาณไม่เพียงพอสำหรับทริปนี้", "Budget is insufficient for this trip")
                     )
-                    compatibilityRow(icon: "list.number", label: "จำนวนกิจกรรมต่อวัน", color: Color.appSecondary, score: bd?.activityStyle)
-                    compatibilityRow(icon: "tag.fill", label: "ความชอบ", color: Color(hex: "#F59E0B"), score: bd?.category)
-                    compatibilityRow(icon: "clock.fill", label: "ช่วงเวลา", color: Color(hex: "#EF4444"), score: bd?.timeOfDay)
+                    compatibilityRow(icon: "list.number", label: tr("จำนวนกิจกรรมต่อวัน", "Activities per day"), color: Color.appSecondary, score: bd?.activityStyle)
+                    compatibilityRow(icon: "tag.fill", label: tr("ความชอบ", "Interests"), color: Color(hex: "#F59E0B"), score: bd?.category)
+                    compatibilityRow(icon: "clock.fill", label: tr("ช่วงเวลา", "Time of day"), color: Color(hex: "#EF4444"), score: bd?.timeOfDay)
                 }
 
             }
@@ -403,7 +408,14 @@ struct TripDetailView: View {
     }
     
     @ViewBuilder
-    private func compatibilityRow(icon: String, label: String, color: Color, score: Int?) -> some View {
+    private func compatibilityRow(
+        icon: String,
+        label: String,
+        color: Color,
+        score: Int?,
+        warningBelow: Int? = nil,
+        warningText: String? = nil
+    ) -> some View {
         VStack(spacing: 6) {
             HStack(spacing: 8) {
                 Image(systemName: icon)
@@ -419,9 +431,9 @@ struct TripDetailView: View {
                 if let s = score {
                     Text("\(s)%")
                         .font(.system(size: 12, weight: .bold))
-                        .foregroundColor(scoreColor(score: s))
+                        .foregroundColor(compatibilityFactorColor(score: s, warningBelow: warningBelow))
                 } else {
-                    Text("ไม่มีข้อมูล")
+                    Text(tr("ไม่มีข้อมูล", "No data"))
                         .font(.system(size: 10))
                         .foregroundColor(.gray.opacity(0.5))
                 }
@@ -432,14 +444,28 @@ struct TripDetailView: View {
                     ZStack(alignment: .leading) {
                         Capsule().fill(Color.gray.opacity(0.15))
                             .frame(height: 4)
-                        Capsule().fill(scoreColor(score: s))
+                        Capsule().fill(compatibilityFactorColor(score: s, warningBelow: warningBelow))
                             .frame(width: geo.size.width * CGFloat(s) / 100.0, height: 4)
                     }
                 }
                 .frame(height: 4)
                 .padding(.leading, 26)
+
+                if let warningBelow, let warningText, s < warningBelow {
+                    Text(warningText)
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundColor(Color(hex: "#EF4444"))
+                        .padding(.leading, 26)
+                }
             }
         }
+    }
+
+    private func compatibilityFactorColor(score: Int, warningBelow: Int?) -> Color {
+        if let warningBelow, score < warningBelow {
+            return Color(hex: "#EF4444")
+        }
+        return scoreColor(score: score)
     }
     
     private func scoreColor(score: Int) -> Color {
@@ -462,10 +488,10 @@ struct TripDetailView: View {
     
     private func scoreLabel(score: Int) -> String {
         switch score {
-        case 75...100: return "ความเหมาะสมสูง"
-        case 50...74:  return "ความเหมาะสมปานกลาง"
-        case 25...49:  return "ความเหมาะสมต่ำ"
-        default:       return "ความเหมาะสมต่ำมาก"
+        case 75...100: return tr("ความเหมาะสมสูง", "Highly compatible")
+        case 50...74:  return tr("ความเหมาะสมปานกลาง", "Moderately compatible")
+        case 25...49:  return tr("ความเหมาะสมต่ำ", "Low compatibility")
+        default:       return tr("ความเหมาะสมต่ำมาก", "Very low compatibility")
         }
     }
 
@@ -492,28 +518,28 @@ struct TripDetailView: View {
     private func infoCards(trip: Trip) -> some View {
         VStack(spacing: 0) {
             tripSummaryRow(
-                icon: "banknote", color: Color(hex: "#3B82F6"),
-                title: "งบประมาณ",
-                value: "\(formatBudget(trip.budget)) บาท",
+                icon: "banknote", color: Color.appSecondary,
+                title: tr("งบประมาณ", "Budget"),
+                value: "\(formatBudget(trip.budget)) \(tr("บาท", "THB"))",
                 detail: trip.budgetTypeLabel
             )
             Divider()
                 .padding(.leading, 72)
                 .padding(.trailing, 18)
             tripSummaryRow(
-                icon: "person.2", color: Color.appSecondary,
-                title: "ผู้ร่วมเดินทาง",
-                value: "\(trip.currentParticipants) จาก \(trip.maxParticipants) คน",
-                detail: trip.isFull ? "เต็มแล้ว" : "ว่าง \(max(0, trip.maxParticipants - trip.currentParticipants)) คน",
+                icon: "person.2", color: Color(hex: "#0D9488"),
+                title: tr("ผู้ร่วมเดินทาง", "Travelers"),
+                value: "\(trip.currentParticipants) \(tr("จาก", "of")) \(trip.maxParticipants)",
+                detail: trip.isFull ? tr("เต็มแล้ว", "Full") : "\(max(0, trip.maxParticipants - trip.currentParticipants)) \(tr("ที่ว่าง", "spots available"))",
                 detailColor: trip.isFull ? Color(hex: "#EF4444") : Color(hex: "#16A34A")
             )
             Divider()
                 .padding(.leading, 72)
                 .padding(.trailing, 18)
             tripSummaryRow(
-                icon: "calendar", color: Color.appSecondary,
-                title: "วันเดินทาง", value: tripDateSummary(trip: trip),
-                detail: "\(tripDayCount(trip: trip)) วัน"
+                icon: "calendar", color: Color.appPrimary,
+                title: tr("วันเดินทาง", "Travel dates"), value: tripDateSummary(trip: trip),
+                detail: "\(tripDayCount(trip: trip)) \(tr("วัน", "days"))"
             )
         }
         .background(Color.adaptiveBackground)
@@ -567,7 +593,7 @@ struct TripDetailView: View {
                 Image(systemName: "crown.fill")
                     .font(.system(size: 13))
                     .foregroundColor(Color(hex: "#F59E0B"))
-                Text("ผู้จัดทริป")
+                Text(tr("ผู้จัดทริป", "Trip organizer"))
                     .font(.system(size: 16, weight: .bold))
                     .foregroundColor(.adaptiveText)
             }
@@ -600,7 +626,7 @@ struct TripDetailView: View {
                                 .background(Color.appPrimary)
                                 .cornerRadius(4)
                         } else {
-                            Text("ดูโปรไฟล์ →")
+                            Text(tr("ดูโปรไฟล์ →", "View profile →"))
                                 .font(.system(size: 12, weight: .medium))
                                 .foregroundColor(.appPrimary)
                         }
@@ -625,7 +651,7 @@ struct TripDetailView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "paperplane.fill")
                         .font(.system(size: 13))
-                    Text("ส่งข้อความถึงผู้จัด")
+                    Text(tr("ส่งข้อความถึงผู้จัด", "Message organizer"))
                         .font(.system(size: 13, weight: .semibold))
                 }
                 .foregroundColor(.appPrimary)
@@ -645,12 +671,12 @@ struct TripDetailView: View {
                 Image(systemName: "doc.text") // Minimal
                     .font(.system(size: 13))
                     .foregroundColor(Color.appSecondary)
-                Text("รายละเอียด")
+                Text(tr("รายละเอียด", "Details"))
                     .font(.system(size: 16, weight: .bold))
                     .foregroundColor(.adaptiveText)
             }
             
-            Text(trip.description ?? "ไม่มีรายละเอียด")
+            Text(trip.description ?? tr("ไม่มีรายละเอียด", "No description"))
                 .font(.system(size: 14))
                 .foregroundColor(.adaptiveSecondaryText)
                 .lineSpacing(5)
@@ -689,7 +715,7 @@ struct TripDetailView: View {
                     Image(systemName: "list.bullet.clipboard")
                         .font(.system(size: 13))
                         .foregroundColor(Color(hex: "#10B981"))
-                    Text("การเดินทางแต่ละวัน")
+                    Text(tr("การเดินทางแต่ละวัน", "Daily itinerary"))
                         .font(.system(size: 16, weight: .bold))
                         .foregroundColor(.adaptiveText)
                 }
@@ -697,7 +723,7 @@ struct TripDetailView: View {
                 VStack(alignment: .leading, spacing: 18) {
                     ForEach(itinerary.sorted(by: { $0.day < $1.day })) { dayPlan in
                         VStack(alignment: .leading, spacing: 10) {
-                            Text("วันที่ \(dayPlan.day)")
+                            Text(SettingsManager.shared.currentLanguage == .thai ? "วันที่ \(dayPlan.day)" : "Day \(dayPlan.day)")
                                 .font(.system(size: 15, weight: .bold))
                                 .foregroundColor(.appPrimary)
                                 .padding(.horizontal, 10).padding(.vertical, 4)
@@ -763,7 +789,7 @@ struct TripDetailView: View {
                     Image(systemName: "photo.stack") // Minimal
                         .font(.system(size: 13))
                         .foregroundColor(Color.appSecondary)
-                    Text("รูปภาพ")
+                    Text(tr("รูปภาพ", "Photos"))
                         .font(.system(size: 16, weight: .bold))
                         .foregroundColor(.adaptiveText)
                 }
@@ -805,7 +831,7 @@ struct TripDetailView: View {
                     Image(systemName: "person.3") // Minimal
                         .font(.system(size: 13))
                         .foregroundColor(Color(hex: "#0EA5E9"))
-                    Text("จำนวนคน (\(participants.count))")
+                    Text(SettingsManager.shared.currentLanguage == .thai ? "จำนวนคน (\(participants.count))" : "Participants (\(participants.count))")
                         .font(.system(size: 16, weight: .bold))
                         .foregroundColor(.adaptiveText)
                 }
@@ -848,7 +874,7 @@ struct TripDetailView: View {
                                         }
                                         
                                         if isMe {
-                                            Text("(คุณ)")
+                                            Text(tr("(คุณ)", "(You)"))
                                                 .font(.system(size: 13, weight: .bold))
                                                 .foregroundColor(.appPrimary)
                                         }
@@ -859,7 +885,7 @@ struct TripDetailView: View {
                                     HStack(spacing: 5) {
                                         Image(systemName: displayStatus == "interested" ? "star.fill" : "checkmark.seal.fill")
                                             .font(.system(size: 8, weight: .bold))
-                                        Text(displayStatus == "interested" ? "สนใจทริปนี้" : "ไปแน่นอน!")
+                                        Text(displayStatus == "interested" ? tr("สนใจทริปนี้", "Interested") : tr("ไปแน่นอน!", "Going!"))
                                             .font(.system(size: 10, weight: .bold))
                                     }
                                     .foregroundColor(displayStatus == "interested" ? .orange : .white)
@@ -954,11 +980,19 @@ struct TripDetailView: View {
                                     }
                                 }
                             } label: {
-                                HStack {
+                                HStack(spacing: 8) {
                                     if viewModel.isJoining {
-                                        ProgressView().scaleEffect(0.7)
+                                        ProgressView()
+                                            .tint(participant.status == "interested" ? .white : .orange)
+                                            .scaleEffect(0.8)
                                     }
-                                    Text(participant.status == "interested" ? "เปลี่ยนเป็นจะไปแน่นอน" : "เปลี่ยนเป็นสนใจ")
+                                    Text(
+                                        viewModel.isJoining
+                                            ? tr("กำลังเปลี่ยนสถานะ...", "Updating status…")
+                                            : (participant.status == "interested"
+                                                ? tr("เปลี่ยนเป็นจะไปแน่นอน", "Mark as going")
+                                                : tr("เปลี่ยนเป็นสนใจ", "Mark as interested"))
+                                    )
                                 }
                                 .font(.system(size: 13, weight: .semibold))
                                 .foregroundColor(participant.status == "interested" ? .white : .orange)
@@ -967,11 +1001,12 @@ struct TripDetailView: View {
                                 .background(participant.status == "interested" ? Color.appPrimary : Color.orange.opacity(0.15))
                                 .cornerRadius(12)
                             }
+                            .buttonStyle(.plain)
                             .disabled(viewModel.isJoining)
                         }
                         
                         Button { viewModel.showLeaveSheet = true } label: {
-                            Text("ออกจากทริป")
+                            Text(tr("ออกจากทริป", "Leave trip"))
                                 .font(.system(size: 13, weight: .semibold))
                                 .foregroundColor(.red.opacity(0.8))
                                 .frame(maxWidth: .infinity)
@@ -997,7 +1032,7 @@ struct TripDetailView: View {
                                         .font(.system(size: 14, weight: .bold))
                                         .foregroundColor(.yellow)
                                 }
-                                Text(viewModel.isJoining ? "กำลังเข้า..." : "สนใจ")
+                                Text(viewModel.isJoining ? tr("กำลังเข้า...", "Joining…") : tr("สนใจ", "Interested"))
                             }
                             .font(.system(size: 15, weight: .bold))
                             .foregroundColor(.adaptiveText)
@@ -1017,7 +1052,7 @@ struct TripDetailView: View {
                             HStack(spacing: 6) {
                                 Image(systemName: "person.crop.circle.badge.plus")
                                     .font(.system(size: 14, weight: .bold))
-                                Text("จะไปด้วย")
+                                Text(tr("จะไปด้วย", "Join trip"))
                             }
                             .font(.system(size: 15, weight: .bold))
                             .foregroundColor(.adaptiveText)
@@ -1033,7 +1068,7 @@ struct TripDetailView: View {
                         }
                     }
                 } else {
-                    Text("ทริปเต็มแล้ว")
+                    Text(tr("ทริปเต็มแล้ว", "Trip is full"))
                         .font(.system(size: 15, weight: .bold))
                         .foregroundColor(.adaptiveSecondaryText)
                         .frame(maxWidth: .infinity)
@@ -1168,11 +1203,11 @@ struct InterestTripSheet: View {
                 .padding(.top, 32)
             
             VStack(spacing: 8) {
-                Text("สนใจทริปนี้")
+                Text(tr("สนใจทริปนี้", "Save this trip"))
                     .font(.system(size: 22, weight: .black))
                     .foregroundColor(.adaptiveText)
                 
-                Text("คุณต้องการบันทึกทริปนี้เข้ารายการโปรดใช่หรือไม่?")
+                Text(tr("คุณต้องการบันทึกทริปนี้เข้ารายการโปรดใช่หรือไม่?", "Would you like to save this trip to Favorites?"))
                     .font(.system(size: 15))
                     .foregroundColor(.adaptiveSecondaryText)
             }
@@ -1181,7 +1216,7 @@ struct InterestTripSheet: View {
                 Button(action: {
                     dismiss()
                 }) {
-                    Text("ยกเลิก")
+                    Text(tr("ยกเลิก", "Cancel"))
                         .font(.system(size: 15, weight: .bold))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
@@ -1204,7 +1239,7 @@ struct InterestTripSheet: View {
                         if viewModel.isJoining {
                             ProgressView().tint(.white).scaleEffect(0.8)
                         }
-                        Text(viewModel.isJoining ? "กำลังบันทึก..." : "ยืนยัน")
+                        Text(viewModel.isJoining ? tr("กำลังบันทึก...", "Saving…") : tr("ยืนยัน", "Confirm"))
                             .font(.system(size: 15, weight: .bold))
                     }
                     .foregroundColor(.white)
@@ -1224,10 +1259,10 @@ struct InterestTripSheet: View {
             Spacer()
         }
         .presentationDetents([.height(280)])
-        .alert("ไม่สามารถบันทึกได้", isPresented: $showErrorAlert) {
-            Button("ตรวจสอบ", role: .cancel) {}
+        .alert(tr("ไม่สามารถบันทึกได้", "Unable to save"), isPresented: $showErrorAlert) {
+            Button(tr("ตรวจสอบ", "OK"), role: .cancel) {}
         } message: {
-            Text(viewModel.errorMessage ?? "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง")
+            Text(viewModel.errorMessage ?? tr("เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง", "Something went wrong. Please try again."))
         }
     }
 }

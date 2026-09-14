@@ -14,11 +14,11 @@ struct JoinTripSheet: View {
                 .padding(.top, 32)
             
             VStack(spacing: 8) {
-                Text("ยืนยันการเข้าร่วม")
+                Text(SettingsManager.shared.text(thai: "ยืนยันการเข้าร่วม", english: "Confirm joining"))
                     .font(.system(size: 22, weight: .black))
                     .foregroundColor(.adaptiveText)
                 
-                Text("คุณต้องการเข้าร่วมทริปนี้ใช่หรือไม่?")
+                Text(SettingsManager.shared.text(thai: "คุณต้องการเข้าร่วมทริปนี้ใช่หรือไม่?", english: "Would you like to join this trip?"))
                     .font(.system(size: 15))
                     .foregroundColor(.adaptiveSecondaryText)
             }
@@ -27,14 +27,16 @@ struct JoinTripSheet: View {
                 Button(action: {
                     dismiss()
                 }) {
-                    Text("ยกเลิก")
+                    Text(SettingsManager.shared.text(thai: "ยกเลิก", english: "Cancel"))
                         .font(.system(size: 15, weight: .bold))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(Color.appPrimary)
+                        .background(Color(hex: "#EF4444"))
                         .cornerRadius(14)
+                        .shadow(color: Color(hex: "#EF4444").opacity(0.2), radius: 8, x: 0, y: 4)
                 }
+                .buttonStyle(.plain)
                 
                 Button(action: {
                     Task {
@@ -50,15 +52,13 @@ struct JoinTripSheet: View {
                         if viewModel.isJoining {
                             ProgressView().tint(.white).scaleEffect(0.8)
                         }
-                        Text(viewModel.isJoining ? "กำลังเข้าร่วม..." : "ยืนยันเข้าร่วม")
+                        Text(viewModel.isJoining ? tr("กำลังเข้าร่วม...", "Joining…") : tr("ยืนยันเข้าร่วม", "Confirm joining"))
                             .font(.system(size: 15, weight: .bold))
                     }
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
-                    .background(
-                        LinearGradient(colors: [.appPrimary, .appSecondary], startPoint: .leading, endPoint: .trailing)
-                    )
+                    .background(Color.appPrimary)
                     .cornerRadius(14)
                     .shadow(color: Color.appPrimary.opacity(0.3), radius: 8, x: 0, y: 4)
                 }
@@ -70,10 +70,10 @@ struct JoinTripSheet: View {
             Spacer()
         }
         .presentationDetents([.height(280)])
-        .alert("ไม่สามารถเข้าร่วมได้", isPresented: $showErrorAlert) {
-            Button("ตรวจสอบ", role: .cancel) {}
+        .alert(SettingsManager.shared.text(thai: "ไม่สามารถเข้าร่วมได้", english: "Unable to join"), isPresented: $showErrorAlert) {
+            Button(SettingsManager.shared.text(thai: "ตรวจสอบ", english: "OK"), role: .cancel) {}
         } message: {
-            Text(viewModel.errorMessage ?? "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง")
+            Text(viewModel.errorMessage ?? tr("เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง", "Something went wrong. Please try again."))
         }
     }
 }

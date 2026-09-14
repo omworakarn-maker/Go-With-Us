@@ -34,6 +34,7 @@ struct FilterButton: View {
 // MARK: - Pickers (Sheets)
 
 struct ProvincePicker: View {
+    @ObservedObject private var settings = SettingsManager.shared
     @Environment(\.dismiss) var dismiss
     @Binding var selectedProvince: String?
     let provinces = [
@@ -60,9 +61,9 @@ struct ProvincePicker: View {
     var body: some View {
         NavigationView {
             VStack {
-                Picker("เลือกจังหวัด", selection: $tempSelection) {
+                Picker(SettingsManager.shared.text(thai: "เลือกจังหวัด", english: "Select province"), selection: $tempSelection) {
                     ForEach(provinces, id: \.self) { province in
-                        Text(province).tag(province)
+                        Text(province == "ทุกจังหวัด" ? tr("ทุกจังหวัด", "All provinces") : localizedPlaceName(province)).tag(province)
                     }
                 }
                 .pickerStyle(.wheel)
@@ -79,7 +80,7 @@ struct ProvincePicker: View {
                     SettingsManager.shared.triggerSelection()
                     dismiss()
                 }) {
-                    Text("ตกลง")
+                    Text(SettingsManager.shared.text(thai: "ตกลง", english: "Apply"))
                         .font(.system(size: 16, weight: .bold))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
@@ -90,11 +91,11 @@ struct ProvincePicker: View {
                 }
                 .padding(.bottom, 20)
             }
-            .navigationTitle("เลือกจังหวัด")
+            .navigationTitle(SettingsManager.shared.text(thai: "เลือกจังหวัด", english: "Select province"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("ยกเลิก") { dismiss() }
+                    Button(SettingsManager.shared.text(thai: "ยกเลิก", english: "Cancel")) { dismiss() }
                         .foregroundColor(.appSecondary)
                 }
             }
@@ -104,6 +105,7 @@ struct ProvincePicker: View {
 }
 
 struct DatePickerSheet: View {
+    @ObservedObject private var settings = SettingsManager.shared
     @Environment(\.dismiss) var dismiss
     @Binding var selectedDate: Date?
     @Binding var selectedEndDate: Date?
@@ -122,7 +124,7 @@ struct DatePickerSheet: View {
                 ScrollView {
                     VStack(spacing: 16) {
                         // Instruction text
-                        Text("แตะวันเริ่ม แล้วแตะวันสิ้นสุดได้เลย")
+                        Text(SettingsManager.shared.text(thai: "แตะวันเริ่ม แล้วแตะวันสิ้นสุดได้เลย", english: "Select a start date, then an end date"))
                             .font(.system(size: 13, weight: .regular))
                             .foregroundColor(.gray)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -146,7 +148,7 @@ struct DatePickerSheet: View {
                         selectedEndDate = endDate
                         dismiss()
                     }) {
-                        Text("ตกลง")
+                        Text(SettingsManager.shared.text(thai: "ตกลง", english: "Apply"))
                             .font(.system(size: 16, weight: .bold))
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
@@ -156,7 +158,7 @@ struct DatePickerSheet: View {
                     }
                     .disabled(startDate == nil)
                     
-                    Button("ล้างค่า") {
+                    Button(SettingsManager.shared.text(thai: "ล้างค่า", english: "Clear")) {
                         startDate = nil
                         endDate = nil
                         selectedDate = nil
@@ -171,11 +173,11 @@ struct DatePickerSheet: View {
                 .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: -5)
             }
             .background(Color.adaptiveBackground.ignoresSafeArea())
-            .navigationTitle("เลือกวันเดินทาง")
+            .navigationTitle(SettingsManager.shared.text(thai: "เลือกวันเดินทาง", english: "Select travel dates"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("ปิด") { dismiss() }
+                    Button(SettingsManager.shared.text(thai: "ปิด", english: "Close")) { dismiss() }
                         .foregroundColor(.black)
                 }
             }
@@ -189,6 +191,7 @@ struct DatePickerSheet: View {
 }
 
 struct CategoryPicker: View {
+    @ObservedObject private var settings = SettingsManager.shared
     @Environment(\.dismiss) var dismiss
     @Binding var selectedCategory: TripCategory?
     
@@ -203,10 +206,10 @@ struct CategoryPicker: View {
     var body: some View {
         NavigationView {
             VStack {
-                Picker("เลือกสไตล์", selection: $tempSelectionRaw) {
-                    Text("ทุกสไตล์").tag("ทุกสไตล์")
+                Picker(SettingsManager.shared.text(thai: "เลือกสไตล์", english: "Select style"), selection: $tempSelectionRaw) {
+                    Text(SettingsManager.shared.text(thai: "ทุกสไตล์", english: "All styles")).tag("ทุกสไตล์")
                     ForEach(TripCategory.allCases, id: \.self) { category in
-                        Text(category.rawValue).tag(category.rawValue)
+                        Text(category.displayName).tag(category.rawValue)
                     }
                 }
                 .pickerStyle(.wheel)
@@ -225,7 +228,7 @@ struct CategoryPicker: View {
                     SettingsManager.shared.triggerSelection()
                     dismiss()
                 }) {
-                    Text("ตกลง")
+                    Text(SettingsManager.shared.text(thai: "ตกลง", english: "Apply"))
                         .font(.system(size: 16, weight: .bold))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
@@ -236,11 +239,11 @@ struct CategoryPicker: View {
                 }
                 .padding(.bottom, 20)
             }
-            .navigationTitle("เลือกสไตล์")
+            .navigationTitle(SettingsManager.shared.text(thai: "เลือกสไตล์", english: "Select style"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("ยกเลิก") { dismiss() }
+                    Button(SettingsManager.shared.text(thai: "ยกเลิก", english: "Cancel")) { dismiss() }
                         .foregroundColor(.appSecondary)
                 }
             }

@@ -24,7 +24,7 @@ struct MatchTripView: View {
                         
                         Spacer()
                         
-                        Text("แมตช์ทริป")
+                        Text(tr("แมตช์ทริป", "Trip matches"))
                             .font(.system(size: 17, weight: .semibold))
                             .foregroundColor(.adaptiveText)
                         
@@ -71,7 +71,7 @@ struct MatchTripView: View {
                                 Text(error)
                                     .foregroundColor(.gray)
                                     .multilineTextAlignment(.center)
-                                Button("ลองใหม่") {
+                                Button(tr("ลองใหม่", "Try again")) {
                                     Task { await viewModel.fetchMatches(force: true) }
                                 }
                                 .padding(.horizontal, 24)
@@ -87,15 +87,15 @@ struct MatchTripView: View {
                                 Image(systemName: "sparkles.rectangle.stack.fill")
                                     .font(.system(size: 80))
                                     .foregroundColor(.adaptiveText.opacity(0.25))
-                                Text("ไม่มีทริปแมตช์ใหม่ๆ ตอนนี้")
+                                Text(tr("ไม่มีทริปแมตช์ใหม่ๆ ตอนนี้", "No new trip matches right now"))
                                     .font(.system(size: 20, weight: .bold))
                                     .foregroundColor(.adaptiveText)
-                                Text("กลับมาเช็คดูใหม่ หรือเพิ่มสไตล์การเที่ยวในโปรไฟล์")
+                                Text(tr("กลับมาเช็คดูใหม่ หรือเพิ่มสไตล์การเที่ยวในโปรไฟล์", "Check again later or add travel styles to your profile"))
                                     .font(.system(size: 14))
                                     .foregroundColor(.gray)
                                     .multilineTextAlignment(.center)
                                 
-                                Button("รีเฟรช") {
+                                Button(tr("รีเฟรช", "Refresh")) {
                                     Task { await viewModel.fetchMatches(force: true) }
                                 }
                                 .padding(.top, 10)
@@ -260,7 +260,7 @@ class MatchTripViewModel: ObservableObject {
             }
         } catch {
             await MainActor.run {
-                self.errorMessage = "เกิดข้อผิดพลาดในการโหลดข้อมูล"
+                self.errorMessage = tr("เกิดข้อผิดพลาดในการโหลดข้อมูล", "Unable to load data")
                 self.isLoading = false
                 print("Error fetching match trips: \(error)")
             }

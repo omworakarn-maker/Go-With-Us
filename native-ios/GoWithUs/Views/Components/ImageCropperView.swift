@@ -82,14 +82,14 @@ struct ImageCropperView: View {
                     }
                     .allowsHitTesting(false)
                 } else {
-                    Text("ไม่พบรูปภาพ")
+                    Text(tr("ไม่พบรูปภาพ", "Image not found"))
                         .foregroundColor(.white)
                 }
                 
                 // Toolbar (since we removed NavigationView)
                 VStack {
                     HStack {
-                        Button("ยกเลิก") {
+                        Button(tr("ยกเลิก", "Cancel")) {
                             onCancel()
                         }
                         .foregroundColor(.white)
@@ -97,13 +97,13 @@ struct ImageCropperView: View {
                         
                         Spacer()
                         
-                        Text("ปรับแต่งรูปภาพ")
+                        Text(tr("ปรับแต่งรูปภาพ", "Adjust photo"))
                             .font(.headline)
                             .foregroundColor(.white)
                         
                         Spacer()
                         
-                        Button("เสร็จสิ้น") {
+                        Button(tr("เสร็จสิ้น", "Done")) {
                             Task { @MainActor in
                                 if let cropped = cropImage(geometry: geometry) {
                                     onCrop(cropped)

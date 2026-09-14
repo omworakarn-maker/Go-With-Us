@@ -156,7 +156,7 @@ struct HomeView: View {
                                 .font(.system(size: 40))
                                 .foregroundColor(.red)
                             
-                            Text("เกิดข้อผิดพลาด")
+                            Text(SettingsManager.shared.text(thai: "เกิดข้อผิดพลาด", english: "Something went wrong"))
                                 .font(.system(size: 18, weight: .bold))
                                 .foregroundColor(.adaptiveText)
                             
@@ -169,7 +169,7 @@ struct HomeView: View {
                             Button(action: {
                                 Task { await viewModel.loadTrips() }
                             }) {
-                                Text("ลองใหม่")
+                                Text(SettingsManager.shared.text(thai: "ลองใหม่", english: "Try Again"))
                                     .font(.system(size: 15, weight: .bold))
                                     .foregroundColor(.white)
                                     .padding(.horizontal, 24)

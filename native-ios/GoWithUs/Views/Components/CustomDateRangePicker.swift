@@ -9,7 +9,11 @@ struct CustomDateRangePicker: View {
     // Calendar config
     private let calendar = Calendar.current
     private let daysInWeek = 7
-    private let weekDays = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"] // Thai weekdays
+    private var weekDays: [String] {
+        SettingsManager.shared.currentLanguage == .thai
+            ? ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"]
+            : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+    }
     
     var body: some View {
         VStack(spacing: 20) {

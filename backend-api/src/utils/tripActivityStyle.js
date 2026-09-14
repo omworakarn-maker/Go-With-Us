@@ -1,5 +1,5 @@
-// Convert itinerary density into the same scale used by onboarding.
-// 1-2 activities/day = 2, 3-4 = 5, 5+ = 8. No activities = no score.
+// Calculate the actual average number of itinerary activities per trip day.
+// The stored integer is used directly by ratio-based similarity; no 2/5/8 code is used.
 export const calculateActivityStyleFromItinerary = (itinerary, startDate, endDate) => {
     if (!Array.isArray(itinerary)) return null;
 
@@ -16,8 +16,5 @@ export const calculateActivityStyleFromItinerary = (itinerary, startDate, endDat
     }
     if (dayCount < 1) dayCount = Math.max(itinerary.length, 1);
 
-    const activitiesPerDay = activityCount / dayCount;
-    if (activitiesPerDay <= 2) return 2;
-    if (activitiesPerDay <= 4) return 5;
-    return 8;
+    return Math.max(1, Math.round(activityCount / dayCount));
 };

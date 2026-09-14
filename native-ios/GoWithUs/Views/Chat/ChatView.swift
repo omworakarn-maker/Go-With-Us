@@ -18,7 +18,7 @@ struct ChatView: View {
                         Image(systemName: "message")
                             .font(.system(size: 48))
                             .foregroundColor(.gray.opacity(0.5))
-                        Text("ยังไม่มีการสนทนา")
+                        Text(SettingsManager.shared.text(thai: "ยังไม่มีการสนทนา", english: "No conversations yet"))
                             .font(.system(size: 16, weight: .medium))
                             .foregroundColor(.gray)
                     }
@@ -27,7 +27,7 @@ struct ChatView: View {
                         // NEW MATCHES SECTION
                         if !viewModel.mutualMatches.isEmpty {
                             VStack(alignment: .leading, spacing: 12) {
-                                Text("เพื่อนใหม่ที่แมตช์กัน")
+                                Text(SettingsManager.shared.text(thai: "เพื่อนใหม่ที่แมตช์กัน", english: "New matches"))
                                     .font(.system(size: 14, weight: .bold))
                                     .foregroundColor(.adaptiveSecondaryText)
                                     .padding(.horizontal, 16)
@@ -74,7 +74,7 @@ struct ChatView: View {
                             .onDelete(perform: viewModel.deleteConversation)
                         } header: {
                             if !viewModel.conversations.isEmpty && !viewModel.mutualMatches.isEmpty {
-                                Text("ข้อความล่าสุด")
+                                Text(SettingsManager.shared.text(thai: "ข้อความล่าสุด", english: "Recent messages"))
                                     .font(.system(size: 14, weight: .bold))
                                     .foregroundColor(.adaptiveSecondaryText)
                             }
@@ -89,7 +89,7 @@ struct ChatView: View {
             // Hidden navigation link activated when a conversation is set
             NavigationLink(destination: Group {
                 if let conv = selectedConversation {
-                    let partnerUser = User(id: conv.user.id, name: conv.user.name, email: conv.user.email, profileImage: conv.user.profileImage ?? conv.user.avatarUrl)
+                    let partnerUser = User(id: conv.user.id, name: conv.user.name, username: conv.user.username, email: conv.user.email, profileImage: conv.user.profileImage ?? conv.user.avatarUrl)
                     ChatDetailView(chatTitle: conv.user.name, tripId: nil, partnerId: conv.user.id, initialPartnerUser: partnerUser)
                 } else if let pid = selectedPartnerId {
                     ChatDetailView(chatTitle: "", tripId: nil, partnerId: pid)
@@ -105,7 +105,7 @@ struct ChatView: View {
                 EmptyView()
             }
             .padding(.bottom, 80) // Space for TabBar
-            .navigationTitle("ข้อความ")
+            .navigationTitle(SettingsManager.shared.text(thai: "ข้อความ", english: "Messages"))
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
                 Task { await viewModel.loadInitialData() }
@@ -145,7 +145,7 @@ struct ConversationRow: View {
     var body: some View {
         HStack(spacing: 16) {
             // Avatar
-            let user = User(id: conversation.user.id, name: conversation.user.name, email: conversation.user.email, profileImage: conversation.user.profileImage ?? conversation.user.avatarUrl)
+            let user = User(id: conversation.user.id, name: conversation.user.name, username: conversation.user.username, email: conversation.user.email, profileImage: conversation.user.profileImage ?? conversation.user.avatarUrl)
             UserAvatarView(user: user, size: 48)
             
             VStack(alignment: .leading, spacing: 4) {
@@ -153,7 +153,7 @@ struct ConversationRow: View {
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(.adaptiveText)
                 
-                Text(conversation.lastMessage.content.isEmpty && conversation.lastMessage.imageUrl != nil ? "รูปภาพ" : conversation.lastMessage.content)
+                Text(conversation.lastMessage.content.isEmpty && conversation.lastMessage.imageUrl != nil ? tr("รูปภาพ", "Photo") : conversation.lastMessage.content)
                     .font(.system(size: 14))
                     .foregroundColor(.gray)
                     .lineLimit(1)

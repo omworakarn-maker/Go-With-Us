@@ -73,7 +73,7 @@ struct TripCardView: View {
                         .font(.system(size: 11))
                         .foregroundColor(.red)
                     
-                    Text(trip.destination)
+                    Text(localizedPlaceName(trip.destination))
                         .font(.system(size: 13, weight: .bold))
                         .foregroundColor(.adaptiveSecondaryText)
                         .lineLimit(1)
@@ -97,7 +97,7 @@ struct TripCardView: View {
                             let icon = INTEREST_CATEGORIES.first(where: { $0.label == style })?.icon ?? "✈️"
                             HStack(spacing: 4) {
                                 Text(icon)
-                                Text(style)
+                                Text(localizedInterestName(style))
                             }
                             .font(.system(size: 10, weight: .bold))
                             .foregroundColor(.adaptiveText)

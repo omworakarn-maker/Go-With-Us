@@ -40,7 +40,7 @@ struct ChatDetailView: View {
                             // Create minimal user from what we have
                             partnerUser = User(
                                 id: pid,
-                                name: chatTitle.isEmpty ? "ผู้ใช้" : chatTitle,
+                                name: chatTitle.isEmpty ? tr("ผู้ใช้", "User") : chatTitle,
                                 email: ""
                             )
                             showPartnerProfile = true
@@ -49,7 +49,7 @@ struct ChatDetailView: View {
                         HStack(spacing: 10) {
                             UserAvatarView(user: partnerUser, size: 36)
                             
-                            Text(!chatTitle.isEmpty ? chatTitle : (partnerUser?.name ?? "ผู้ใช้"))
+                            Text(!chatTitle.isEmpty ? chatTitle : (partnerUser?.name ?? tr("ผู้ใช้", "User")))
                                 .font(.system(size: 16, weight: .bold))
                                 .foregroundColor(.adaptiveText)
                                 .lineLimit(1)
@@ -57,7 +57,7 @@ struct ChatDetailView: View {
                     }
                 } else {
                     // Group chat — just show title
-                    Text(chatTitle.isEmpty ? "แชทกลุ่ม" : chatTitle)
+                    Text(chatTitle.isEmpty ? tr("แชทกลุ่ม", "Group chat") : chatTitle)
                         .font(.system(size: 18, weight: .bold))
                         .foregroundColor(.adaptiveText)
                         .lineLimit(1)
@@ -73,7 +73,7 @@ struct ChatDetailView: View {
                         } else if let pid = partnerId {
                             partnerUser = User(
                                 id: pid,
-                                name: chatTitle.isEmpty ? "ผู้ใช้" : chatTitle,
+                                name: chatTitle.isEmpty ? tr("ผู้ใช้", "User") : chatTitle,
                                 email: ""
                             )
                             showPartnerProfile = true
@@ -122,7 +122,7 @@ struct ChatDetailView: View {
                                     UIPasteboard.general.string = message.content
                                     HapticManager.shared.notification(type: .success)
                                 } label: {
-                                    Label("คัดลอกข้อความ", systemImage: "doc.on.doc")
+                                    Label(tr("คัดลอกข้อความ", "Copy message"), systemImage: "doc.on.doc")
                                 }
                                 
                                 if viewModel.isFromCurrentUser(message: message) {
@@ -131,7 +131,7 @@ struct ChatDetailView: View {
                                             await viewModel.deleteMessage(message)
                                         }
                                     } label: {
-                                        Label("ยกเลิกข้อความ", systemImage: "trash")
+                                        Label(tr("ยกเลิกข้อความ", "Unsend message"), systemImage: "trash")
                                     }
                                 }
                             }
@@ -193,7 +193,7 @@ struct ChatDetailView: View {
                     .padding(.bottom, 8)
 
                     HStack(alignment: .bottom, spacing: 0) {
-                        TextField("พิมพ์ข้อความ...", text: $messageText, axis: .vertical)
+                        TextField(tr("พิมพ์ข้อความ...", "Type a message…"), text: $messageText, axis: .vertical)
                             .lineLimit(1...5)
                             .padding(.horizontal, 16)
                             .padding(.vertical, 10)
@@ -396,7 +396,7 @@ struct MessageBubble: View {
                     
                     // Read receipt
                     if message.isRead == true {
-                        Text("อ่านแล้ว")
+                        Text(tr("อ่านแล้ว", "Read"))
                             .font(.system(size: 10, weight: .bold))
                             .foregroundColor(.gray)
                             .padding(.top, 2)
@@ -408,4 +408,3 @@ struct MessageBubble: View {
 }
 
 // Helper for specific corner rounding
-

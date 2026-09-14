@@ -68,7 +68,7 @@ struct UserProfileView: View {
                 VStack(spacing: 12) {
                     ProgressView()
                         .tint(.appPrimary)
-                    Text("กำลังโหลดโปรไฟล์…")
+                    Text(tr("กำลังโหลดโปรไฟล์…", "Loading profile…"))
                         .font(.system(size: 13))
                         .foregroundColor(.adaptiveSecondaryText)
                 }
@@ -130,7 +130,7 @@ struct UserProfileView: View {
                             HStack(spacing: 5) {
                                 Image(systemName: "checkmark.seal.fill")
                                     .foregroundColor(.green)
-                                Text("ผู้ใช้งานที่ยืนยันตัวตนแล้ว")
+                                Text(tr("ผู้ใช้งานที่ยืนยันตัวตนแล้ว", "Verified user"))
                                     .font(.system(size: 13, weight: .bold))
                                     .foregroundColor(.green)
                             }
@@ -149,8 +149,8 @@ struct UserProfileView: View {
                                         infoCard(
                                             icon: "person.fill",
                                             iconColor: Color.appSecondary,
-                                            label: "เพศ",
-                                            value: gender == "male" ? "ชาย" : gender == "female" ? "หญิง" : "อื่นๆ"
+                                            label: tr("เพศ", "Gender"),
+                                            value: gender == "male" ? tr("ชาย", "Male") : gender == "female" ? tr("หญิง", "Female") : tr("อื่นๆ", "Other")
                                         )
                                     }
                                     
@@ -158,8 +158,8 @@ struct UserProfileView: View {
                                         infoCard(
                                             icon: "calendar",
                                             iconColor: Color(hex: "#3B82F6"),
-                                            label: "อายุ",
-                                            value: "\(age) ปี"
+                                            label: tr("อายุ", "Age"),
+                                            value: SettingsManager.shared.currentLanguage == .thai ? "\(age) ปี" : "\(age) years"
                                         )
                                     }
                                 }
@@ -172,7 +172,7 @@ struct UserProfileView: View {
                                         Image(systemName: "doc.text.fill")
                                             .font(.system(size: 12))
                                             .foregroundColor(Color.appSecondary)
-                                        Text("ประวัติส่วนตัว")
+                                        Text(tr("ประวัติส่วนตัว", "Bio"))
                                             .font(.system(size: 12, weight: .bold))
                                             .foregroundColor(.adaptiveSecondaryText)
                                             .textCase(.uppercase)
@@ -200,7 +200,7 @@ struct UserProfileView: View {
                                         Image(systemName: "heart.fill")
                                             .font(.system(size: 12))
                                             .foregroundColor(Color(hex: "#F43F5E"))
-                                        Text("สไตล์การเที่ยว")
+                                        Text(tr("สไตล์การเที่ยว", "Travel styles"))
                                             .font(.system(size: 12, weight: .bold))
                                             .foregroundColor(.adaptiveSecondaryText)
                                             .textCase(.uppercase)
@@ -208,7 +208,7 @@ struct UserProfileView: View {
                                     
                                     FlowLayout(spacing: 8) {
                                         ForEach(interests, id: \.self) { interest in
-                                            Text(interest)
+                                            Text(localizedInterestName(interest))
                                                 .font(.system(size: 13, weight: .semibold))
                                                 .foregroundColor(.appPrimary)
                                                 .padding(.horizontal, 14)
@@ -274,7 +274,7 @@ struct UserProfileView: View {
         }
         .tint(.appPrimary)
         .alert(actionMessage, isPresented: $showingActionMessage) {
-            Button("ตกลง", role: .cancel) { }
+            Button(tr("ตกลง", "OK"), role: .cancel) { }
         }
     }
     
@@ -324,16 +324,16 @@ struct UserProfileView: View {
         } catch let error as APIError {
             switch error {
             case .httpError(403):
-                errorMessage = "โปรไฟล์นี้ถูกตั้งเป็นส่วนตัว"
+                errorMessage = tr("โปรไฟล์นี้ถูกตั้งเป็นส่วนตัว", "This profile is private")
             case .httpError(404):
-                errorMessage = "ไม่พบผู้ใช้คนนี้"
+                errorMessage = tr("ไม่พบผู้ใช้คนนี้", "User not found")
             default:
-                errorMessage = "ไม่สามารถโหลดโปรไฟล์ได้"
+                errorMessage = tr("ไม่สามารถโหลดโปรไฟล์ได้", "Unable to load profile")
             }
         } catch let error as URLError where error.code == .cancelled {
             return // Ignore cancellation
         } catch {
-            errorMessage = "เกิดข้อผิดพลาดในการโหลดโปรไฟล์"
+            errorMessage = tr("เกิดข้อผิดพลาดในการโหลดโปรไฟล์", "An error occurred while loading the profile")
         }
         isLoading = false
     }
@@ -343,11 +343,11 @@ struct UserProfileView: View {
         guard !reportReason.trimmingCharacters(in: .whitespaces).isEmpty else { return }
         do {
             try await AuthService.shared.reportUser(userId: user.id, reason: reportReason)
-            actionMessage = "ส่งรายงานปัญหาสำเร็จ! แอดมินจะตรวจสอบเร็วๆนี้"
+            actionMessage = tr("ส่งรายงานปัญหาสำเร็จ! แอดมินจะตรวจสอบเร็วๆนี้", "Report submitted. An administrator will review it shortly.")
             showingActionMessage = true
             reportReason = ""
         } catch {
-            actionMessage = "เกิดข้อผิดพลาดในการรายงาน"
+            actionMessage = tr("เกิดข้อผิดพลาดในการรายงาน", "Unable to submit report")
             showingActionMessage = true
         }
     }
@@ -355,10 +355,10 @@ struct UserProfileView: View {
     private func banUser() async {
         do {
             try await AuthService.shared.banUser(userId: user.id, isBanned: true)
-            actionMessage = "ทำการแบนผู้ใช้ท่านนี้เรียบร้อยแล้ว"
+            actionMessage = tr("ทำการแบนผู้ใช้ท่านนี้เรียบร้อยแล้ว", "User has been banned")
             showingActionMessage = true
         } catch {
-            actionMessage = "เกิดข้อผิดพลาดในการแบนผู้ใช้"
+            actionMessage = tr("เกิดข้อผิดพลาดในการแบนผู้ใช้", "Unable to ban user")
             showingActionMessage = true
         }
     }
@@ -367,11 +367,11 @@ struct UserProfileView: View {
         guard !warningMessage.trimmingCharacters(in: .whitespaces).isEmpty else { return }
         do {
             try await AuthService.shared.warnUser(userId: user.id, message: warningMessage)
-            actionMessage = "ส่งคำเตือนไปยังผู้ใช้เรียบร้อยแล้ว"
+            actionMessage = tr("ส่งคำเตือนไปยังผู้ใช้เรียบร้อยแล้ว", "Warning sent successfully")
             showingActionMessage = true
             warningMessage = ""
         } catch {
-            actionMessage = "เกิดข้อผิดพลาดในการส่งคำเตือน"
+            actionMessage = tr("เกิดข้อผิดพลาดในการส่งคำเตือน", "Unable to send warning")
             showingActionMessage = true
         }
     }
@@ -398,11 +398,11 @@ struct WarnUserSheet: View {
     
     var body: some View {
         VStack(spacing: 20) {
-            Text("ตักเตือน \(user.name)")
+            Text(SettingsManager.shared.currentLanguage == .thai ? "ตักเตือน \(user.name)" : "Warn \(user.name)")
                 .font(.system(size: 18, weight: .bold))
                 .padding(.top, 24)
             
-            TextField("ระบุข้อความตักเตือน...", text: $message, axis: .vertical)
+            TextField(tr("ระบุข้อความตักเตือน...", "Enter a warning message…"), text: $message, axis: .vertical)
                 .lineLimit(3...5)
                 .padding()
                 .background(Color.gray.opacity(0.1))
@@ -411,7 +411,7 @@ struct WarnUserSheet: View {
             
             HStack(spacing: 12) {
                 Button(action: { dismiss() }) {
-                    Text("ยกเลิก")
+                    Text(tr("ยกเลิก", "Cancel"))
                         .font(.system(size: 15, weight: .bold))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
@@ -424,7 +424,7 @@ struct WarnUserSheet: View {
                     onSend(message)
                     dismiss()
                 }) {
-                    Text("ส่งคำเตือน")
+                    Text(tr("ส่งคำเตือน", "Send warning"))
                         .font(.system(size: 15, weight: .bold))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
@@ -448,11 +448,11 @@ struct ReportUserSheet: View {
     
     var body: some View {
         VStack(spacing: 20) {
-            Text("รายงาน \(user.name)")
+            Text(SettingsManager.shared.currentLanguage == .thai ? "รายงาน \(user.name)" : "Report \(user.name)")
                 .font(.system(size: 18, weight: .bold))
                 .padding(.top, 24)
             
-            TextField("ระบุเหตุผล (เช่น สแปม, ก้าวร้าว)...", text: $reason, axis: .vertical)
+            TextField(tr("ระบุเหตุผล (เช่น สแปม, ก้าวร้าว)...", "Enter a reason (e.g. spam or abusive behavior)…"), text: $reason, axis: .vertical)
                 .lineLimit(3...5)
                 .padding()
                 .background(Color.gray.opacity(0.1))
@@ -461,7 +461,7 @@ struct ReportUserSheet: View {
             
             HStack(spacing: 12) {
                 Button(action: { dismiss() }) {
-                    Text("ยกเลิก")
+                    Text(tr("ยกเลิก", "Cancel"))
                         .font(.system(size: 15, weight: .bold))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
@@ -474,7 +474,7 @@ struct ReportUserSheet: View {
                     onSend(reason)
                     dismiss()
                 }) {
-                    Text("ส่งรายงาน")
+                    Text(tr("ส่งรายงาน", "Submit report"))
                         .font(.system(size: 15, weight: .bold))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
@@ -508,7 +508,7 @@ struct UserActionSheet: View {
                 .padding(.top, 12)
                 .padding(.bottom, 20)
             
-            Text("จัดการผู้ใช้")
+            Text(tr("จัดการผู้ใช้", "Manage user"))
                 .font(.headline)
                 .foregroundColor(.gray)
                 .padding(.bottom, 24)
@@ -519,7 +519,7 @@ struct UserActionSheet: View {
                         dismiss()
                         onEdit?()
                     }) {
-                        Text("แก้ไขโปรไฟล์ (Edit Profile)")
+                        Text(tr("แก้ไขโปรไฟล์ (Edit Profile)", "Edit profile"))
                             .font(.system(size: 15, weight: .bold))
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
@@ -532,7 +532,7 @@ struct UserActionSheet: View {
                         dismiss()
                         onBan?()
                     }) {
-                        Text("แบนผู้ใช้ (Ban)")
+                        Text(tr("แบนผู้ใช้ (Ban)", "Ban user"))
                             .font(.system(size: 15, weight: .bold))
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
@@ -545,7 +545,7 @@ struct UserActionSheet: View {
                         dismiss()
                         onWarn()
                     }) {
-                        Text("ตักเตือนผู้ใช้ (Warn)")
+                        Text(tr("ตักเตือนผู้ใช้ (Warn)", "Warn user"))
                             .font(.system(size: 15, weight: .bold))
                             .foregroundColor(.adaptiveText)
                             .frame(maxWidth: .infinity)
@@ -559,7 +559,7 @@ struct UserActionSheet: View {
                     dismiss()
                     onReport()
                 }) {
-                    Text("รายงานผู้ใช้ (Report)")
+                    Text(tr("รายงานผู้ใช้ (Report)", "Report user"))
                         .font(.system(size: 15, weight: .bold))
                         .foregroundColor(.red)
                         .frame(maxWidth: .infinity)
@@ -569,7 +569,7 @@ struct UserActionSheet: View {
                 }
                 
                 Button(action: { dismiss() }) {
-                    Text("ยกเลิก")
+                    Text(tr("ยกเลิก", "Cancel"))
                         .font(.system(size: 15, weight: .bold))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)

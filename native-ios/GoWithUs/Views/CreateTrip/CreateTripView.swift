@@ -4,6 +4,7 @@ import MapKit
 
 struct CreateTripView: View {
     @Environment(\.dismiss) private var dismiss
+    @ObservedObject private var settings = SettingsManager.shared
     @State private var title = ""
     @State private var destination = ""
     @State private var description = ""
@@ -25,19 +26,30 @@ struct CreateTripView: View {
     @State private var itinerary: [DayPlan]?
     @State private var showDeleteAlert = false
     @State private var specificLocation = ""
-    @State private var activityStyle: Double = 5.0
+    @State private var activityStyle: Double = 3.0
     @State private var timeOfDay: [String] = []
     @State private var aiPrompt: String = ""
     @State private var creationStep = 0
 
-    private let creationStepTitles = ["ข้อมูลทริป", "วันและงบประมาณ", "แผนการเดินทาง", "ตรวจสอบข้อมูล"]
+    private var creationStepTitles: [String] {
+        SettingsManager.shared.currentLanguage == .thai
+            ? ["ข้อมูลทริป", "วันและงบประมาณ", "แผนการเดินทาง", "ตรวจสอบข้อมูล"]
+            : ["Trip details", "Dates & budget", "Itinerary", "Review"]
+    }
     
-    let timeSlots = [
-        ("morning", "ช่วงเช้า (06:00 - 11:00 น.)", "เช่น ชมพระอาทิตย์ขึ้น, เยี่ยมชมตลาดเช้า"),
-        ("noon", "ช่วงกลางวัน (11:00 - 16:00 น.)", "เช่น รับประทานอาหาร, พักผ่อนในคาเฟ่, เข้าชมพิพิธภัณฑ์"),
-        ("evening", "ช่วงเย็น (16:00 - 20:00 น.)", "เช่น เดินพักผ่อน, ชมพระอาทิตย์ตก, รับประทานอาหารค่ำ"),
-        ("night", "ช่วงกลางคืน (20:00 น. เป็นต้นไป)", "เช่น สัมผัสบรรยากาศยามค่ำคืน, เข้าร่วมงานสังสรรค์")
-    ]
+    var timeSlots: [(String, String, String)] {
+        SettingsManager.shared.currentLanguage == .thai ? [
+            ("morning", "ช่วงเช้า (06:00 - 11:00 น.)", "เช่น ชมพระอาทิตย์ขึ้น, เยี่ยมชมตลาดเช้า"),
+            ("noon", "ช่วงกลางวัน (11:00 - 16:00 น.)", "เช่น รับประทานอาหาร, พักผ่อนในคาเฟ่, เข้าชมพิพิธภัณฑ์"),
+            ("evening", "ช่วงเย็น (16:00 - 20:00 น.)", "เช่น เดินพักผ่อน, ชมพระอาทิตย์ตก, รับประทานอาหารค่ำ"),
+            ("night", "ช่วงกลางคืน (20:00 น. เป็นต้นไป)", "เช่น สัมผัสบรรยากาศยามค่ำคืน, เข้าร่วมงานสังสรรค์")
+        ] : [
+            ("morning", "Morning (6:00 AM – 11:00 AM)", "e.g. sunrise views or morning markets"),
+            ("noon", "Afternoon (11:00 AM – 4:00 PM)", "e.g. lunch, cafes, or museums"),
+            ("evening", "Evening (4:00 PM – 8:00 PM)", "e.g. walks, sunset views, or dinner"),
+            ("night", "Night (after 8:00 PM)", "e.g. nightlife or social events")
+        ]
+    }
 
     private var selectedTripStyles: [String] {
         var styles = [selectedCategoryRaw]
@@ -146,7 +158,7 @@ struct CreateTripView: View {
         _imageUrl = State(initialValue: trip.imageUrl ?? "")
         _isPublic = State(initialValue: trip.isPublic)
         _itinerary = State(initialValue: trip.itinerary)
-        _activityStyle = State(initialValue: Double(trip.activityStyle ?? 5))
+        _activityStyle = State(initialValue: Double(trip.activityStyle ?? 3))
         _timeOfDay = State(initialValue: trip.timeOfDay ?? [])
         
         // Parse province and specific location from destination
@@ -178,7 +190,7 @@ struct CreateTripView: View {
                     VStack(alignment: .leading, spacing: 24) {
                         // Header
                         VStack(alignment: .leading, spacing: 8) {
-                            Text(editingTrip != nil ? "แก้ไข \(title)" : "สร้างทริปใหม่")
+                            Text(editingTrip != nil ? "\(tr("แก้ไข", "Edit")) \(title)" : tr("สร้างทริปใหม่", "Create a new trip"))
                                 .font(.system(size: 28, weight: .black))
                                 .foregroundColor(.adaptiveText)
                                 .lineLimit(2)
@@ -191,7 +203,9 @@ struct CreateTripView: View {
                             ProgressView(value: Double(creationStep + 1), total: 4)
                                 .tint(.appPrimary)
                                 .padding(.top, 6)
-                            Text("ขั้นตอนที่ \(creationStep + 1) จาก 4")
+                            Text(SettingsManager.shared.currentLanguage == .thai
+                                 ? "ขั้นตอนที่ \(creationStep + 1) จาก 4"
+                                 : "Step \(creationStep + 1) of 4")
                                 .font(.caption)
                                 .foregroundColor(.gray)
                         }
@@ -202,7 +216,7 @@ struct CreateTripView: View {
                             if creationStep == 0 {
                                 AnyView(VStack(spacing: 20) {
                             // Title
-                            FormField(label: "ชื่อทริป", placeholder: "เช่น เที่ยวเชียงใหม่ 3 วัน 2 คืน", text: $title)
+                            FormField(label: tr("ชื่อทริป", "Trip name"), placeholder: tr("เช่น เที่ยวเชียงใหม่ 3 วัน 2 คืน", "e.g. 3 days and 2 nights in Chiang Mai"), text: $title)
                             
                             // Photos and Image URL section
                             TripMultiImagePickerView(
@@ -220,7 +234,7 @@ struct CreateTripView: View {
                             VStack(alignment: .leading, spacing: 12) {
                                 // Province Selection
                                 VStack(alignment: .leading, spacing: 8) {
-                                    Text("จังหวัด")
+                                    Text(tr("จังหวัด", "Province"))
                                         .font(.system(size: 11, weight: .bold))
                                         .foregroundColor(.gray)
                                         .textCase(.uppercase)
@@ -228,13 +242,13 @@ struct CreateTripView: View {
                                     
                                     Menu {
                                         ForEach(thaiProvinces, id: \.self) { province in
-                                            Button(province) {
+                                            Button(localizedPlaceName(province)) {
                                                 destination = province
                                             }
                                         }
                                     } label: {
                                         HStack {
-                                            Text(destination.isEmpty ? "เลือกจังหวัด" : destination)
+                                            Text(destination.isEmpty ? tr("เลือกจังหวัด", "Select province") : localizedPlaceName(destination))
                                                 .foregroundColor(destination.isEmpty ? .gray : .adaptiveText)
                                             Spacer()
                                             Image(systemName: "chevron.down")
@@ -251,12 +265,12 @@ struct CreateTripView: View {
                                 }
                                 
                                 // Specific Location
-                                FormField(label: "ระบุสถานที่เจาะจง (ไม่จำเป็น)", placeholder: "เช่น ชื่อดอย, ชื่อชายหาด, ชื่อร้านค้า", text: $specificLocation)
+                                FormField(label: tr("ระบุสถานที่เจาะจง (ไม่จำเป็น)", "Specific location (optional)"), placeholder: tr("เช่น ชื่อดอย, ชื่อชายหาด, ชื่อร้านค้า", "e.g. mountain, beach, or venue name"), text: $specificLocation)
                             }
 
                             // Category
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("สไตล์ของทริป")
+                                Text(tr("สไตล์ของทริป", "Trip styles"))
                                     .font(.system(size: 11, weight: .bold))
                                     .foregroundColor(.gray)
                                     .textCase(.uppercase)
@@ -274,7 +288,7 @@ struct CreateTripView: View {
                                     }
 
                                     Divider()
-                                    Button("เพิ่มสไตล์...") {
+                                    Button(tr("เพิ่มสไตล์...", "Add style…")) {
                                         showAddCategory = true
                                     }
                                 } label: {
@@ -298,7 +312,7 @@ struct CreateTripView: View {
                             // Description
                             VStack(alignment: .leading, spacing: 8) {
                                 HStack {
-                                    Text("รายละเอียด")
+                                    Text(tr("รายละเอียด", "Details"))
                                         .font(.system(size: 11, weight: .bold))
                                         .foregroundColor(.gray)
                                         .textCase(.uppercase)
@@ -311,7 +325,7 @@ struct CreateTripView: View {
                                             } else {
                                                 Image(systemName: "sparkles")
                                             }
-                                            Text(isGeneratingAI ? "กำลังจัดทริป..." : "AI ช่วยจัดทริป")
+                                            Text(isGeneratingAI ? tr("กำลังจัดทริป...", "Planning trip…") : tr("AI ช่วยจัดทริป", "Plan with AI"))
                                         }
                                         .font(.system(size: 11, weight: .bold))
                                         .foregroundColor(.white)
@@ -323,7 +337,7 @@ struct CreateTripView: View {
                                 }
                                 
                                 if !aiPrompt.isEmpty || true {
-                                    TextField("ความต้องการพิเศษให้ AI (เช่น เน้นคาเฟ่, สายมู)...", text: $aiPrompt)
+                                    TextField(tr("ความต้องการพิเศษให้ AI (เช่น เน้นคาเฟ่, สายมู)...", "Special requests for AI (e.g. cafes or temples)…"), text: $aiPrompt)
                                         .font(.system(size: 13))
                                         .padding(10)
                                         .background(Color.gray.opacity(0.05))
@@ -345,7 +359,7 @@ struct CreateTripView: View {
                                         .background(Color.clear)
                                     
                                     if description.isEmpty {
-                                        Text("เขียนรายละเอียดตรงนี้")
+                                        Text(tr("เขียนรายละเอียดตรงนี้", "Enter details here"))
                                             .font(.system(size: 14))
                                             .foregroundColor(.gray.opacity(0.5))
                                             .padding(.horizontal, 12)
@@ -362,7 +376,7 @@ struct CreateTripView: View {
 
                             // Tags / Keywords
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("แท็ก / คีย์เวิร์ด")
+                                Text(tr("แท็ก / คีย์เวิร์ด", "Tags / Keywords"))
                                     .font(.system(size: 11, weight: .bold))
                                     .foregroundColor(.gray)
                                     .textCase(.uppercase)
@@ -395,7 +409,7 @@ struct CreateTripView: View {
                                 
                                 // Tag input
                                 HStack {
-                                    TextField("เช่น ทะเล, คาเฟ่, ธรรมชาติ", text: $tagInput)
+                                    TextField(tr("เช่น ทะเล, คาเฟ่, ธรรมชาติ", "e.g. beach, cafe, nature"), text: $tagInput)
                                         .foregroundColor(.adaptiveText)
                                         .tint(.appPrimary)
                                         .onSubmit {
@@ -421,10 +435,10 @@ struct CreateTripView: View {
                             // Visibility Toggle
                             Toggle(isOn: $isPublic) {
                                 VStack(alignment: .leading) {
-                                    Text("สาธารณะ")
+                                    Text(tr("สาธารณะ", "Public"))
                                         .font(.system(size: 15, weight: .bold))
                                         .foregroundColor(.adaptiveText)
-                                    Text("ทุกคนสามารถเห็นทริปนี้ได้")
+                                    Text(tr("ทุกคนสามารถเห็นทริปนี้ได้", "Everyone can see this trip"))
                                         .font(.caption)
                                         .foregroundColor(.gray)
                                 }
@@ -447,15 +461,15 @@ struct CreateTripView: View {
                             // Budget & Max Participants
                             VStack(alignment: .leading, spacing: 8) {
                                 HStack(spacing: 12) {
-                                    FormField(label: "งบประมาณ (บาท)", placeholder: "ระบุจำนวนเงิน", text: $budget)
+                                    FormField(label: tr("งบประมาณ (บาท)", "Budget (THB)"), placeholder: tr("ระบุจำนวนเงิน", "Enter amount"), text: $budget)
                                         .keyboardType(.numberPad)
                                     
-                                    FormField(label: "จำนวนคน", placeholder: "10", text: $maxParticipants)
+                                    FormField(label: tr("จำนวนคน", "Participants"), placeholder: "10", text: $maxParticipants)
                                         .keyboardType(.numberPad)
                                 }
                                 
                                 HStack(spacing: 8) {
-                                    Text("ประเภทงบ:")
+                                    Text(tr("ประเภทงบ:", "Budget type:"))
                                         .font(.system(size: 13, weight: .semibold))
                                         .foregroundColor(.adaptiveSecondaryText)
                                     
@@ -463,7 +477,7 @@ struct CreateTripView: View {
                                         HStack(spacing: 4) {
                                             Image(systemName: budgetType == "per_person" ? "checkmark.circle.fill" : "circle")
                                                 .font(.system(size: 13))
-                                            Text("ต่อคน")
+                                            Text(tr("ต่อคน", "Per person"))
                                                 .font(.system(size: 13, weight: .medium))
                                         }
                                         .foregroundColor(budgetType == "per_person" ? .appAccent : .adaptiveSecondaryText)
@@ -478,7 +492,7 @@ struct CreateTripView: View {
                                         HStack(spacing: 4) {
                                             Image(systemName: budgetType == "per_trip" ? "checkmark.circle.fill" : "circle")
                                                 .font(.system(size: 13))
-                                            Text("ต่อทริป (รวม)")
+                                            Text(tr("ต่อทริป (รวม)", "Per trip (total)"))
                                                 .font(.system(size: 13, weight: .medium))
                                         }
                                         .foregroundColor(budgetType == "per_trip" ? .appAccent : .adaptiveSecondaryText)
@@ -494,7 +508,7 @@ struct CreateTripView: View {
                             
                             // Time of Day (activity style is calculated from the itinerary)
                             VStack(alignment: .leading, spacing: 16) {
-                                Text("ช่วงเวลาของทริป")
+                                Text(tr("ช่วงเวลาของทริป", "Trip time preferences"))
                                     .font(.system(size: 15, weight: .bold))
                                     .foregroundColor(.adaptiveText)
                                     .padding(.top, 8)
@@ -549,19 +563,21 @@ struct CreateTripView: View {
 
                             if creationStep == 3 {
                                 AnyView(VStack(alignment: .leading, spacing: 16) {
-                                    Text("ตรวจสอบก่อน\(editingTrip != nil ? "บันทึก" : "สร้างทริป")")
+                                    Text(editingTrip != nil
+                                         ? tr("ตรวจสอบก่อนบันทึก", "Review before saving")
+                                         : tr("ตรวจสอบก่อนสร้างทริป", "Review before creating"))
                                         .font(.system(size: 20, weight: .bold))
                                         .foregroundColor(.adaptiveText)
 
-                                    ReviewRow(label: "ชื่อทริป", value: title)
-                                    ReviewRow(label: "สถานที่", value: specificLocation.isEmpty ? destination : "\(destination) (\(specificLocation))")
-                                    ReviewRow(label: "สไตล์ของทริป", value: selectedTripStyles.joined(separator: ", "))
-                                    ReviewRow(label: "วันที่เริ่ม", value: startDate.formatted(date: .abbreviated, time: .omitted))
-                                    ReviewRow(label: "วันที่สิ้นสุด", value: endDate?.formatted(date: .abbreviated, time: .omitted) ?? "วันเดียว")
-                                    ReviewRow(label: "งบประมาณ", value: "\(budget.isEmpty ? "0" : budget) บาท \(budgetType == "per_trip" ? "ต่อทริป" : "ต่อคน")")
-                                    ReviewRow(label: "จำนวนผู้ร่วมทริป", value: "สูงสุด \(maxParticipants) คน")
-                                    ReviewRow(label: "แผนการเดินทาง", value: "\(itinerary?.count ?? 0) วัน · \(itinerary?.reduce(0) { $0 + $1.activities.count } ?? 0) กิจกรรม")
-                                    ReviewRow(label: "การมองเห็น", value: isPublic ? "สาธารณะ" : "ส่วนตัว")
+                                    ReviewRow(label: tr("ชื่อทริป", "Trip name"), value: title)
+                                    ReviewRow(label: tr("สถานที่", "Location"), value: specificLocation.isEmpty ? destination : "\(destination) (\(specificLocation))")
+                                    ReviewRow(label: tr("สไตล์ของทริป", "Trip styles"), value: selectedTripStyles.map(localizedInterestName).joined(separator: ", "))
+                                    ReviewRow(label: tr("วันที่เริ่ม", "Start date"), value: startDate.formatted(date: .abbreviated, time: .omitted))
+                                    ReviewRow(label: tr("วันที่สิ้นสุด", "End date"), value: endDate?.formatted(date: .abbreviated, time: .omitted) ?? tr("วันเดียว", "One day"))
+                                    ReviewRow(label: tr("งบประมาณ", "Budget"), value: "\(budget.isEmpty ? "0" : budget) \(tr("บาท", "THB")) \(budgetType == "per_trip" ? tr("ต่อทริป", "per trip") : tr("ต่อคน", "per person"))")
+                                    ReviewRow(label: tr("จำนวนผู้ร่วมทริป", "Participants"), value: "\(tr("สูงสุด", "Up to")) \(maxParticipants) \(tr("คน", "people"))")
+                                    ReviewRow(label: tr("แผนการเดินทาง", "Itinerary"), value: "\(itinerary?.count ?? 0) \(tr("วัน", "days")) · \(itinerary?.reduce(0) { $0 + $1.activities.count } ?? 0) \(tr("กิจกรรม", "activities"))")
+                                    ReviewRow(label: tr("การมองเห็น", "Visibility"), value: isPublic ? tr("สาธารณะ", "Public") : tr("ส่วนตัว", "Private"))
                                 }
                                 .padding(18)
                                 .background(Color.gray.opacity(0.05))
@@ -582,7 +598,7 @@ struct CreateTripView: View {
                                         errorMessage = nil
                                         withAnimation(.easeInOut) { creationStep -= 1 }
                                     } label: {
-                                        Text("ย้อนกลับ")
+                                        Text(tr("ย้อนกลับ", "Back"))
                                             .font(.system(size: 15, weight: .bold))
                                             .foregroundColor(.adaptiveText)
                                             .frame(maxWidth: .infinity)
@@ -603,7 +619,7 @@ struct CreateTripView: View {
                                         if isLoading {
                                             ProgressView().tint(.white)
                                         } else {
-                                            Text(creationStep == 3 ? (editingTrip != nil ? "บันทึกการแก้ไข" : "สร้างทริป") : "ถัดไป")
+                                            Text(creationStep == 3 ? (editingTrip != nil ? tr("บันทึกการแก้ไข", "Save changes") : tr("สร้างทริป", "Create trip")) : tr("ถัดไป", "Next"))
                                                 .font(.system(size: 15, weight: .bold))
                                             Image(systemName: creationStep == 3 ? "checkmark.circle.fill" : "arrow.right")
                                         }
@@ -630,7 +646,7 @@ struct CreateTripView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("ยกเลิก") {
+                    Button(tr("ยกเลิก", "Cancel")) {
                         dismiss()
                     }
                     .foregroundColor(.adaptiveText)
@@ -648,13 +664,13 @@ struct CreateTripView: View {
                     }
                 }
             }
-            .alert("ยืนยันการลบทริป", isPresented: $showDeleteAlert) {
-                Button("ยกเลิก", role: .cancel) { }
-                Button("ลบ", role: .destructive) {
+            .alert(tr("ยืนยันการลบทริป", "Confirm trip deletion"), isPresented: $showDeleteAlert) {
+                Button(tr("ยกเลิก", "Cancel"), role: .cancel) { }
+                Button(tr("ลบ", "Delete"), role: .destructive) {
                     deleteTrip()
                 }
             } message: {
-                Text("คุณแน่ใจหรือไม่ว่าต้องการลบทริปนี้? การดำเนินการนี้ไม่สามารถย้อนกลับได้")
+                Text(tr("คุณแน่ใจหรือไม่ว่าต้องการลบทริปนี้? การดำเนินการนี้ไม่สามารถย้อนกลับได้", "Are you sure you want to delete this trip? This action cannot be undone."))
             }
         }
         .tint(.appPrimary)
@@ -677,7 +693,7 @@ struct CreateTripView: View {
                 selectedCategoryRaw = t.category.rawValue
                 isPublic = t.isPublic
                 if let itin = t.itinerary { itinerary = itin }
-                activityStyle = Double(t.activityStyle ?? 5)
+                activityStyle = Double(t.activityStyle ?? 3)
                 timeOfDay = t.timeOfDay ?? []
             } else if let d = draft {
                 title = d.title
@@ -694,7 +710,7 @@ struct CreateTripView: View {
         .sheet(isPresented: $showAddCategory) {
             NavigationView {
                 VStack(spacing: 16) {
-                    TextField("ชื่อสไตล์ใหม่", text: $newCategoryText)
+                    TextField(tr("ชื่อสไตล์ใหม่", "New style name"), text: $newCategoryText)
                         .padding()
                         .background(Color.gray.opacity(0.05))
                         .tint(.appPrimary)
@@ -703,13 +719,13 @@ struct CreateTripView: View {
                     Spacer()
                 }
                 .padding()
-                .navigationTitle("เพิ่มสไตล์")
+                .navigationTitle(tr("เพิ่มสไตล์", "Add style"))
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
-                        Button("ยกเลิก") { showAddCategory = false; newCategoryText = "" }
+                        Button(tr("ยกเลิก", "Cancel")) { showAddCategory = false; newCategoryText = "" }
                     }
                     ToolbarItem(placement: .confirmationAction) {
-                        Button("บันทึก") {
+                        Button(tr("บันทึก", "Save")) {
                             let trimmed = newCategoryText.trimmingCharacters(in: .whitespacesAndNewlines)
                             if !trimmed.isEmpty {
                                 saveExtraCategory(trimmed)
@@ -751,7 +767,7 @@ struct CreateTripView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("ยกเลิก") { dismiss() }
+                    Button(tr("ยกเลิก", "Cancel")) { dismiss() }
                         .foregroundColor(.adaptiveText)
                 }
                 if editingTrip != nil {
@@ -762,11 +778,11 @@ struct CreateTripView: View {
                     }
                 }
             }
-            .alert("ยืนยันการลบทริป", isPresented: $showDeleteAlert) {
-                Button("ยกเลิก", role: .cancel) { }
-                Button("ลบ", role: .destructive) { deleteTrip() }
+            .alert(tr("ยืนยันการลบทริป", "Confirm trip deletion"), isPresented: $showDeleteAlert) {
+                Button(tr("ยกเลิก", "Cancel"), role: .cancel) { }
+                Button(tr("ลบ", "Delete"), role: .destructive) { deleteTrip() }
             } message: {
-                Text("คุณแน่ใจหรือไม่ว่าต้องการลบทริปนี้?")
+                Text(tr("คุณแน่ใจหรือไม่ว่าต้องการลบทริปนี้?", "Are you sure you want to delete this trip?"))
             }
         }
         .tint(.appPrimary)
@@ -777,7 +793,9 @@ struct CreateTripView: View {
 
     private var wizardHeader: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(editingTrip != nil ? "แก้ไขทริป" : "สร้างทริปใหม่")
+            Text(editingTrip != nil
+                 ? SettingsManager.shared.text(thai: "แก้ไขทริป", english: "Edit trip")
+                 : SettingsManager.shared.text(thai: "สร้างทริปใหม่", english: "Create a new trip"))
                 .font(.system(size: 26, weight: .black))
                 .foregroundColor(.adaptiveText)
             Text(creationStepTitles[creationStep])
@@ -785,7 +803,9 @@ struct CreateTripView: View {
                 .foregroundColor(.gray)
             ProgressView(value: Double(creationStep + 1), total: 4)
                 .tint(.appPrimary)
-            Text("ขั้นตอนที่ \(creationStep + 1) จาก 4")
+            Text(SettingsManager.shared.currentLanguage == .thai
+                 ? "ขั้นตอนที่ \(creationStep + 1) จาก 4"
+                 : "Step \(creationStep + 1) of 4")
                 .font(.caption)
                 .foregroundColor(.gray)
         }
@@ -806,21 +826,29 @@ struct CreateTripView: View {
 
     private var basicInfoStep: some View {
         VStack(spacing: 20) {
-            FormField(label: "ชื่อทริป", placeholder: "เช่น เที่ยวเชียงใหม่ 3 วัน 2 คืน", text: $title)
+            FormField(
+                label: SettingsManager.shared.text(thai: "ชื่อทริป", english: "Trip name"),
+                placeholder: SettingsManager.shared.text(thai: "เช่น เที่ยวเชียงใหม่ 3 วัน 2 คืน", english: "e.g. 3 days and 2 nights in Chiang Mai"),
+                text: $title
+            )
             TripMultiImagePickerView(
                 selectedImages: $selectedImages,
                 imageUrl: $imageUrl,
                 existingUrls: editingTrip.map { [$0.imageUrl].compactMap { $0 } + ($0.gallery ?? []) } ?? []
             )
             provincePicker
-            FormField(label: "ระบุสถานที่เจาะจง (ไม่จำเป็น)", placeholder: "เช่น ดอยอินทนนท์", text: $specificLocation)
+            FormField(
+                label: SettingsManager.shared.text(thai: "ระบุสถานที่เจาะจง (ไม่จำเป็น)", english: "Specific location (optional)"),
+                placeholder: SettingsManager.shared.text(thai: "เช่น ดอยอินทนนท์", english: "e.g. Doi Inthanon"),
+                text: $specificLocation
+            )
             categoryPicker
             descriptionEditor
             tagsEditor
             Toggle(isOn: $isPublic) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("สาธารณะ").font(.system(size: 15, weight: .bold))
-                    Text("ทุกคนสามารถเห็นทริปนี้ได้").font(.caption).foregroundColor(.gray)
+                    Text(SettingsManager.shared.text(thai: "สาธารณะ", english: "Public")).font(.system(size: 15, weight: .bold))
+                    Text(SettingsManager.shared.text(thai: "ทุกคนสามารถเห็นทริปนี้ได้", english: "Everyone can see this trip")).font(.caption).foregroundColor(.gray)
                 }
             }
             .padding()
@@ -832,24 +860,24 @@ struct CreateTripView: View {
 
     private var provincePicker: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("จังหวัด").font(.system(size: 11, weight: .bold)).foregroundColor(.gray)
+            Text(SettingsManager.shared.text(thai: "จังหวัด", english: "Province")).font(.system(size: 11, weight: .bold)).foregroundColor(.gray)
             Menu {
                 ForEach(thaiProvinces, id: \.self) { province in
-                    Button(province) { destination = province }
+                    Button(localizedPlaceName(province)) { destination = province }
                 }
             } label: {
-                pickerLabel(destination.isEmpty ? "เลือกจังหวัด" : destination)
+                pickerLabel(destination.isEmpty ? SettingsManager.shared.text(thai: "เลือกจังหวัด", english: "Select province") : localizedPlaceName(destination))
             }
         }
     }
 
     private var categoryPicker: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("สไตล์ของทริป")
+            Text(SettingsManager.shared.text(thai: "สไตล์ของทริป", english: "Trip styles"))
                 .font(.system(size: 15, weight: .bold))
                 .foregroundColor(.adaptiveText)
             HStack {
-                Text("เลือกได้สูงสุด 3 รายการ เพื่อใช้จับคู่กับความสนใจของผู้ใช้")
+                Text(SettingsManager.shared.text(thai: "เลือกได้สูงสุด 3 รายการ เพื่อใช้จับคู่กับความสนใจของผู้ใช้", english: "Select up to 3 styles for interest matching"))
                     .font(.caption)
                     .foregroundColor(.adaptiveSecondaryText)
                 Spacer()
@@ -879,7 +907,7 @@ struct CreateTripView: View {
                         VStack(spacing: 8) {
                             Text(category.icon)
                                 .font(.system(size: 30))
-                            Text(category.label)
+                            Text(category.displayLabel)
                                 .font(.system(size: 12, weight: .bold))
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.75)
@@ -907,7 +935,9 @@ struct CreateTripView: View {
                     }
                     .buttonStyle(.plain)
                     .disabled(!isSelected && selectedTripStyles.count >= 3)
-                    .accessibilityLabel("สไตล์ทริป \(category.label)")
+                    .accessibilityLabel(SettingsManager.shared.currentLanguage == .thai
+                                        ? "สไตล์ทริป \(category.label)"
+                                        : "Trip style \(category.displayLabel)")
                     .accessibilityAddTraits(isSelected ? .isSelected : [])
                 }
             }
@@ -929,17 +959,17 @@ struct CreateTripView: View {
     private var descriptionEditor: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text("รายละเอียด").font(.system(size: 11, weight: .bold)).foregroundColor(.gray)
+                Text(tr("รายละเอียด", "Details")).font(.system(size: 11, weight: .bold)).foregroundColor(.gray)
                 Spacer()
                 Button(action: generateAITrip) {
-                    Label(isGeneratingAI ? "กำลังจัดทริป..." : "AI ช่วยจัดทริป", systemImage: "sparkles")
+                    Label(isGeneratingAI ? tr("กำลังจัดทริป...", "Planning trip…") : tr("AI ช่วยจัดทริป", "Plan with AI"), systemImage: "sparkles")
                         .font(.system(size: 11, weight: .bold))
                         .foregroundColor(.white)
                         .padding(.horizontal, 10).padding(.vertical, 6)
                         .background(Color.appPrimary).cornerRadius(12)
                 }.disabled(isGeneratingAI)
             }
-            TextField("ความต้องการพิเศษให้ AI (ไม่จำเป็น)", text: $aiPrompt)
+            TextField(tr("ความต้องการพิเศษให้ AI (ไม่จำเป็น)", "Special requests for AI (optional)"), text: $aiPrompt)
                 .padding(10).background(Color.gray.opacity(0.05)).cornerRadius(8)
             TextEditor(text: $description)
                 .frame(minHeight: 120)
@@ -951,13 +981,13 @@ struct CreateTripView: View {
 
     private var tagsEditor: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("แท็ก / คีย์เวิร์ด").font(.system(size: 11, weight: .bold)).foregroundColor(.gray)
+            Text(tr("แท็ก / คีย์เวิร์ด", "Tags / Keywords")).font(.system(size: 11, weight: .bold)).foregroundColor(.gray)
             if !tags.isEmpty {
                 Text(tags.map { "#\($0)" }.joined(separator: "  "))
                     .font(.system(size: 13, weight: .medium)).foregroundColor(.appPrimary)
             }
             HStack {
-                TextField("เช่น ทะเล, คาเฟ่, ธรรมชาติ", text: $tagInput).onSubmit(addTag)
+                TextField(tr("เช่น ทะเล, คาเฟ่, ธรรมชาติ", "e.g. beach, cafe, nature"), text: $tagInput).onSubmit(addTag)
                 Button(action: addTag) { Image(systemName: "plus.circle.fill") }
                     .disabled(tagInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
@@ -969,8 +999,8 @@ struct CreateTripView: View {
         VStack(spacing: 20) {
             TripDateInputView(startDate: $startDate, endDate: $endDate)
             HStack(spacing: 12) {
-                FormField(label: "งบประมาณ (บาท)", placeholder: "ระบุจำนวนเงิน", text: $budget).keyboardType(.numberPad)
-                FormField(label: "จำนวนคน", placeholder: "10", text: $maxParticipants).keyboardType(.numberPad)
+                FormField(label: tr("งบประมาณ (บาท)", "Budget (THB)"), placeholder: tr("ระบุจำนวนเงิน", "Enter amount"), text: $budget).keyboardType(.numberPad)
+                FormField(label: tr("จำนวนคน", "Participants"), placeholder: "10", text: $maxParticipants).keyboardType(.numberPad)
             }
             budgetTypePicker
             timeSlotPicker
@@ -980,10 +1010,10 @@ struct CreateTripView: View {
 
     private var budgetTypePicker: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("ประเภทงบ").font(.system(size: 13, weight: .semibold)).foregroundColor(.gray)
+            Text(tr("ประเภทงบ", "Budget type")).font(.system(size: 13, weight: .semibold)).foregroundColor(.gray)
             HStack(spacing: 10) {
-                choiceButton("ต่อคน", selected: budgetType == "per_person") { budgetType = "per_person" }
-                choiceButton("ต่อทริป (รวม)", selected: budgetType == "per_trip") { budgetType = "per_trip" }
+                choiceButton(tr("ต่อคน", "Per person"), selected: budgetType == "per_person") { budgetType = "per_person" }
+                choiceButton(tr("ต่อทริป (รวม)", "Per trip (total)"), selected: budgetType == "per_trip") { budgetType = "per_trip" }
             }
         }
     }
@@ -999,7 +1029,7 @@ struct CreateTripView: View {
 
     private var timeSlotPicker: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("ช่วงเวลาของทริป").font(.system(size: 15, weight: .bold))
+            Text(tr("ช่วงเวลาของทริป", "Trip time preferences")).font(.system(size: 15, weight: .bold))
             ForEach(timeSlots, id: \.0) { slot in
                 let selected = timeOfDay.contains(slot.0)
                 Button {
@@ -1022,7 +1052,7 @@ struct CreateTripView: View {
 
     private var itineraryStep: some View {
         VStack(spacing: 20) {
-            Text("เพิ่มกิจกรรมแยกตามวัน ระบบจะใช้แผนนี้คำนวณจำนวนกิจกรรมเฉลี่ยต่อวัน")
+            Text(tr("เพิ่มกิจกรรมแยกตามวัน ระบบจะใช้แผนนี้คำนวณจำนวนกิจกรรมเฉลี่ยต่อวัน", "Add activities by day. The system uses this plan to calculate average activities per day."))
                 .font(.subheadline).foregroundColor(.gray).frame(maxWidth: .infinity, alignment: .leading)
             ItineraryEditorView(itinerary: $itinerary)
             stepError
@@ -1031,16 +1061,18 @@ struct CreateTripView: View {
 
     private var reviewStep: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("ตรวจสอบก่อน\(editingTrip != nil ? "บันทึก" : "สร้างทริป")")
+            Text(editingTrip != nil
+                 ? tr("ตรวจสอบก่อนบันทึก", "Review before saving")
+                 : tr("ตรวจสอบก่อนสร้างทริป", "Review before creating"))
                 .font(.system(size: 20, weight: .bold))
-            ReviewRow(label: "ชื่อทริป", value: title)
-            ReviewRow(label: "สถานที่", value: specificLocation.isEmpty ? destination : "\(destination) (\(specificLocation))")
-            ReviewRow(label: "สไตล์ของทริป", value: selectedTripStyles.joined(separator: ", "))
-            ReviewRow(label: "วันที่เริ่ม", value: startDate.formatted(date: .abbreviated, time: .omitted))
-            ReviewRow(label: "วันที่สิ้นสุด", value: endDate?.formatted(date: .abbreviated, time: .omitted) ?? "วันเดียว")
-            ReviewRow(label: "งบประมาณ", value: "\(budget) บาท \(budgetType == "per_trip" ? "ต่อทริป" : "ต่อคน")")
-            ReviewRow(label: "จำนวนผู้ร่วมทริป", value: "สูงสุด \(maxParticipants) คน")
-            ReviewRow(label: "แผนการเดินทาง", value: "\(itinerary?.count ?? 0) วัน · \(itinerary?.reduce(0) { $0 + $1.activities.count } ?? 0) กิจกรรม")
+            ReviewRow(label: tr("ชื่อทริป", "Trip name"), value: title)
+            ReviewRow(label: tr("สถานที่", "Location"), value: specificLocation.isEmpty ? destination : "\(destination) (\(specificLocation))")
+            ReviewRow(label: tr("สไตล์ของทริป", "Trip styles"), value: selectedTripStyles.map(localizedInterestName).joined(separator: ", "))
+            ReviewRow(label: tr("วันที่เริ่ม", "Start date"), value: startDate.formatted(date: .abbreviated, time: .omitted))
+            ReviewRow(label: tr("วันที่สิ้นสุด", "End date"), value: endDate?.formatted(date: .abbreviated, time: .omitted) ?? tr("วันเดียว", "One day"))
+            ReviewRow(label: tr("งบประมาณ", "Budget"), value: "\(budget) \(tr("บาท", "THB")) \(budgetType == "per_trip" ? tr("ต่อทริป", "per trip") : tr("ต่อคน", "per person"))")
+            ReviewRow(label: tr("จำนวนผู้ร่วมทริป", "Participants"), value: "\(tr("สูงสุด", "Up to")) \(maxParticipants) \(tr("คน", "people"))")
+            ReviewRow(label: tr("แผนการเดินทาง", "Itinerary"), value: "\(itinerary?.count ?? 0) \(tr("วัน", "days")) · \(itinerary?.reduce(0) { $0 + $1.activities.count } ?? 0) \(tr("กิจกรรม", "activities"))")
             stepError
         }
         .padding(18).background(Color.gray.opacity(0.05)).cornerRadius(16)
@@ -1057,7 +1089,7 @@ struct CreateTripView: View {
     private var wizardNavigation: some View {
         HStack(spacing: 12) {
             if creationStep > 0 {
-                Button("ย้อนกลับ") {
+                Button(tr("ย้อนกลับ", "Back")) {
                     errorMessage = nil
                     withAnimation { creationStep -= 1 }
                 }
@@ -1067,7 +1099,13 @@ struct CreateTripView: View {
                 creationStep == 3 ? saveTrip() : advanceCreationStep()
             } label: {
                 if isLoading { ProgressView().tint(.white) }
-                else { Text(creationStep == 3 ? (editingTrip != nil ? "บันทึกการแก้ไข" : "สร้างทริป") : "ถัดไป") }
+                else {
+                    Text(creationStep == 3
+                         ? (editingTrip != nil
+                            ? SettingsManager.shared.text(thai: "บันทึกการแก้ไข", english: "Save changes")
+                            : SettingsManager.shared.text(thai: "สร้างทริป", english: "Create trip"))
+                         : SettingsManager.shared.text(thai: "ถัดไป", english: "Next"))
+                }
             }
             .buttonStyle(WizardPrimaryButtonStyle())
             .disabled(isLoading)
@@ -1106,30 +1144,30 @@ struct CreateTripView: View {
 
         if creationStep == 0 {
             guard !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-                errorMessage = "กรุณากรอกชื่อทริปก่อนดำเนินการต่อ"
+                errorMessage = tr("กรุณากรอกชื่อทริปก่อนดำเนินการต่อ", "Enter a trip name to continue")
                 return
             }
             guard !destination.isEmpty else {
-                errorMessage = "กรุณาเลือกจังหวัดก่อนดำเนินการต่อ"
+                errorMessage = tr("กรุณาเลือกจังหวัดก่อนดำเนินการต่อ", "Select a province to continue")
                 return
             }
             guard INTEREST_CATEGORIES.contains(where: { $0.label == selectedCategoryRaw }) else {
-                errorMessage = "กรุณาเลือกสไตล์ของทริปจากรายการที่กำหนด"
+                errorMessage = tr("กรุณาเลือกสไตล์ของทริปจากรายการที่กำหนด", "Select at least one trip style")
                 return
             }
         }
 
         if creationStep == 1 {
             guard let budgetValue = Int(budget), budgetValue >= 0 else {
-                errorMessage = "กรุณากรอกงบประมาณที่ถูกต้อง"
+                errorMessage = tr("กรุณากรอกงบประมาณที่ถูกต้อง", "Enter a valid budget")
                 return
             }
             guard let participantCount = Int(maxParticipants), participantCount > 0 else {
-                errorMessage = "กรุณากรอกจำนวนผู้ร่วมทริปที่ถูกต้อง"
+                errorMessage = tr("กรุณากรอกจำนวนผู้ร่วมทริปที่ถูกต้อง", "Enter a valid number of participants")
                 return
             }
             if let end = endDate, end < startDate {
-                errorMessage = "วันสิ้นสุดต้องมากกว่าหรือเท่ากับวันเริ่ม"
+                errorMessage = tr("วันสิ้นสุดต้องมากกว่าหรือเท่ากับวันเริ่ม", "The end date must be on or after the start date")
                 return
             }
         }
@@ -1141,32 +1179,32 @@ struct CreateTripView: View {
     private func saveTrip() {
         // Validation
         guard !title.isEmpty else {
-            errorMessage = "กรุณากรอกชื่อทริป"
+            errorMessage = tr("กรุณากรอกชื่อทริป", "Enter a trip name")
             return
         }
         
         guard !destination.isEmpty else {
-            errorMessage = "กรุณากรอกสถานที่"
+            errorMessage = tr("กรุณากรอกสถานที่", "Enter a location")
             return
         }
 
         guard INTEREST_CATEGORIES.contains(where: { $0.label == selectedCategoryRaw }) else {
-            errorMessage = "กรุณาเลือกสไตล์ของทริปจากรายการที่กำหนด"
+            errorMessage = tr("กรุณาเลือกสไตล์ของทริปจากรายการที่กำหนด", "Select at least one trip style")
             return
         }
         
         guard let budgetValue = Int(budget), budgetValue >= 0 else {
-            errorMessage = "กรุณากรอกงบประมาณที่ถูกต้อง (ระบุจำนวนเงิน)"
+            errorMessage = tr("กรุณากรอกงบประมาณที่ถูกต้อง (ระบุจำนวนเงิน)", "Enter a valid budget amount")
             return
         }
         
         guard let maxPart = Int(maxParticipants), maxPart > 0 else {
-            errorMessage = "กรุณากรอกจำนวนคนที่ถูกต้อง"
+            errorMessage = tr("กรุณากรอกจำนวนคนที่ถูกต้อง", "Enter a valid number of participants")
             return
         }
         
         if let end = endDate, end < startDate {
-            errorMessage = "วันสิ้นสุดต้องมากกว่าหรือเท่ากับวันเริ่ม"
+            errorMessage = tr("วันสิ้นสุดต้องมากกว่าหรือเท่ากับวันเริ่ม", "The end date must be on or after the start date")
             return
         }
         
@@ -1269,7 +1307,7 @@ struct CreateTripView: View {
             } catch {
                 await MainActor.run {
                     isLoading = false
-                    errorMessage = "ไม่สามารถลบทริปได้: \(error.localizedDescription)"
+                    errorMessage = "\(tr("ไม่สามารถลบทริปได้", "Unable to delete trip")): \(error.localizedDescription)"
                 }
             }
         }
@@ -1278,7 +1316,7 @@ struct CreateTripView: View {
     // MARK: - AI Generate Trip
     private func generateAITrip() {
         guard !destination.isEmpty || !title.isEmpty else {
-            errorMessage = "กรุณากรอกชื่อทริปหรือสถานที่ก่อนให้ AI ช่วยจัด"
+            errorMessage = tr("กรุณากรอกชื่อทริปหรือสถานที่ก่อนให้ AI ช่วยจัด", "Enter a trip name or location before using AI planning")
             return
         }
         
@@ -1333,7 +1371,7 @@ struct CreateTripView: View {
           "tags": ["..."], 
           "category": "...",
           "interestTags": ["..."],
-          "activityStyle": 5,
+          "activityStyle": 3,
           "timeOfDay": ["morning", "noon"],
           "itinerary": [
             {
@@ -1344,7 +1382,7 @@ struct CreateTripView: View {
             }
           ]
         }
-        - activityStyle ต้องคำนวณจาก itinerary: 1–2 กิจกรรม/วัน=2, 3–4 กิจกรรม/วัน=5, 5 กิจกรรมขึ้นไป/วัน=8
+        - activityStyle คือจำนวนกิจกรรมเฉลี่ยต่อวันจริง คำนวณจากจำนวนกิจกรรมทั้งหมดหารด้วยจำนวนวัน แล้วปัดเป็นจำนวนเต็มอย่างน้อย 1
         - timeOfDay: เลือกเวลาที่เหมาะสมกับทริปจาก array นี้เท่านั้น: ["morning", "noon", "evening", "night"] (เลือกได้หลายช่วงเวลา)
         """
         
@@ -1363,7 +1401,7 @@ struct CreateTripView: View {
                         guard let itinData = dict["itinerary"] as? [[String: Any]],
                               let itineraryData = try? JSONSerialization.data(withJSONObject: itinData),
                               let decodedItinerary = try? JSONDecoder().decode([DayPlan].self, from: itineraryData) else {
-                            self.errorMessage = "AI ส่งแผนการเดินทางไม่ถูกต้อง กรุณาลองอีกครั้ง"
+                            self.errorMessage = tr("AI ส่งแผนการเดินทางไม่ถูกต้อง กรุณาลองอีกครั้ง", "AI returned an invalid itinerary. Please try again.")
                             self.isGeneratingAI = false
                             return
                         }
@@ -1374,7 +1412,9 @@ struct CreateTripView: View {
                                 entry.element.day == entry.offset + 1 && !entry.element.activities.isEmpty
                             }
                         guard hasEveryDay else {
-                            self.errorMessage = "AI สร้างแผนไม่ครบ \(totalDays) วัน กรุณากดให้ AI จัดทริปอีกครั้ง"
+                            self.errorMessage = SettingsManager.shared.currentLanguage == .thai
+                                ? "AI สร้างแผนไม่ครบ \(totalDays) วัน กรุณากดให้ AI จัดทริปอีกครั้ง"
+                                : "AI did not create all \(totalDays) days. Please generate the itinerary again."
                             self.isGeneratingAI = false
                             return
                         }
@@ -1421,7 +1461,7 @@ struct CreateTripView: View {
                 }
             } catch {
                 await MainActor.run {
-                    self.errorMessage = "ไม่สามารถเชื่อมต่อ AI ได้ กรุณาลองใหม่"
+                    self.errorMessage = tr("ไม่สามารถเชื่อมต่อ AI ได้ กรุณาลองใหม่", "Unable to connect to AI. Please try again.")
                     self.isGeneratingAI = false
                 }
             }
@@ -1439,7 +1479,7 @@ private struct ReviewRow: View {
                 .font(.system(size: 13, weight: .medium))
                 .foregroundColor(.gray)
                 .frame(width: 105, alignment: .leading)
-            Text(value.isEmpty ? "ไม่ระบุ" : value)
+            Text(value.isEmpty ? tr("ไม่ระบุ", "Not specified") : value)
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundColor(.adaptiveText)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -1493,6 +1533,7 @@ struct CreateTripImageItem: Identifiable {
 
 // MARK: - Multi-Image Picker Subview
 struct TripMultiImagePickerView: View {
+    @ObservedObject private var settings = SettingsManager.shared
     @Binding var selectedImages: [UIImage]
     @Binding var imageUrl: String
     var existingUrls: [String] = []
@@ -1507,7 +1548,7 @@ struct TripMultiImagePickerView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("รูปภาพ")
+            Text(SettingsManager.shared.text(thai: "รูปภาพ", english: "Photos"))
                 .font(.system(size: 11, weight: .bold))
                 .foregroundColor(.gray)
                 .textCase(.uppercase)
@@ -1557,7 +1598,7 @@ struct TripMultiImagePickerView: View {
                                 if idx == 0 {
                                     VStack {
                                         Spacer()
-                                        Text("หน้าปก")
+                                        Text(SettingsManager.shared.text(thai: "หน้าปก", english: "Cover"))
                                             .font(.system(size: 10, weight: .bold))
                                             .foregroundColor(.white)
                                             .padding(.horizontal, 8)
@@ -1576,7 +1617,7 @@ struct TripMultiImagePickerView: View {
                             VStack(spacing: 6) {
                                 Image(systemName: "plus")
                                     .font(.system(size: 24, weight: .medium))
-                                Text("เพิ่มรูป")
+                                Text(SettingsManager.shared.text(thai: "เพิ่มรูป", english: "Add photo"))
                                     .font(.system(size: 11, weight: .medium))
                             }
                             .foregroundColor(.gray)
@@ -1599,9 +1640,9 @@ struct TripMultiImagePickerView: View {
                             .font(.system(size: 32))
                             .foregroundColor(.gray)
                             .frame(height: 60)
-                        Text("เลือกรูปภาพ (ได้หลายรูป)")
+                        Text(SettingsManager.shared.text(thai: "เลือกรูปภาพ (ได้หลายรูป)", english: "Select photos"))
                             .font(.system(size: 14, weight: .bold))
-                        Text("รูปแรกจะเป็นรูปหน้าปก")
+                        Text(SettingsManager.shared.text(thai: "รูปแรกจะเป็นรูปหน้าปก", english: "The first photo will be the cover"))
                             .font(.system(size: 11))
                     }
                     .foregroundColor(.gray)
@@ -1620,7 +1661,7 @@ struct TripMultiImagePickerView: View {
                     Image(systemName: "doc.on.clipboard")
                         .font(.system(size: 12))
                         .foregroundColor(.gray)
-                    TextField("หรือวาง URL รูปภาพ", text: $imageUrl)
+                    TextField(SettingsManager.shared.text(thai: "หรือวาง URL รูปภาพ", english: "Or paste an image URL"), text: $imageUrl)
                         .foregroundColor(.adaptiveText)
                         .tint(.appPrimary)
                         .font(.system(size: 14))
@@ -1761,7 +1802,7 @@ struct TripDateInputView: View {
         HStack(spacing: 12) {
             // Start Date Button
             VStack(alignment: .leading, spacing: 8) {
-                Text("วันเริ่ม")
+                Text(tr("วันเริ่ม", "Start date"))
                     .font(.system(size: 11, weight: .bold))
                     .foregroundColor(.gray)
                     .textCase(.uppercase)
@@ -1784,11 +1825,11 @@ struct TripDateInputView: View {
             // End Date Button
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    Text("วันสิ้นสุด")
+                    Text(tr("วันสิ้นสุด", "End date"))
                     Spacer()
                     if endDate != nil {
                         Button(action: { withAnimation { endDate = nil } }) {
-                            Text("ลบออก")
+                            Text(tr("ลบออก", "Remove"))
                                 .font(.system(size: 10, weight: .bold))
                                 .foregroundColor(.red)
                         }
@@ -1805,7 +1846,7 @@ struct TripDateInputView: View {
                             Text(end, formatter: itemFormatter)
                                 .foregroundColor(.adaptiveText)
                         } else {
-                            Text("วันเดียว (ไม่มีวันกลับ)")
+                            Text(tr("วันเดียว (ไม่มีวันกลับ)", "One day (no return date)"))
                                 .foregroundColor(.gray.opacity(0.6))
                         }
                         Spacer()
@@ -1839,7 +1880,7 @@ struct TripDateInputView: View {
                     Spacer()
                     
                     Button(action: { isShowingPicker = false }) {
-                        Text("ตกลง")
+                        Text(tr("ตกลง", "OK"))
                             .font(.headline)
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
@@ -1850,11 +1891,11 @@ struct TripDateInputView: View {
                     .padding(.horizontal)
                     .padding(.bottom, 24)
                 }
-                .navigationTitle("เลือกวันเดินทางไป-กลับ")
+                .navigationTitle(tr("เลือกวันเดินทางไป-กลับ", "Select travel dates"))
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
-                        Button("ปิด") { isShowingPicker = false }
+                        Button(tr("ปิด", "Close")) { isShowingPicker = false }
                             .foregroundColor(.adaptiveText)
                     }
                 }
@@ -1914,7 +1955,7 @@ struct ItineraryEditorView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
-                Text("แผนการเดินทางแต่ละวัน")
+                Text(tr("แผนการเดินทางแต่ละวัน", "Daily itinerary"))
                     .font(.system(size: 11, weight: .bold))
                     .foregroundColor(.gray)
                     .textCase(.uppercase)
@@ -1938,7 +1979,7 @@ struct ItineraryEditorView: View {
                 Button(action: addDay) {
                     HStack {
                         Image(systemName: "calendar.badge.plus")
-                        Text("เพิ่มวันใหม่")
+                        Text(tr("เพิ่มวันใหม่", "Add another day"))
                     }
                     .font(.system(size: 13, weight: .bold))
                     .foregroundColor(.appPrimary)
@@ -1958,7 +1999,7 @@ struct ItineraryEditorView: View {
                 }) {
                     HStack {
                         Image(systemName: "calendar.badge.plus")
-                        Text("เริ่มสร้างแผนท่องเที่ยว")
+                        Text(tr("เริ่มสร้างแผนท่องเที่ยว", "Start building your itinerary"))
                     }
                     .font(.system(size: 14, weight: .bold))
                     .foregroundColor(.appPrimary)
@@ -1998,7 +2039,7 @@ struct DayEditorView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("วันที่ \(dayPlan.day)")
+                Text(SettingsManager.shared.currentLanguage == .thai ? "วันที่ \(dayPlan.day)" : "Day \(dayPlan.day)")
                     .font(.system(size: 14, weight: .bold))
                     .foregroundColor(.appPrimary)
                 
@@ -2029,7 +2070,7 @@ struct DayEditorView: View {
                 }) {
                     HStack {
                         Image(systemName: "plus.circle")
-                        Text("เพิ่มกิจกรรม")
+                        Text(tr("เพิ่มกิจกรรม", "Add activity"))
                     }
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(.gray)
@@ -2064,7 +2105,7 @@ struct ActivityEditorView: View {
                     .background(Color.gray.opacity(0.1))
                     .cornerRadius(6)
                 
-                TextField("ชื่อกิจกรรม", text: $activity.name)
+                TextField(tr("ชื่อกิจกรรม", "Activity name"), text: $activity.name)
                     .font(.system(size: 14, weight: .bold))
                 
                 Spacer()
@@ -2082,7 +2123,7 @@ struct ActivityEditorView: View {
                 Button(action: {
                     isShowingLocationSearch = true
                 }) {
-                    Text(activity.location.isEmpty ? "เพิ่มสถานที่ (ค้นหาได้เลย)" : activity.location)
+                    Text(activity.location.isEmpty ? tr("เพิ่มสถานที่ (ค้นหาได้เลย)", "Add a location") : activity.location)
                         .font(.system(size: 12))
                         .foregroundColor(activity.location.isEmpty ? .gray : .adaptiveText)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -2095,7 +2136,7 @@ struct ActivityEditorView: View {
                 }
             }
             
-            TextField("เขียนรายละเอียดตรงนี้", text: $activity.description)
+            TextField(tr("เขียนรายละเอียดตรงนี้", "Enter details here"), text: $activity.description)
                 .font(.system(size: 13))
                 .foregroundColor(.gray)
                 .padding(.leading, 4)

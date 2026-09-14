@@ -7,8 +7,8 @@ struct AdminAlertView: View {
     var body: some View {
         NavigationView {
             Form {
-                Section(header: Text("รายละเอียดการแจ้งเตือน")) {
-                    TextField("หัวข้อ", text: $viewModel.title)
+                Section(header: Text(tr("รายละเอียดการแจ้งเตือน", "Notification details"))) {
+                    TextField(tr("หัวข้อ", "Title"), text: $viewModel.title)
                     
                     TextEditor(text: $viewModel.message)
                         .frame(height: 100)
@@ -18,17 +18,17 @@ struct AdminAlertView: View {
                         )
                 }
                 
-                Section(header: Text("ประเภท")) {
-                    Picker("ประเภท", selection: $viewModel.type) {
-                        Text("ทั่วไป").tag("alert")
-                        Text("ทริป").tag("trip")
-                        Text("ระบบ").tag("system")
+                Section(header: Text(tr("ประเภท", "Type"))) {
+                    Picker(tr("ประเภท", "Type"), selection: $viewModel.type) {
+                        Text(tr("ทั่วไป", "General")).tag("alert")
+                        Text(tr("ทริป", "Trip")).tag("trip")
+                        Text(tr("ระบบ", "System")).tag("system")
                     }
                     .pickerStyle(.segmented)
                 }
                 
                 if viewModel.type == "trip" {
-                    Section(header: Text("ทริป (ถ้ามี)")) {
+                    Section(header: Text(tr("ทริป (ถ้ามี)", "Trip (optional)"))) {
                         TextField("Trip ID", text: $viewModel.targetId)
                     }
                 }
@@ -46,7 +46,7 @@ struct AdminAlertView: View {
                             ProgressView()
                                 .frame(maxWidth: .infinity)
                         } else {
-                            Text("ส่งการแจ้งเตือน")
+                            Text(tr("ส่งการแจ้งเตือน", "Send notification"))
                                 .font(.system(size: 16, weight: .bold))
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
@@ -58,17 +58,17 @@ struct AdminAlertView: View {
                     .disabled(viewModel.isCreating || viewModel.title.isEmpty)
                 }
             }
-            .navigationTitle("สร้างการแจ้งเตือน")
+            .navigationTitle(tr("สร้างการแจ้งเตือน", "Create notification"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("ยกเลิก") {
+                    Button(tr("ยกเลิก", "Cancel")) {
                         dismiss()
                     }
                 }
             }
-            .alert("ข้อผิดพลาด", isPresented: .constant(viewModel.errorMessage != nil)) {
-                Button("ตกลง") {
+            .alert(tr("ข้อผิดพลาด", "Error"), isPresented: .constant(viewModel.errorMessage != nil)) {
+                Button(tr("ตกลง", "OK")) {
                     viewModel.errorMessage = nil
                 }
             } message: {

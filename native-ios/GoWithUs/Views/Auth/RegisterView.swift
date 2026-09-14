@@ -29,12 +29,12 @@ struct RegisterView: View {
                     VStack(spacing: 32) {
                         // Title
                         VStack(spacing: 12) {
-                            Text("สมัครสมาชิก")
+                            Text(tr("สมัครสมาชิก", "Sign up"))
                                 .font(.system(size: 36, weight: .black))
                                 .foregroundColor(.adaptiveText)
                                 .tracking(-1)
                             
-                            Text("เริ่มต้นการผจญภัยของคุณ")
+                            Text(tr("เริ่มต้นการผจญภัยของคุณ", "Start your adventure"))
                                 .font(.system(size: 14, weight: .medium))
                                 .foregroundColor(.gray)
                         }
@@ -44,7 +44,7 @@ struct RegisterView: View {
                         VStack(spacing: 16) {
                             // Name Field
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("ชื่อ")
+                                Text(tr("ชื่อ", "Name"))
                                     .font(.system(size: 11, weight: .bold))
                                     .foregroundColor(.gray)
                                     .textCase(.uppercase)
@@ -52,7 +52,7 @@ struct RegisterView: View {
                                 
                                 TextField("", text: $viewModel.name)
                                     .placeholder(when: viewModel.name.isEmpty) {
-                                        Text("ชื่อของคุณ")
+                                        Text(tr("ชื่อของคุณ", "Your name"))
                                             .foregroundColor(.gray.opacity(0.5))
                                     }
                                     .foregroundColor(.adaptiveText)
@@ -68,7 +68,7 @@ struct RegisterView: View {
                             
                             // Email Field
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("อีเมล")
+                                Text(tr("อีเมล", "Email"))
                                     .font(.system(size: 11, weight: .bold))
                                     .foregroundColor(.gray)
                                     .textCase(.uppercase)
@@ -94,7 +94,7 @@ struct RegisterView: View {
                             
                             // Password Field
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("รหัสผ่าน")
+                                Text(tr("รหัสผ่าน", "Password"))
                                     .font(.system(size: 11, weight: .bold))
                                     .foregroundColor(.gray)
                                     .textCase(.uppercase)
@@ -104,7 +104,7 @@ struct RegisterView: View {
                                     if showPassword {
                                         TextField("", text: $viewModel.password)
                                             .placeholder(when: viewModel.password.isEmpty) {
-                                                Text("อย่างน้อย 6 ตัวอักษร")
+                                                Text(tr("อย่างน้อย 6 ตัวอักษร", "At least 6 characters"))
                                                     .foregroundColor(.gray.opacity(0.5))
                                             }
                                             .foregroundColor(.adaptiveText)
@@ -112,7 +112,7 @@ struct RegisterView: View {
                                     } else {
                                         SecureField("", text: $viewModel.password)
                                             .placeholder(when: viewModel.password.isEmpty) {
-                                                Text("อย่างน้อย 6 ตัวอักษร")
+                                                Text(tr("อย่างน้อย 6 ตัวอักษร", "At least 6 characters"))
                                                     .foregroundColor(.gray.opacity(0.5))
                                             }
                                             .foregroundColor(.adaptiveText)
@@ -135,7 +135,7 @@ struct RegisterView: View {
                             
                             // Confirm Password Field
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("ยืนยันรหัสผ่าน")
+                                Text(tr("ยืนยันรหัสผ่าน", "Confirm password"))
                                     .font(.system(size: 11, weight: .bold))
                                     .foregroundColor(.gray)
                                     .textCase(.uppercase)
@@ -145,7 +145,7 @@ struct RegisterView: View {
                                     if showConfirmPassword {
                                         TextField("", text: $viewModel.confirmPassword)
                                             .placeholder(when: viewModel.confirmPassword.isEmpty) {
-                                                Text("พิมพ์รหัสผ่านอีกครั้ง")
+                                                Text(tr("พิมพ์รหัสผ่านอีกครั้ง", "Enter your password again"))
                                                     .foregroundColor(.gray.opacity(0.5))
                                             }
                                             .foregroundColor(.adaptiveText)
@@ -153,7 +153,7 @@ struct RegisterView: View {
                                     } else {
                                         SecureField("", text: $viewModel.confirmPassword)
                                             .placeholder(when: viewModel.confirmPassword.isEmpty) {
-                                                Text("พิมพ์รหัสผ่านอีกครั้ง")
+                                                Text(tr("พิมพ์รหัสผ่านอีกครั้ง", "Enter your password again"))
                                                     .foregroundColor(.gray.opacity(0.5))
                                             }
                                             .foregroundColor(.adaptiveText)
@@ -193,7 +193,7 @@ struct RegisterView: View {
                                         ProgressView()
                                             .tint(.white)
                                     } else {
-                                        Text("สมัครสมาชิก")
+                                        Text(tr("สมัครสมาชิก", "Sign up"))
                                             .font(.system(size: 15, weight: .bold))
                                     }
                                 }

@@ -58,8 +58,6 @@ struct ContentView: View {
                     if !isMainTabScreen {
                         Group {
                             switch currentScreen {
-                            case .findBuddy:
-                                FindBuddyView(showSideMenu: $showSideMenu)
                             case .favorites:
                                 MyTripsView(showSideMenu: $showSideMenu, initialTab: 2)
                             case .myTrips:

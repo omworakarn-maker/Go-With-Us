@@ -252,7 +252,7 @@ struct BuddySwipeCard: View {
                     if let interests = user.interests, !interests.isEmpty {
                         FlowLayout(spacing: 8) {
                             ForEach(interests, id: \.self) { interest in
-                                Text(interest)
+                                Text(localizedInterestName(interest))
                                     .font(.system(size: 12, weight: .bold))
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 6)
@@ -426,6 +426,7 @@ extension MatchUser {
         return User(
             id: id,
             name: name,
+            username: username,
             email: email,
             role: UserRole(rawValue: role) ?? .user,
             profileImage: profileImage,

@@ -23,7 +23,7 @@ struct OTPVerificationView: View {
                             .background(Color.appPrimary.opacity(0.10))
                             .clipShape(Circle())
                     }
-                    .accessibilityLabel("ย้อนกลับ")
+                    .accessibilityLabel(tr("ย้อนกลับ", "Back"))
 
                     Spacer()
                 }
@@ -37,12 +37,12 @@ struct OTPVerificationView: View {
                         .foregroundColor(Color.appPrimary)
                         .padding(.bottom, 16)
                     
-                    Text("ยืนยันอีเมล")
+                    Text(tr("ยืนยันอีเมล", "Verify your email"))
                         .font(.system(size: 28, weight: .bold))
                         .foregroundColor(.adaptiveText)
                     
                     VStack(spacing: 4) {
-                        Text("กรุณากรอกรหัส 6 หลักที่ส่งไปที่")
+                        Text(tr("กรุณากรอกรหัส 6 หลักที่ส่งไปที่", "Enter the 6-digit code sent to"))
                             .font(.system(size: 15))
                             .foregroundColor(.gray)
                         Text(viewModel.email)
@@ -99,7 +99,7 @@ struct OTPVerificationView: View {
                             ProgressView()
                                 .tint(Color.adaptiveBackground)
                         } else {
-                            Text("ยืนยันรหัส")
+                            Text(tr("ยืนยันรหัส", "Verify code"))
                                 .font(.system(size: 15, weight: .bold))
                         }
                     }
@@ -115,12 +115,14 @@ struct OTPVerificationView: View {
                 
                 // Resend Button
                 HStack(spacing: 4) {
-                    Text("ไม่ได้รับรหัส?")
+                    Text(tr("ไม่ได้รับรหัส?", "Didn't receive a code?"))
                         .font(.system(size: 14))
                         .foregroundColor(.gray)
                     
                     Button(action: resendOTP) {
-                        Text(timeRemaining > 0 ? "ส่งใหม่ใน \(timeRemaining) วิ" : "ส่งรหัสใหม่")
+                        Text(timeRemaining > 0
+                             ? (SettingsManager.shared.currentLanguage == .thai ? "ส่งใหม่ใน \(timeRemaining) วิ" : "Resend in \(timeRemaining)s")
+                             : tr("ส่งรหัสใหม่", "Resend code"))
                             .font(.system(size: 14, weight: .bold))
                             .foregroundColor(timeRemaining > 0 ? .gray : Color.appPrimary)
                     }
