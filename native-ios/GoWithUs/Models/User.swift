@@ -87,6 +87,15 @@ struct User: Codable, Identifiable, Hashable {
     }
 }
 
+extension User {
+    /// Public identity shown to other users. Internal relationships still use `id`.
+    var displayHandle: String {
+        guard let username = username?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !username.isEmpty else { return name }
+        return username.hasPrefix("@") ? username : "@\(username)"
+    }
+}
+
 // MARK: - User Role
 enum UserRole: String, Codable, Hashable {
     case user = "user"
@@ -127,4 +136,3 @@ struct TravelStyle: Codable, Hashable {
         self.timeOfDay = try? container?.decodeIfPresent([String].self, forKey: .timeOfDay)
     }
 }
-

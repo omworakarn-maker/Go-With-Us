@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct FilterBar: View {
+    @ObservedObject private var settings = SettingsManager.shared
     @Binding var selectedProvince: String?
     @Binding var selectedDate: Date?
     @Binding var selectedEndDate: Date? // Add binding for End Date
@@ -18,7 +19,7 @@ struct FilterBar: View {
             HStack(spacing: 8) {
                 // Province Filter
                 FilterButton(
-                    title: selectedProvince != nil && selectedProvince != "ทุกจังหวัด" ? selectedProvince! : "ทุกจังหวัด",
+                    title: selectedProvince != nil && selectedProvince != "ทุกจังหวัด" ? localizedPlaceName(selectedProvince!) : settings.text(thai: "ทุกจังหวัด", english: "All provinces"),
                     isSelected: selectedProvince != nil && selectedProvince != "ทุกจังหวัด",
                     icon: "📍",
                     action: { showProvinceSheet = true }
@@ -34,7 +35,7 @@ struct FilterBar: View {
                 
                 // Category Filter
                 FilterButton(
-                    title: selectedCategory?.rawValue ?? "สไตล์",
+                    title: selectedCategory?.displayName ?? settings.text(thai: "สไตล์", english: "Style"),
                     isSelected: selectedCategory != nil,
                     icon: "🧭",
                     action: { showCategorySheet = true }
@@ -73,7 +74,7 @@ struct FilterBar: View {
     }
     
     func formatDateButtonTitle() -> String {
-        guard let start = selectedDate else { return "วันที่เดินทาง" }
+        guard let start = selectedDate else { return settings.text(thai: "วันที่เดินทาง", english: "Travel dates") }
         if let end = selectedEndDate {
             return "\(formatDate(start)) - \(formatDate(end))"
         }
@@ -82,10 +83,8 @@ struct FilterBar: View {
     
     func formatDate(_ date: Date) -> String {
         let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "th_TH")
+        formatter.locale = Locale(identifier: settings.currentLanguage == .thai ? "th_TH" : "en_US")
         formatter.dateFormat = "d MMM"
         return formatter.string(from: date)
     }
 }
-
-

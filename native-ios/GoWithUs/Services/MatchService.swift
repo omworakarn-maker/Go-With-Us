@@ -3,6 +3,7 @@ import Foundation
 struct MatchUser: Codable, Identifiable {
     let id: String
     let name: String
+    let username: String?
     let email: String
     let role: String
     let interests: [String]?
@@ -11,6 +12,12 @@ struct MatchUser: Codable, Identifiable {
     let gallery: [String]?
     let isVerified: Bool?
     let verificationStatus: String?
+
+    var displayHandle: String {
+        guard let username = username?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !username.isEmpty else { return name }
+        return username.hasPrefix("@") ? username : "@\(username)"
+    }
 }
 
 struct MatchResponse: Codable {

@@ -46,10 +46,10 @@ struct MyTripsView: View {
                     .padding()
                     .background(Color.adaptiveBackground)
                     
-                    Picker("หมวดหมู่", selection: $selectedTab) {
-                        Text("สร้างเอง").tag(0)
-                        Text("เข้าร่วมแล้ว").tag(1)
-                        Text("รายการโปรด").tag(2)
+                    Picker(tr("หมวดหมู่", "Category"), selection: $selectedTab) {
+                        Text(SettingsManager.shared.text(thai: "สร้างเอง", english: "Created")).tag(0)
+                        Text(SettingsManager.shared.text(thai: "เข้าร่วมแล้ว", english: "Joined")).tag(1)
+                        Text(SettingsManager.shared.text(thai: "รายการโปรด", english: "Favorites")).tag(2)
                     }
                     .pickerStyle(SegmentedPickerStyle())
                     .padding(.horizontal)

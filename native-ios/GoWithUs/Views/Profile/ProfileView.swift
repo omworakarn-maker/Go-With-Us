@@ -5,6 +5,7 @@ import PhotosUI
 
 struct ProfileView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
+    @ObservedObject private var settings = SettingsManager.shared
     @State private var showEditProfile = false
     @State private var showAdminAlert = false
     @State private var showImagePicker = false
@@ -50,11 +51,11 @@ struct ProfileView: View {
                     LoadingView()
                 }
             }
-            .navigationTitle(SettingsManager.shared.localizedString(for: "profile"))
+            .navigationTitle(settings.localizedString(for: "profile"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(SettingsManager.shared.localizedString(for: "edit")) {
+                    Button(settings.localizedString(for: "edit")) {
                         showEditProfile = true
                     }
                     .foregroundColor(.appAccent)
@@ -83,6 +84,7 @@ struct ProfileView: View {
                 loadLocalProfileImage()
             }
         }
+        .id(settings.currentLanguage)
     }
     
     private func loadLocalProfileImage() {
@@ -117,6 +119,7 @@ struct ProfileHeaderView: View {
     @Binding var selectedItem: PhotosPickerItem?
     @Binding var localProfileImage: UIImage?
     @EnvironmentObject var authViewModel: AuthViewModel
+    @ObservedObject private var settings = SettingsManager.shared
     
     var body: some View {
         VStack(spacing: 16) {
@@ -245,6 +248,7 @@ struct ProfileHeaderView: View {
 struct VerificationStatusView: View {
     let user: User
     @Binding var showVerification: Bool
+    @ObservedObject private var settings = SettingsManager.shared
     var body: some View {
         if user.role == .admin {
             HStack(spacing: 5) {
@@ -304,6 +308,7 @@ struct VerificationStatusView: View {
 struct UserInfoSectionView: View {
     let user: User
     @Binding var showQuestionnaire: Bool
+    @ObservedObject private var settings = SettingsManager.shared
     
     var body: some View {
         VStack(spacing: 14) {
@@ -371,7 +376,7 @@ struct UserInfoSectionView: View {
                     
                     FlowLayout(spacing: 8) {
                         ForEach(interests, id: \.self) { interest in
-                            Text(interest)
+                            Text(localizedInterestName(interest))
                                 .font(.system(size: 13, weight: .semibold))
                                 .foregroundColor(.appPrimary)
                                 .padding(.horizontal, 14)
@@ -425,7 +430,7 @@ struct AdminAlertButton: View {
         Button(action: { showAdminAlert = true }) {
             HStack(spacing: 8) {
                 Image(systemName: "bell.badge.fill")
-                Text("สร้างการแจ้งเตือน")
+                Text(tr("สร้างการแจ้งเตือน", "Create notification"))
                     .font(.system(size: 15, weight: .bold))
             }
             .foregroundColor(.white)
@@ -456,6 +461,7 @@ struct LoadingView: View {
 // MARK: - UserTripsSectionView
 struct UserTripsSectionView: View {
     let user: User
+    @ObservedObject private var settings = SettingsManager.shared
     @State private var createdTrips: [Trip] = []
     @State private var joinedTrips: [Trip] = []
     @State private var isLoading = true
@@ -468,7 +474,7 @@ struct UserTripsSectionView: View {
             } else {
                 if !createdTrips.isEmpty {
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("ทริปที่สร้าง")
+                        Text(SettingsManager.shared.text(thai: "ทริปที่สร้าง", english: "Created trips"))
                             .font(.system(size: 18, weight: .bold))
                             .foregroundColor(.adaptiveText)
                             .padding(.horizontal, 24)
@@ -490,7 +496,7 @@ struct UserTripsSectionView: View {
                 
                 if !joinedTrips.isEmpty {
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("ทริปที่เข้าร่วม")
+                        Text(SettingsManager.shared.text(thai: "ทริปที่เข้าร่วม", english: "Joined trips"))
                             .font(.system(size: 18, weight: .bold))
                             .foregroundColor(.adaptiveText)
                             .padding(.horizontal, 24)
@@ -568,15 +574,15 @@ struct IdentityVerificationView: View {
                 .padding(24)
             }
             .background(Color.adaptiveBackground)
-            .navigationTitle("ยืนยันตัวตน")
+            .navigationTitle(tr("ยืนยันตัวตน", "Identity verification"))
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .topBarLeading) { Button("ปิด") { dismiss() } } }
+            .toolbar { ToolbarItem(placement: .topBarLeading) { Button(tr("ปิด", "Close")) { dismiss() } } }
         }
         .fullScreenCover(isPresented: $showCamera) {
             ActiveLivenessView(image: $selfie, passed: $livenessPassed)
         }
-        .alert("การยืนยันตัวตน", isPresented: $showMessage) {
-            Button("ตกลง") { if message.contains("ส่งคำขอ") { dismiss() } }
+        .alert(tr("การยืนยันตัวตน", "Identity verification"), isPresented: $showMessage) {
+            Button(tr("ตกลง", "OK")) { if message.contains("ส่งคำขอ") { dismiss() } }
         } message: { Text(message) }
     }
 
@@ -587,9 +593,9 @@ struct IdentityVerificationView: View {
             Image(systemName: "checkmark.shield.fill")
                 .font(.system(size: 44))
                 .foregroundColor(.appPrimary)
-            Text("ยืนยันตัวตนเพื่อความปลอดภัย")
+            Text(tr("ยืนยันตัวตนเพื่อความปลอดภัย", "Verify your identity for safety"))
                 .font(.title2.bold())
-            Text("ทำตามคำแนะนำการขยับใบหน้า แล้วส่งคำขอให้ผู้ดูแลตรวจสอบ")
+            Text(tr("ทำตามคำแนะนำการขยับใบหน้า แล้วส่งคำขอให้ผู้ดูแลตรวจสอบ", "Follow the face movement instructions, then submit your request for review."))
                 .font(.subheadline)
                 .foregroundColor(.adaptiveSecondaryText)
                 .multilineTextAlignment(.center)
@@ -602,8 +608,8 @@ struct IdentityVerificationView: View {
         verificationStep(
             number: "1",
             icon: "person.crop.circle.badge.checkmark",
-            title: "ตรวจสอบการมีตัวตนด้วยใบหน้า",
-            description: "ใช้กล้องหน้าในที่สว่าง แล้วทำตามคำแนะนำบนหน้าจอ ระบบจะตรวจการเคลื่อนไหวด้วย Apple Vision"
+            title: tr("ตรวจสอบการมีตัวตนด้วยใบหน้า", "Face liveness check"),
+            description: tr("ใช้กล้องหน้าในที่สว่าง แล้วทำตามคำแนะนำบนหน้าจอ ระบบจะตรวจการเคลื่อนไหวด้วย Apple Vision", "Use the front camera in a well-lit area and follow the on-screen instructions. Liveness is checked with Apple Vision.")
         ) {
             facePreparationNotice
             selfiePreview
@@ -615,7 +621,7 @@ struct IdentityVerificationView: View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .foregroundColor(.orange)
-            Text("ก่อนเริ่ม กรุณาถอดแว่น หน้ากาก และหมวก เพื่อให้กล้องมองเห็นใบหน้าอย่างชัดเจน")
+            Text(tr("ก่อนเริ่ม กรุณาถอดแว่น หน้ากาก และหมวก เพื่อให้กล้องมองเห็นใบหน้าอย่างชัดเจน", "Before starting, remove glasses, masks, and hats so your face is clearly visible."))
                 .font(.subheadline.weight(.medium))
                 .foregroundColor(Color.adaptiveText)
         }
@@ -632,11 +638,12 @@ struct IdentityVerificationView: View {
                 Image(uiImage: selfie)
                     .resizable()
                     .scaledToFill()
-                    .frame(height: 210)
                     .frame(maxWidth: .infinity)
+                    .frame(height: 210)
+                    .clipped()
                     .clipShape(RoundedRectangle(cornerRadius: 16))
 
-                Label("ตรวจการเคลื่อนไหวผ่านแล้ว", systemImage: "checkmark.seal.fill")
+                Label(tr("ตรวจการเคลื่อนไหวผ่านแล้ว", "Liveness check passed"), systemImage: "checkmark.seal.fill")
                     .font(.caption.bold())
                     .foregroundColor(.white)
                     .padding(.horizontal, 12)
@@ -650,7 +657,7 @@ struct IdentityVerificationView: View {
                 Image(systemName: "face.smiling")
                     .font(.system(size: 42))
                     .foregroundColor(.appSecondary)
-                Text("ยังไม่ได้ตรวจการเคลื่อนไหวใบหน้า")
+                Text(tr("ยังไม่ได้ตรวจการเคลื่อนไหวใบหน้า", "Liveness check not completed"))
                     .font(.subheadline.weight(.semibold))
                     .foregroundColor(.adaptiveSecondaryText)
             }
@@ -662,7 +669,7 @@ struct IdentityVerificationView: View {
     }
 
     private var faceScanButton: some View {
-        Button(selfie == nil ? "เริ่มตรวจใบหน้า" : "ตรวจใหม่") {
+        Button(selfie == nil ? tr("เริ่มตรวจใบหน้า", "Start face check") : tr("ตรวจใหม่", "Try again")) {
             showCamera = true
         }
         .font(.subheadline.bold())
@@ -679,7 +686,7 @@ struct IdentityVerificationView: View {
         } label: {
             HStack {
                 if isSubmitting { ProgressView().tint(.white) }
-                Text(isSubmitting ? "กำลังส่งคำขอ…" : "ส่งคำขอยืนยันตัวตน")
+                Text(isSubmitting ? tr("กำลังส่งคำขอ…", "Submitting…") : tr("ส่งคำขอยืนยันตัวตน", "Submit verification request"))
             }
             .font(.headline)
             .foregroundColor(.white)
@@ -738,7 +745,7 @@ private struct ActiveLivenessView: View {
     @Environment(\.dismiss) private var dismiss
     @Binding var image: UIImage?
     @Binding var passed: Bool
-    @State private var instruction = "จัดใบหน้าให้อยู่ในกรอบและมองตรง"
+    @State private var instruction = tr("จัดใบหน้าให้อยู่ในกรอบและมองตรง", "Position your face inside the frame and look straight ahead")
     @State private var step = 0
     @State private var errorMessage: String?
 
@@ -778,7 +785,7 @@ private struct ActiveLivenessView: View {
                             .background(.black.opacity(0.55))
                             .clipShape(Circle())
                     }
-                    .accessibilityLabel("ปิด")
+                    .accessibilityLabel(tr("ปิด", "Close"))
                     Spacer()
                 }
 
@@ -796,7 +803,7 @@ private struct ActiveLivenessView: View {
                             guard let settingsURL = URL(string: UIApplication.openSettingsURLString) else { return }
                             UIApplication.shared.open(settingsURL)
                         } label: {
-                            Label("เปิดการตั้งค่าเพื่ออนุญาตกล้อง", systemImage: "gear")
+                            Label(tr("เปิดการตั้งค่าเพื่ออนุญาตกล้อง", "Open Settings to allow camera access"), systemImage: "gear")
                                 .font(.subheadline.bold())
                                 .foregroundColor(.black)
                                 .padding(.horizontal, 16)
@@ -805,7 +812,9 @@ private struct ActiveLivenessView: View {
                                 .clipShape(Capsule())
                         }
                     } else {
-                        Text("ขั้นตอน \(min(step + 1, 5)) จาก 5")
+                        Text(SettingsManager.shared.currentLanguage == .thai
+                             ? "ขั้นตอน \(min(step + 1, 5)) จาก 5"
+                             : "Step \(min(step + 1, 5)) of 5")
                             .font(.caption.bold())
                             .foregroundColor(.white.opacity(0.75))
                         ProgressView(value: Double(step), total: 5)
@@ -858,7 +867,7 @@ private struct FaceGuideOverlay: View {
                 )
             }
 
-            Text("จัดดวงตา จมูก และคางให้อยู่ภายในกรอบ")
+            Text(tr("จัดดวงตา จมูก และคางให้อยู่ภายในกรอบ", "Keep your eyes, nose, and chin inside the frame"))
                 .font(.caption.bold())
                 .foregroundColor(.white)
                 .padding(.horizontal, 14)
@@ -892,9 +901,9 @@ private final class LivenessCameraViewController: UIViewController, AVCaptureVid
 
         var instruction: String {
             switch self {
-            case .turnLeft: return "หันหน้าไปทางซ้ายและค้างไว้"
-            case .turnRight: return "หันหน้าไปทางขวาและค้างไว้"
-            case .smile: return "มองตรงและยิ้มให้เห็นฟัน"
+            case .turnLeft: return tr("หันหน้าไปทางซ้ายและค้างไว้", "Turn your face left and hold")
+            case .turnRight: return tr("หันหน้าไปทางขวาและค้างไว้", "Turn your face right and hold")
+            case .smile: return tr("มองตรงและยิ้มให้เห็นฟัน", "Look straight ahead and smile with your teeth visible")
             }
         }
     }
@@ -938,11 +947,11 @@ private final class LivenessCameraViewController: UIViewController, AVCaptureVid
 
     private func configureCamera() {
         #if targetEnvironment(simulator)
-        reportError("การตรวจใบหน้าต้องทดสอบบน iPhone ที่มีกล้องหน้า")
+        reportError(tr("การตรวจใบหน้าต้องทดสอบบน iPhone ที่มีกล้องหน้า", "Face verification requires an iPhone with a front camera"))
         return
         #else
         guard AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front) != nil else {
-            reportError("การตรวจใบหน้าต้องทดสอบบน iPhone ที่มีกล้องหน้า")
+            reportError(tr("การตรวจใบหน้าต้องทดสอบบน iPhone ที่มีกล้องหน้า", "Face verification requires an iPhone with a front camera"))
             return
         }
 
@@ -951,10 +960,10 @@ private final class LivenessCameraViewController: UIViewController, AVCaptureVid
             setupSession()
         case .notDetermined:
             AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
-                granted ? self?.setupSession() : self?.reportError("กรุณาอนุญาตการใช้กล้องในการตั้งค่า")
+                granted ? self?.setupSession() : self?.reportError(tr("กรุณาอนุญาตการใช้กล้องในการตั้งค่า", "Allow camera access in Settings"))
             }
         default:
-            reportError("กรุณาอนุญาตการใช้กล้องในการตั้งค่า")
+            reportError(tr("กรุณาอนุญาตการใช้กล้องในการตั้งค่า", "Allow camera access in Settings"))
         }
         #endif
     }
@@ -971,7 +980,7 @@ private final class LivenessCameraViewController: UIViewController, AVCaptureVid
                 session.canAddInput(input)
             else {
                 session.commitConfiguration()
-                reportError("ไม่พบกล้องหน้าสำหรับตรวจสอบใบหน้า")
+                reportError(tr("ไม่พบกล้องหน้าสำหรับตรวจสอบใบหน้า", "No front camera is available for face verification"))
                 return
             }
 
@@ -983,7 +992,7 @@ private final class LivenessCameraViewController: UIViewController, AVCaptureVid
 
             guard session.canAddOutput(output) else {
                 session.commitConfiguration()
-                reportError("ไม่สามารถเริ่มระบบตรวจสอบใบหน้าได้")
+                reportError(tr("ไม่สามารถเริ่มระบบตรวจสอบใบหน้าได้", "Unable to start face verification"))
                 return
             }
             session.addOutput(output)
@@ -1022,7 +1031,7 @@ private final class LivenessCameraViewController: UIViewController, AVCaptureVid
                 self.missingFaceFrames += 1
                 if self.missingFaceFrames >= 6 && !self.isShowingTrackingWarning {
                     self.isShowingTrackingWarning = true
-                    self.publishStatus("ไม่พบใบหน้า กรุณาจัดใบหน้าให้อยู่ในกรอบ", step: self.challengeStep)
+                    self.publishStatus(tr("ไม่พบใบหน้า กรุณาจัดใบหน้าให้อยู่ในกรอบ", "No face detected. Position your face inside the frame."), step: self.challengeStep)
                 }
                 return
             }
@@ -1060,7 +1069,7 @@ private final class LivenessCameraViewController: UIViewController, AVCaptureVid
             stableFrames = 0
             if !isShowingTrackingWarning {
                 isShowingTrackingWarning = true
-                publishStatus("ขยับใบหน้าเข้ามาใกล้กล้องอีกเล็กน้อย", step: challengeStep)
+                publishStatus(tr("ขยับใบหน้าเข้ามาใกล้กล้องอีกเล็กน้อย", "Move slightly closer to the camera"), step: challengeStep)
             }
             return
         }
@@ -1133,12 +1142,15 @@ private final class LivenessCameraViewController: UIViewController, AVCaptureVid
             condition = yaw < -0.30
             requiredFrames = 8
         case .smile:
-            let smileThreshold = max(baselineMouthWidth * 1.12, baselineMouthWidth + 0.025)
-            let openingThreshold = max(baselineMouthOpening * 1.65, baselineMouthOpening + 0.035)
+            // A natural tooth-showing smile only changes Vision's inner-lip
+            // landmarks slightly, so keep the threshold above calibration but
+            // low enough to work across different mouth shapes and distances.
+            let smileThreshold = max(baselineMouthWidth * 1.08, baselineMouthWidth + 0.015)
+            let openingThreshold = max(baselineMouthOpening * 1.15, baselineMouthOpening + 0.012)
             condition = abs(yaw) < 0.18
                 && mouthWidth > smileThreshold
                 && mouthOpening > openingThreshold
-            requiredFrames = 12
+            requiredFrames = 8
         }
 
         if condition {
@@ -1147,7 +1159,7 @@ private final class LivenessCameraViewController: UIViewController, AVCaptureVid
                 let nextStep = challengeStep + 1
                 let nextMessage = nextStep <= challenges.count
                     ? challenges[nextStep - 1].instruction
-                    : "มองหน้าตรงและอยู่นิ่งเพื่อถ่ายรูป"
+                    : tr("มองหน้าตรงและอยู่นิ่งเพื่อถ่ายรูป", "Look straight ahead and hold still for the photo")
                 advance(to: nextStep, message: nextMessage)
             }
         } else {
@@ -1165,26 +1177,50 @@ private final class LivenessCameraViewController: UIViewController, AVCaptureVid
 
     private func instructionForCurrentStep() -> String {
         if challengeStep == 0 {
-            return "จัดใบหน้าให้อยู่ในกรอบและมองตรง"
+            return tr("จัดใบหน้าให้อยู่ในกรอบและมองตรง", "Position your face inside the frame and look straight ahead")
         }
         if challengeStep >= 1 && challengeStep <= challenges.count {
             return challenges[challengeStep - 1].instruction
         }
-        return "มองหน้าตรงและอยู่นิ่งเพื่อถ่ายรูป"
+        return tr("มองหน้าตรงและอยู่นิ่งเพื่อถ่ายรูป", "Look straight ahead and hold still for the photo")
     }
 
     private func complete(with sampleBuffer: CMSampleBuffer) {
         guard !didFinish, let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
         didFinish = true
         let ciImage = CIImage(cvPixelBuffer: pixelBuffer).oriented(.leftMirrored)
+        let cropRect = centeredPortraitCrop(in: ciImage.extent, aspectRatio: 3.0 / 4.0)
+        let croppedImage = ciImage.cropped(to: cropRect)
         let context = CIContext()
-        guard let cgImage = context.createCGImage(ciImage, from: ciImage.extent) else {
-            reportError("ไม่สามารถบันทึกภาพยืนยันได้")
+        guard let cgImage = context.createCGImage(croppedImage, from: cropRect) else {
+            reportError(tr("ไม่สามารถบันทึกภาพยืนยันได้", "Unable to capture the verification photo"))
             return
         }
         let image = UIImage(cgImage: cgImage)
         sessionQueue.async { [weak self] in self?.session.stopRunning() }
         DispatchQueue.main.async { [weak self] in self?.onComplete?(image) }
+    }
+
+    private func centeredPortraitCrop(in extent: CGRect, aspectRatio: CGFloat) -> CGRect {
+        let currentAspectRatio = extent.width / extent.height
+
+        if currentAspectRatio > aspectRatio {
+            let cropWidth = extent.height * aspectRatio
+            return CGRect(
+                x: extent.midX - cropWidth / 2,
+                y: extent.minY,
+                width: cropWidth,
+                height: extent.height
+            ).integral
+        }
+
+        let cropHeight = extent.width / aspectRatio
+        return CGRect(
+            x: extent.minX,
+            y: extent.midY - cropHeight / 2,
+            width: extent.width,
+            height: cropHeight
+        ).integral
     }
 
     private func publishStatus(_ message: String, step: Int) {

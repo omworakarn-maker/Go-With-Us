@@ -4,6 +4,7 @@ import SwiftUI
 struct GoWithUsApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var authViewModel = AuthViewModel()
+    @StateObject private var settings = SettingsManager.shared
     @State private var showSplash = true
     
     var body: some Scene {
@@ -19,8 +20,8 @@ struct GoWithUsApp: App {
                 } else {
                     ContentView()
                         .environmentObject(authViewModel)
-                        .environmentObject(SettingsManager.shared)
-                        .environment(\.locale, Locale(identifier: SettingsManager.shared.currentLanguage.rawValue))
+                        .environmentObject(settings)
+                        .environment(\.locale, Locale(identifier: settings.currentLanguage.rawValue))
                         .zIndex(0)
                         .transition(.asymmetric(
                             insertion: .move(edge: .bottom),

@@ -43,13 +43,6 @@ const normalizeTravelStyle = (style) => {
     return { budget, activityStyle, timeOfDay };
 };
 
-const MATCH_WEIGHTS = {
-    category: 0.35,
-    budget: 0.30,
-    activityStyle: 0.20,
-    timeOfDay: 0.15
-};
-
 const MATCH_CATEGORIES = ['ทะเล', 'ภูเขา', 'แคมป์ปิ้ง', 'เที่ยวเมือง', 'คาเฟ่', 'อาหาร', 'แฮงเอาต์', 'ถ่ายรูป', 'ช้อปปิ้ง', 'คอนเสิร์ต', 'ผจญภัย', 'ไหว้พระ', 'อื่นๆ'];
 const MATCH_TIMES = ['morning', 'noon', 'evening', 'night'];
 
@@ -65,6 +58,15 @@ const encodeMultiHotUnit = (selected, universe) => {
 const blockCosinePercentage = (userBlock, tripBlock) => (
     Math.round(clamp(cosineSimilarity(userBlock, tripBlock), 0, 1) * 100)
 );
+
+// Ratio-based similarity for positive quantities. Equal values score 100%;
+// the score decreases continuously as the values move apart.
+const ratioSimilarityPercentage = (first, second) => {
+    const a = Number(first);
+    const b = Number(second);
+    if (!Number.isFinite(a) || !Number.isFinite(b) || a <= 0 || b <= 0) return null;
+    return Math.round((Math.min(a, b) / Math.max(a, b)) * 100);
+};
 
 
 
@@ -260,7 +262,7 @@ export const calculateTripCompatibilityDetailed = (user, trip) => {
         }
     }
 
-    // 1. การคำนวณเวกเตอร์ด้านงบประมาณ (น้ำหนัก 30%)
+    // 1. งบประมาณ: คำนวณคะแนนตามสัดส่วนงบผู้ใช้ต่องบทริป
     // ดึงค่างบประมาณดิบจากผู้ใช้
     const rawUserBudget = user.travelStyle && Number(user.travelStyle.budget);
     // แปลงงบผู้ใช้เป็นหน่วยบาท (THB) ถ้าน้อยกว่า 10 จะแปลงจากเรทติ้งเป็นเงิน ถ้าเกิน 10 คือค่าเงินโดยตรง
@@ -276,34 +278,25 @@ export const calculateTripCompatibilityDetailed = (user, trip) => {
         
     // ตรวจสอบว่ามีข้อมูลงบประมาณทั้งสองฝั่ง
     if (userBudgetTHB !== null && Number.isFinite(tripBudgetTHB)) {
-        // ต่ำกว่า 50% ของงบทริปถือว่าไม่เหมาะสมและได้ 0%
-        // ตั้งแต่ 50% ขึ้นไปคิดตามสัดส่วน และถ้างบเพียงพอได้เต็ม 100%
+        // ถ้างบเพียงพอได้เต็ม 100%; ถ้าไม่พอให้คะแนนตามสัดส่วนจริง
+        // เช่น 400/1,000 = 40% และ 0/1,000 = 0%
         if (tripBudgetTHB === 0 || userBudgetTHB >= tripBudgetTHB) {
             breakdown.budget = 100;
-        } else if (userBudgetTHB < tripBudgetTHB * 0.5) {
-            breakdown.budget = 0;
         } else {
             breakdown.budget = Math.round((userBudgetTHB / tripBudgetTHB) * 100);
         }
 
     }
 
-    // 2. การคำนวณเวกเตอร์ด้านสไตล์การทำกิจกรรม (น้ำหนัก 20%)
-    // ดึงสไตล์ของทริป (ถ้าทริปไม่ระบุ ให้ดึงจากผู้สร้างทริปแทน)
+    // 2. จำนวนกิจกรรมต่อวัน: เปรียบเทียบจำนวนจริงด้วยอัตราส่วน min/max
+    // ดึงจำนวนกิจกรรมเฉลี่ยต่อวันของทริป (ถ้าไม่ระบุ ให้ดึงจากผู้สร้างทริปแทน)
     const tripPace = trip.activityStyle != null ? trip.activityStyle : (styleC ? styleC.activityStyle : null);
     // ตรวจสอบว่ามีข้อมูลกิจกรรมทั้งสองฝั่ง
     if (styleU && styleU.activityStyle !== null && tripPace !== null) {
-        // ค่าที่ระบบใช้จริงคือ 2, 5 และ 8 จึงมีระยะห่างสูงสุด 8 - 2 = 6
-        const activityDifference = Math.abs(
-            clamp(Number(styleU.activityStyle), 1, 10) - clamp(Number(tripPace), 1, 10)
-        );
-        breakdown.activityStyle = Math.round(
-            clamp(1 - (activityDifference / 6), 0, 1) * 100
-        );
-
+        breakdown.activityStyle = ratioSimilarityPercentage(styleU.activityStyle, tripPace);
     }
 
-    // 3. การคำนวณเวกเตอร์ด้านช่วงเวลาของวัน (น้ำหนัก 15%)
+    // 3. ช่วงเวลาของวัน: Cosine Similarity ของเวกเตอร์แบบ multi-hot
     // ดึงข้อมูลช่วงเวลาของทริป หรือดึงจากผู้สร้างทริปถ้าไม่มี
     const tripTime = (trip.timeOfDay && trip.timeOfDay.length > 0) ? trip.timeOfDay : (styleC ? styleC.timeOfDay : []);
     // ตรวจสอบว่ามีข้อมูลเวลาทั้งคู่
@@ -319,7 +312,7 @@ export const calculateTripCompatibilityDetailed = (user, trip) => {
         }
     }
 
-    // 4. การคำนวณเวกเตอร์ด้านความสนใจและหมวดหมู่ทริป (น้ำหนัก 35%)
+    // 4. ความสนใจและหมวดหมู่ทริป: Cosine Similarity ของเวกเตอร์แบบ multi-hot
     // ตรวจสอบและดึงอาร์เรย์ความสนใจของผู้ใช้
     const userInterests = Array.isArray(user.interests) ? user.interests : [];
     // รวมหมวดหลักกับความชอบเพิ่มเติมของทริป (ไม่เกิน 3 หมวดและไม่ซ้ำกัน)
@@ -340,26 +333,17 @@ export const calculateTripCompatibilityDetailed = (user, trip) => {
         }
     }
 
-    // รวมคะแนนย่อยด้วยค่าเฉลี่ยถ่วงน้ำหนัก
-    const weightedBreakdown = [
-        [breakdown.category, MATCH_WEIGHTS.category],
-        [breakdown.budget, MATCH_WEIGHTS.budget],
-        [breakdown.activityStyle, MATCH_WEIGHTS.activityStyle],
-        [breakdown.timeOfDay, MATCH_WEIGHTS.timeOfDay]
-    ].filter(([score]) => score !== null && Number.isFinite(score));
-    const availableWeight = weightedBreakdown.reduce((sum, [, weight]) => sum + weight, 0);
-    const weightedScore = weightedBreakdown.reduce(
-        (sum, [score, weight]) => sum + (score * weight),
-        0
-    );
-    let percentage = availableWeight > 0 ? weightedScore / availableWeight : 0;
-    
-    // กฎการคัดกรองเพิ่มเติม: ถ้างบของทริปสูงกว่างบที่ผู้ใช้รับได้มากกว่า 2 เท่า
-    // (เช่น งบคน 1,000 แต่ทริปราคา 2,500)
-    if (userBudgetTHB !== null && tripBudgetTHB > userBudgetTHB * 2) {
-        // จำกัดเพดานคะแนนความเข้ากันได้ให้ไม่เกิน 39%
-        percentage = Math.min(percentage, 39);
-    }
+    // รวมคะแนนของปัจจัยที่มีข้อมูลด้วยค่าเฉลี่ยเลขคณิต
+    // ไม่มีการกำหนดน้ำหนัก 35/30/20/15 หรือให้ปัจจัยใดสำคัญกว่าอีกปัจจัย
+    const availableScores = [
+        breakdown.category,
+        breakdown.budget,
+        breakdown.activityStyle,
+        breakdown.timeOfDay
+    ].filter(score => score !== null && Number.isFinite(score));
+    let percentage = availableScores.length > 0
+        ? availableScores.reduce((sum, score) => sum + score, 0) / availableScores.length
+        : 0;
     
     // ปัดเศษเปอร์เซ็นต์ให้เป็นจำนวนเต็ม
     const tripTotal = Math.round(percentage);
@@ -405,6 +389,7 @@ export const findBuddy = async (req, res) => {
             select: {
                 id: true,
                 name: true,
+                username: true,
                 email: true,
                 role: true,
                 profileImage: true,
@@ -622,6 +607,7 @@ export const getMutualMatches = async (req, res) => {
             select: {
                 id: true,
                 name: true,
+                username: true,
                 email: true,
                 role: true,
                 profileImage: true,

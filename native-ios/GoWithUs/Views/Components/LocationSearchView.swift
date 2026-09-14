@@ -46,7 +46,7 @@ struct LocationSearchView: View {
                 HStack {
                     Image(systemName: "magnifyingglass")
                         .foregroundColor(.gray)
-                    TextField("พิมพ์ชื่อสถานที่ เช่น ร้านอาหาร, คาเฟ่...", text: $searchText)
+                    TextField(tr("พิมพ์ชื่อสถานที่ เช่น ร้านอาหาร, คาเฟ่...", "Search for a place, restaurant, or cafe…"), text: $searchText)
                         .onChange(of: searchText) { newValue in
                             viewModel.search(query: newValue)
                         }
@@ -75,7 +75,9 @@ struct LocationSearchView: View {
                         HStack {
                             Image(systemName: "mappin.circle.fill")
                                 .foregroundColor(.appPrimary)
-                            Text("ใช้ \"\(searchText)\" เป็นสถานที่")
+                            Text(SettingsManager.shared.currentLanguage == .thai
+                                 ? "ใช้ \"\(searchText)\" เป็นสถานที่"
+                                 : "Use \"\(searchText)\" as the location")
                                 .foregroundColor(.appPrimary)
                             Spacer()
                         }
@@ -105,11 +107,11 @@ struct LocationSearchView: View {
                 }
                 .listStyle(PlainListStyle())
             }
-            .navigationTitle("ค้นหาสถานที่")
+            .navigationTitle(tr("ค้นหาสถานที่", "Search places"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("ยกเลิก") {
+                    Button(tr("ยกเลิก", "Cancel")) {
                         dismiss()
                     }
                     .foregroundColor(.black)

@@ -46,6 +46,8 @@ class TripDetailViewModel: ObservableObject {
     
     // MARK: - Load Utils
     func fetchCurrentUser() async {
+        guard !AppRuntime.isRunningForPreview else { return }
+
         do {
              currentUser = try await AuthService.shared.getCurrentUser()
         } catch {
@@ -55,6 +57,8 @@ class TripDetailViewModel: ObservableObject {
     
     // MARK: - Load Trip
     func loadTrip() async {
+        guard !AppRuntime.isRunningForPreview else { return }
+
         isLoading = true
         errorMessage = nil
         

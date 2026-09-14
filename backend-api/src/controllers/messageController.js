@@ -28,6 +28,7 @@ export const getTripMessages = async (req, res, next) => {
                     select: {
                         id: true,
                         name: true,
+                        username: true,
                         email: true,
                         profileImage: true,
                     },
@@ -90,6 +91,7 @@ export const sendTripMessage = async (req, res, next) => {
                     select: {
                         id: true,
                         name: true,
+                        username: true,
                         email: true,
                         profileImage: true,
                     },
@@ -205,6 +207,7 @@ export const getPrivateMessages = async (req, res, next) => {
                     select: {
                         id: true,
                         name: true,
+                        username: true,
                         email: true,
                         profileImage: true,
                     },
@@ -213,6 +216,7 @@ export const getPrivateMessages = async (req, res, next) => {
                     select: {
                         id: true,
                         name: true,
+                        username: true,
                         email: true,
                         profileImage: true,
                     },
@@ -282,6 +286,7 @@ export const sendPrivateMessage = async (req, res, next) => {
                     select: {
                         id: true,
                         name: true,
+                        username: true,
                         email: true,
                         profileImage: true,
                     },
@@ -290,6 +295,7 @@ export const sendPrivateMessage = async (req, res, next) => {
                     select: {
                         id: true,
                         name: true,
+                        username: true,
                         email: true,
                         profileImage: true,
                     },
@@ -359,6 +365,7 @@ export const getConversations = async (req, res, next) => {
                     select: {
                         id: true,
                         name: true,
+                        username: true,
                         email: true,
                         profileImage: true,
                     },
@@ -367,6 +374,7 @@ export const getConversations = async (req, res, next) => {
                     select: {
                         id: true,
                         name: true,
+                        username: true,
                         email: true,
                         profileImage: true,
                     },

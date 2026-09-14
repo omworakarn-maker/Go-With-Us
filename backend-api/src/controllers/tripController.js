@@ -84,6 +84,7 @@ export const getAllTrips = async (req, res, next) => {
                     select: {
                         id: true,
                         name: true,
+                        username: true,
                         email: true,
                         role: true,
                         profileImage: true,
@@ -96,6 +97,7 @@ export const getAllTrips = async (req, res, next) => {
                             select: {
                                 id: true,
                                 name: true,
+                                username: true,
                                 email: true,
                                 role: true,
                                 profileImage: true,
@@ -163,7 +165,7 @@ export const getMyCreatedTrips = async (req, res, next) => {
             include: {
                 creator: {
                     select: {
-                        id: true, name: true, email: true, role: true,
+                        id: true, name: true, username: true, email: true, role: true,
                         profileImage: true, travelStyle: true
                     }
                 },
@@ -171,7 +173,7 @@ export const getMyCreatedTrips = async (req, res, next) => {
                     include: {
                         user: {
                             select: {
-                                id: true, name: true, email: true, role: true,
+                                id: true, name: true, username: true, email: true, role: true,
                                 profileImage: true, travelStyle: true, interests: true
                             }
                         }
@@ -198,6 +200,7 @@ export const getTripById = async (req, res, next) => {
                     select: {
                         id: true,
                         name: true,
+                        username: true,
                         email: true,
                         role: true,
                         profileImage: true,
@@ -210,6 +213,7 @@ export const getTripById = async (req, res, next) => {
                             select: {
                                 id: true,
                                 name: true,
+                                username: true,
                                 email: true,
                                 role: true,
                                 profileImage: true,
@@ -337,6 +341,7 @@ export const createTrip = async (req, res, next) => {
                     select: {
                         id: true,
                         name: true,
+                        username: true,
                         email: true,
                         role: true,
                     },
@@ -448,6 +453,7 @@ export const updateTrip = async (req, res, next) => {
                     select: {
                         id: true,
                         name: true,
+                        username: true,
                         email: true,
                         role: true,
                     },

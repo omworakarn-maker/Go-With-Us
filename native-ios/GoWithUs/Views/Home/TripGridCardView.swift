@@ -50,7 +50,7 @@ struct TripGridCardView: View {
                 HStack(spacing: 3) {
                     Text(trip.category.icon)
                         .font(.system(size: 10))
-                    Text(trip.category.rawValue)
+                    Text(trip.category.displayName)
                         .font(.system(size: 8, weight: .bold))
                         .foregroundColor(.black)
                 }
@@ -72,7 +72,7 @@ struct TripGridCardView: View {
                     Image(systemName: "mappin.circle.fill")
                         .font(.system(size: 10))
                         .foregroundColor(.red)
-                    Text(trip.destination)
+                    Text(localizedPlaceName(trip.destination))
                         .font(.system(size: 11))
                         .foregroundColor(.gray)
                         .lineLimit(1)

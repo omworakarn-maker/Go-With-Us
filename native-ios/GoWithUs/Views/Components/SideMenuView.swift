@@ -45,30 +45,30 @@ struct SideMenuView: View {
             Text(SettingsManager.shared.localizedString(for: "language_change_message"))
         }
         .confirmationDialog(
-            "รีเซ็ตบัญชีหรือไม่?",
+            tr("รีเซ็ตบัญชีหรือไม่?", "Reset your account?"),
             isPresented: $showResetConfirmation,
             titleVisibility: .visible
         ) {
-            Button("รีเซ็ตบัญชี", role: .destructive) { resetAccount() }
-            Button("ยกเลิก", role: .cancel) {}
+            Button(tr("รีเซ็ตบัญชี", "Reset account"), role: .destructive) { resetAccount() }
+            Button(tr("ยกเลิก", "Cancel"), role: .cancel) {}
         } message: {
-            Text("ระบบจะล้างโปรไฟล์ แบบสอบถาม ทริป การเข้าร่วม แชท และประวัติการใช้งาน แต่คุณยังเข้าสู่ระบบด้วยอีเมลเดิมได้")
+            Text(tr("ระบบจะล้างโปรไฟล์ แบบสอบถาม ทริป การเข้าร่วม แชท และประวัติการใช้งาน แต่คุณยังเข้าสู่ระบบด้วยอีเมลเดิมได้", "This clears your profile, questionnaire, trips, participation, chats, and activity. You can still log in with the same email."))
         }
         .confirmationDialog(
-            "ลบบัญชีถาวรหรือไม่?",
+            tr("ลบบัญชีถาวรหรือไม่?", "Permanently delete your account?"),
             isPresented: $showDeleteConfirmation,
             titleVisibility: .visible
         ) {
-            Button("ลบบัญชีถาวร", role: .destructive) { deleteAccount() }
-            Button("ยกเลิก", role: .cancel) {}
+            Button(tr("ลบบัญชีถาวร", "Permanently delete account"), role: .destructive) { deleteAccount() }
+            Button(tr("ยกเลิก", "Cancel"), role: .cancel) {}
         } message: {
-            Text("บัญชีและข้อมูลทั้งหมดจะถูกลบถาวรและไม่สามารถกู้คืนได้")
+            Text(tr("บัญชีและข้อมูลทั้งหมดจะถูกลบถาวรและไม่สามารถกู้คืนได้", "Your account and all data will be permanently deleted and cannot be recovered."))
         }
-        .alert("จัดการบัญชี", isPresented: Binding(
+        .alert(tr("จัดการบัญชี", "Manage account"), isPresented: Binding(
             get: { accountActionMessage != nil },
             set: { if !$0 { accountActionMessage = nil } }
         )) {
-            Button("ตกลง", role: .cancel) { accountActionMessage = nil }
+            Button(tr("ตกลง", "OK"), role: .cancel) { accountActionMessage = nil }
         } message: {
             Text(accountActionMessage ?? "")
         }
@@ -91,11 +91,7 @@ struct SideMenuView: View {
                             .foregroundColor(.adaptiveText)
                         
                         if let username = user.username, !username.isEmpty {
-                            Text("@\(username)")
-                                .font(.caption)
-                                .foregroundColor(.adaptiveSecondaryText)
-                        } else if let email = user.email {
-                            Text(email)
+                            Text(username.hasPrefix("@") ? username : "@\(username)")
                                 .font(.caption)
                                 .foregroundColor(.adaptiveSecondaryText)
                         }
@@ -125,7 +121,6 @@ struct SideMenuView: View {
                     VStack(alignment: .leading, spacing: 16) {
                         MenuButton(icon: "house", text: SettingsManager.shared.localizedString(for: "home"), targetScreen: SettingsManager.shared.homeLayoutPreference, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
                         MenuButton(icon: "heart.fill", text: SettingsManager.shared.currentLanguage == .thai ? "รายการโปรด" : "Favorites", targetScreen: .favorites, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
-                        MenuButton(icon: "person.2", text: SettingsManager.shared.currentLanguage == .thai ? "หาเพื่อน" : "Find Buddy", targetScreen: .findBuddy, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
                         MenuButton(icon: "suitcase", text: SettingsManager.shared.localizedString(for: "my_trips"), targetScreen: .myTrips, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
                         MenuButton(icon: "bubble.left.and.text.bubble.right", text: SettingsManager.shared.localizedString(for: "ai_chat"), targetScreen: .aiChat, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
                         MenuButton(icon: "person.crop.circle", text: SettingsManager.shared.localizedString(for: "profile"), targetScreen: .profile, currentScreen: $currentScreen, isShowing: $isShowing, transition: $transition)
@@ -283,7 +278,7 @@ struct SideMenuView: View {
                             .padding(.horizontal, 24)
 
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("จัดการบัญชี")
+                            Text(tr("จัดการบัญชี", "Manage account"))
                                 .font(.caption)
                                 .fontWeight(.bold)
                                 .foregroundColor(.adaptiveSecondaryText)
@@ -293,7 +288,7 @@ struct SideMenuView: View {
                             } label: {
                                 accountManagementRow(
                                     icon: "arrow.counterclockwise.circle",
-                                    title: "รีเซ็ตบัญชี",
+                                    title: tr("รีเซ็ตบัญชี", "Reset account"),
                                     color: .orange
                                 )
                             }
@@ -305,7 +300,7 @@ struct SideMenuView: View {
                             } label: {
                                 accountManagementRow(
                                     icon: "trash",
-                                    title: "ลบบัญชีถาวร",
+                                    title: tr("ลบบัญชีถาวร", "Permanently delete account"),
                                     color: .red
                                 )
                             }
@@ -315,7 +310,7 @@ struct SideMenuView: View {
                             if isManagingAccount {
                                 HStack(spacing: 8) {
                                     ProgressView()
-                                    Text("กำลังดำเนินการ...")
+                                    Text(tr("กำลังดำเนินการ...", "Processing…"))
                                         .font(.caption)
                                         .foregroundColor(.adaptiveSecondaryText)
                                 }
@@ -357,12 +352,12 @@ struct SideMenuView: View {
                 await authViewModel.loadCurrentUser()
                 await MainActor.run {
                     isManagingAccount = false
-                    accountActionMessage = "รีเซ็ตบัญชีเรียบร้อยแล้ว กรุณาตอบแบบสอบถามใหม่เพื่อรับคำแนะนำทริป"
+                    accountActionMessage = tr("รีเซ็ตบัญชีเรียบร้อยแล้ว กรุณาตอบแบบสอบถามใหม่เพื่อรับคำแนะนำทริป", "Your account has been reset. Complete the questionnaire again to receive trip recommendations.")
                 }
             } catch {
                 await MainActor.run {
                     isManagingAccount = false
-                    accountActionMessage = "รีเซ็ตบัญชีไม่สำเร็จ กรุณาลองใหม่อีกครั้ง"
+                    accountActionMessage = tr("รีเซ็ตบัญชีไม่สำเร็จ กรุณาลองใหม่อีกครั้ง", "Unable to reset your account. Please try again.")
                 }
             }
         }
@@ -383,7 +378,7 @@ struct SideMenuView: View {
             } catch {
                 await MainActor.run {
                     isManagingAccount = false
-                    accountActionMessage = "ลบบัญชีไม่สำเร็จ กรุณาลองใหม่อีกครั้ง"
+                    accountActionMessage = tr("ลบบัญชีไม่สำเร็จ กรุณาลองใหม่อีกครั้ง", "Unable to delete your account. Please try again.")
                 }
             }
         }

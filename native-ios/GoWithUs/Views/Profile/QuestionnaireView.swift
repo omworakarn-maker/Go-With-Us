@@ -3,6 +3,7 @@ import PhotosUI
 
 struct QuestionnaireView: View {
     @Environment(\.dismiss) var dismiss
+    @ObservedObject private var settings = SettingsManager.shared
     @State private var currentStep = 0
     @State private var isSubmitting = false
     @State private var errorMessage = ""
@@ -18,7 +19,7 @@ struct QuestionnaireView: View {
     
     // State
     @State private var budget: Double = 1500
-    @State private var activityStyle: Double = 5
+    @State private var activityStyle: Double = 3
     
     // Non-linear budget steps
     private let budgetSteps: [Double] = [
@@ -119,12 +120,22 @@ struct QuestionnaireView: View {
     }
     
     // Time slots
-    let timeSlots = [
-        ("morning", "ช่วงเช้า (06:00 - 11:00 น.)", "เหมาะสำหรับคนที่ชอบออกจากที่พักเร็ว เช่น ดูพระอาทิตย์ขึ้น เดินตลาดเช้า หรือรับประทานอาหารเช้า"),
-        ("noon", "ช่วงกลางวัน (11:00 - 16:00 น.)", "เหมาะสำหรับคนที่ชอบเที่ยวช่วงสายถึงบ่าย เช่น เข้าชมสถานที่ท่องเที่ยว แวะคาเฟ่ หรือรับประทานอาหารกลางวัน"),
-        ("evening", "ช่วงเย็น (16:00 - 20:00 น.)", "เหมาะสำหรับคนที่ชอบเที่ยวช่วงเย็นก่อนค่ำ เช่น เดินเล่น ชมพระอาทิตย์ตก หรือรับประทานอาหารเย็น"),
-        ("night", "ช่วงกลางคืน (20:00 น. เป็นต้นไป)", "เหมาะสำหรับคนที่ชอบออกเที่ยวหลังค่ำ เช่น เดินตลาดกลางคืน ชมแสงไฟในเมือง หรือฟังดนตรีสด")
-    ]
+    var timeSlots: [(String, String, String)] {
+        if SettingsManager.shared.currentLanguage == .english {
+            return [
+                ("morning", "Morning (6:00 AM – 11:00 AM)", "For early starts, sunrise views, morning markets, or breakfast"),
+                ("noon", "Afternoon (11:00 AM – 4:00 PM)", "For sightseeing, cafes, museums, or lunch"),
+                ("evening", "Evening (4:00 PM – 8:00 PM)", "For walks, sunset views, or dinner"),
+                ("night", "Night (after 8:00 PM)", "For night markets, city lights, or live music")
+            ]
+        }
+        return [
+            ("morning", "ช่วงเช้า (06:00 - 11:00 น.)", "เหมาะสำหรับคนที่ชอบออกจากที่พักเร็ว เช่น ดูพระอาทิตย์ขึ้น เดินตลาดเช้า หรือรับประทานอาหารเช้า"),
+            ("noon", "ช่วงกลางวัน (11:00 - 16:00 น.)", "เหมาะสำหรับคนที่ชอบเที่ยวช่วงสายถึงบ่าย เช่น เข้าชมสถานที่ท่องเที่ยว แวะคาเฟ่ หรือรับประทานอาหารกลางวัน"),
+            ("evening", "ช่วงเย็น (16:00 - 20:00 น.)", "เหมาะสำหรับคนที่ชอบเที่ยวช่วงเย็นก่อนค่ำ เช่น เดินเล่น ชมพระอาทิตย์ตก หรือรับประทานอาหารเย็น"),
+            ("night", "ช่วงกลางคืน (20:00 น. เป็นต้นไป)", "เหมาะสำหรับคนที่ชอบออกเที่ยวหลังค่ำ เช่น เดินตลาดกลางคืน ชมแสงไฟในเมือง หรือฟังดนตรีสด")
+        ]
+    }
     
     private var timeFormatter: DateFormatter {
         let formatter = DateFormatter()
@@ -150,9 +161,9 @@ struct QuestionnaireView: View {
                     VStack(alignment: .leading, spacing: 20) {
                         Group {
                             if displayedStep == 0 {
-                                Text("👤 ข้อมูลส่วนตัวของคุณ")
+                                Text(tr("👤 ข้อมูลส่วนตัวของคุณ", "👤 Your personal information"))
                                     .font(.title2).bold()
-                                Text("ข้อมูลนี้ช่วยให้ผู้ร่วมทริปรู้จักคุณ และใช้สร้างโปรไฟล์ของคุณ")
+                                Text(tr("ข้อมูลนี้ช่วยให้ผู้ร่วมทริปรู้จักคุณ และใช้สร้างโปรไฟล์ของคุณ", "This information helps travel companions get to know you and builds your profile."))
                                     .font(.subheadline).foregroundColor(.secondary)
 
                                 VStack(spacing: 12) {
@@ -170,7 +181,7 @@ struct QuestionnaireView: View {
                                     }
 
                                     PhotosPicker(selection: $selectedProfileItem, matching: .images) {
-                                        Label(profileImage == nil ? "เลือกรูปโปรไฟล์" : "เปลี่ยนรูปโปรไฟล์", systemImage: "photo")
+                                        Label(profileImage == nil ? tr("เลือกรูปโปรไฟล์", "Select profile photo") : tr("เปลี่ยนรูปโปรไฟล์", "Change profile photo"), systemImage: "photo")
                                             .font(.subheadline.bold())
                                             .foregroundColor(.white)
                                             .padding(.horizontal, 20)
@@ -180,7 +191,7 @@ struct QuestionnaireView: View {
                                     }
 
                                     if isOnboarding && profileImage == nil {
-                                        Text("จำเป็นต้องเลือกรูปโปรไฟล์ก่อนดำเนินการต่อ")
+                                        Text(tr("จำเป็นต้องเลือกรูปโปรไฟล์ก่อนดำเนินการต่อ", "Select a profile photo to continue"))
                                             .font(.caption)
                                             .foregroundColor(.red)
                                     }
@@ -206,14 +217,14 @@ struct QuestionnaireView: View {
                                     .padding().background(Color.gray.opacity(0.1)).cornerRadius(12)
 
                                     switch usernameStatus {
-                                    case .available: Text("Username นี้ใช้งานได้").foregroundColor(.green)
+                                    case .available: Text(tr("Username นี้ใช้งานได้", "This username is available")).foregroundColor(.green)
                                     case .taken(let message), .invalid(let message): Text(message).foregroundColor(.red)
-                                    default: Text("เว้นว่างได้ ระบบจะสร้าง Username ที่ไม่ซ้ำให้อัตโนมัติ").foregroundColor(.secondary)
+                                    default: Text(tr("เว้นว่างได้ ระบบจะสร้าง Username ที่ไม่ซ้ำให้อัตโนมัติ", "Leave blank to generate a unique username automatically")).foregroundColor(.secondary)
                                     }
                                 }
 
                                 VStack(alignment: .leading, spacing: 8) {
-                                    Text("วันเกิด").font(.headline)
+                                    Text(tr("วันเกิด", "Date of birth")).font(.headline)
                                     DatePicker(
                                         "เลือกวันเกิด",
                                         selection: $birthDate,
@@ -222,16 +233,16 @@ struct QuestionnaireView: View {
                                     )
                                     .datePickerStyle(.compact)
                                     .onChange(of: birthDate) { _, _ in isBirthDateSet = true }
-                                    Text("อายุ \(calculatedAge) ปี")
+                                    Text(SettingsManager.shared.currentLanguage == .thai ? "อายุ \(calculatedAge) ปี" : "Age \(calculatedAge)")
                                         .font(.subheadline).foregroundColor(.secondary)
                                 }
                                 .padding().background(Color.gray.opacity(0.1)).cornerRadius(12)
 
                             } else if displayedStep == 1 {
                                 // Budget Step
-                                Text("💰 งบประมาณเฉลี่ยต่อทริป (Budget per Trip)")
+                                Text(tr("💰 งบประมาณเฉลี่ยต่อทริป (Budget per Trip)", "💰 Average budget per trip"))
                                     .font(.title2).bold()
-                            Text("ระบุงบประมาณที่คุณสะดวกใช้จ่ายสำหรับหนึ่งทริป (บาท)")
+                            Text(tr("ระบุงบประมาณที่คุณสะดวกใช้จ่ายสำหรับหนึ่งทริป (บาท)", "Enter the amount you are comfortable spending on one trip (THB)"))
                                 .font(.subheadline).foregroundColor(.secondary)
                             
                             VStack(spacing: 30) {
@@ -253,10 +264,10 @@ struct QuestionnaireView: View {
                                     .tint(.appPrimary)
                                 
                                 HStack {
-                                    Text("ประหยัด (100฿)")
+                                    Text(tr("ประหยัด (100฿)", "Budget (฿100)"))
                                         .font(.caption).foregroundColor(.secondary)
                                     Spacer()
-                                    Text("หรูหรา (5,000฿+)")
+                                    Text(tr("หรูหรา (5,000฿+)", "Luxury (฿5,000+)"))
                                         .font(.caption).foregroundColor(.secondary)
                                 }
                             }
@@ -264,23 +275,44 @@ struct QuestionnaireView: View {
                             
                         } else if displayedStep == 2 {
                             // Activity Style Step
-                            Text("🎯 จำนวนสถานที่ท่องเที่ยวต่อวัน (Places per Day)")
+                            Text(tr("🎯 จำนวนสถานที่ท่องเที่ยวต่อวัน (Places per Day)", "🎯 Places per day"))
                                 .font(.title2).bold()
-                            Text("เลือกจำนวนสถานที่ที่คุณสะดวกเที่ยวในหนึ่งวัน")
+                            Text(tr("เลือกจำนวนสถานที่ที่คุณสะดวกเที่ยวในหนึ่งวัน", "Choose how many places you prefer to visit in one day"))
                                 .font(.subheadline).foregroundColor(.secondary)
                             
-                            VStack(spacing: 12) {
-                                QuestionnaireActivityStyleCard(title: "1–2 สถานที่ต่อวัน", subtitle: "ต้องการใช้เวลาในแต่ละสถานที่อย่างเต็มที่ และมีเวลาพักผ่อนระหว่างวัน", value: 2, selectedValue: $activityStyle)
-                                QuestionnaireActivityStyleCard(title: "3–4 สถานที่ต่อวัน", subtitle: "ต้องการเที่ยวหลายสถานที่ โดยแบ่งเวลาเที่ยวและพักผ่อนให้สมดุล", value: 5, selectedValue: $activityStyle)
-                                QuestionnaireActivityStyleCard(title: "5 สถานที่ขึ้นไปต่อวัน", subtitle: "ต้องการเที่ยวให้หลากหลายในหนึ่งวัน และใช้เวลาในแต่ละสถานที่ไม่นาน", value: 8, selectedValue: $activityStyle)
+                            VStack(spacing: 18) {
+                                Text("\(Int(activityStyle))")
+                                    .font(.system(size: 52, weight: .bold))
+                                    .foregroundColor(.appPrimary)
+
+                                Text(tr("สถานที่ต่อวัน", "places per day"))
+                                    .font(.headline)
+                                    .foregroundColor(.secondary)
+
+                                Stepper(
+                                    tr("ปรับจำนวนสถานที่", "Adjust number of places"),
+                                    value: $activityStyle,
+                                    in: 1...10,
+                                    step: 1
+                                )
+                                .labelsHidden()
+
+                                Text(tr(
+                                    "เลือกเป็นจำนวนจริงที่คุณสะดวกเที่ยว ระบบจะเปรียบเทียบกับจำนวนสถานที่เฉลี่ยต่อวันของทริป",
+                                    "Choose the actual number you prefer. The system compares it with the trip's average places per day."
+                                ))
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
                             }
+                            .frame(maxWidth: .infinity)
                             .padding(.top, 20)
                             
                         } else if displayedStep == 3 {
                             // Time of Day Step
-                            Text("🕘 ช่วงเวลาที่ชอบท่องเที่ยว (Time of Day)")
+                            Text(tr("🕘 ช่วงเวลาที่ชอบท่องเที่ยว (Time of Day)", "🕘 Preferred travel times"))
                                 .font(.title2).bold()
-                            Text("เลือกช่วงเวลาที่คุณชอบออกไปทำกิจกรรมหรือท่องเที่ยว (เลือกได้มากกว่า 1 ช่วง)")
+                            Text(tr("เลือกช่วงเวลาที่คุณชอบออกไปทำกิจกรรมหรือท่องเที่ยว (เลือกได้มากกว่า 1 ช่วง)", "Choose when you prefer activities or travel (select more than one)"))
                                 .font(.subheadline).foregroundColor(.secondary)
                             
                             VStack(spacing: 12) {
@@ -329,26 +361,26 @@ struct QuestionnaireView: View {
                         } else if displayedStep == 4 {
                             // Interests Step
                             HStack {
-                                Text("✨ ความสนใจด้านการท่องเที่ยว (Travel Interests)")
+                                Text(tr("✨ ความสนใจด้านการท่องเที่ยว (Travel Interests)", "✨ Travel interests"))
                                     .font(.title2).bold()
                                 Spacer()
                             }
-                            Text("เลือกหมวดหมู่ที่คุณสนใจได้สูงสุด 5 ข้อ เพื่อให้เราแนะนำทริปที่เหมาะกับคุณ")
+                            Text(tr("เลือกหมวดหมู่ที่คุณสนใจได้สูงสุด 5 ข้อ เพื่อให้เราแนะนำทริปที่เหมาะกับคุณ", "Select up to 5 interests so we can recommend suitable trips"))
                                 .font(.subheadline).foregroundColor(.secondary)
                             
                             HStack {
-                                Label("เลื่อนซ้าย–ขวาเพื่อดูตัวเลือก", systemImage: "arrow.left.arrow.right")
+                                Label(tr("เลื่อนซ้าย–ขวาเพื่อดูตัวเลือก", "Swipe left or right to view options"), systemImage: "arrow.left.arrow.right")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                                 Spacer()
-                                Text("เลือกแล้ว \(interests.count)/5")
+                                Text(SettingsManager.shared.currentLanguage == .thai ? "เลือกแล้ว \(interests.count)/5" : "Selected \(interests.count)/5")
                                     .font(.caption.bold())
                             }
                             .padding(.top, 8)
 
                             ForEach(INTEREST_SECTIONS) { section in
                                 VStack(alignment: .leading, spacing: 12) {
-                                Text(section.title)
+                                Text(section.displayTitle)
                                     .font(.headline)
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                 
@@ -356,7 +388,7 @@ struct QuestionnaireView: View {
                                     LazyHStack(spacing: 12) {
                                     ForEach(section.categories) { cat in
                                         QuestionnaireInterestCard(
-                                            label: cat.label,
+                                            label: cat.displayLabel,
                                             icon: cat.icon,
                                             isSelected: interests.contains(cat.label)
                                         ) {
@@ -399,7 +431,7 @@ struct QuestionnaireView: View {
                 // Footer Navigation
                 HStack {
                     if currentStep > 0 {
-                        Button("ย้อนกลับ") {
+                        Button(tr("ย้อนกลับ", "Back")) {
                             triggerHapticFeedback()
                             if currentStep > 0 {
                                 movingForward = false
@@ -418,24 +450,24 @@ struct QuestionnaireView: View {
                         if displayedStep == 0 {
                             let cleanedUsername = username.trimmingCharacters(in: .whitespacesAndNewlines)
                             if !cleanedUsername.isEmpty && usernameStatus != .available {
-                                errorMessage = "กรุณาระบุ Username ที่สามารถใช้งานได้"
+                                errorMessage = tr("กรุณาระบุ Username ที่สามารถใช้งานได้", "Enter an available username")
                                 return
                             }
                             if isOnboarding && profileImage == nil {
-                                errorMessage = "กรุณาเลือกรูปโปรไฟล์"
+                                errorMessage = tr("กรุณาเลือกรูปโปรไฟล์", "Select a profile photo")
                                 return
                             }
                             if !isBirthDateSet {
-                                errorMessage = "กรุณาเลือกวันเกิดเพื่อระบุอายุ"
+                                errorMessage = tr("กรุณาเลือกวันเกิดเพื่อระบุอายุ", "Select your date of birth")
                                 return
                             }
                         }
                         if displayedStep == 3 && timeOfDay.isEmpty {
-                            errorMessage = "โปรดเลือกอย่างน้อย 1 ช่วงเวลา"
+                            errorMessage = tr("โปรดเลือกอย่างน้อย 1 ช่วงเวลา", "Select at least one preferred time")
                             return
                         }
                         if displayedStep == 4 && interests.isEmpty {
-                            errorMessage = "โปรดเลือกอย่างน้อย 1 สไตล์"
+                            errorMessage = tr("โปรดเลือกอย่างน้อย 1 สไตล์", "Select at least one travel style")
                             return
                         }
                         
@@ -451,7 +483,7 @@ struct QuestionnaireView: View {
                         if isSubmitting {
                             ProgressView().progressViewStyle(CircularProgressViewStyle(tint: .white))
                         } else {
-                            Text(currentStep == totalSteps - 1 ? "เสร็จสิ้น" : "ถัดไป")
+                            Text(currentStep == totalSteps - 1 ? tr("เสร็จสิ้น", "Finish") : tr("ถัดไป", "Next"))
                                 .bold()
                         }
                     }
@@ -463,12 +495,12 @@ struct QuestionnaireView: View {
                 }
                 .padding()
             }
-            .navigationTitle("แบบสอบถาม")
+            .navigationTitle(tr("แบบสอบถาม", "Questionnaire"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 if !isOnboarding {
                     ToolbarItem(placement: .navigationBarTrailing) {
-                        Button("ปิด") {
+                        Button(tr("ปิด", "Close")) {
                             dismiss()
                         }
                     }
@@ -508,7 +540,7 @@ struct QuestionnaireView: View {
             Task {
                 guard let data = try? await newItem.loadTransferable(type: Data.self),
                       let selectedImage = UIImage(data: data) else {
-                    await MainActor.run { errorMessage = "ไม่สามารถเปิดรูปที่เลือกได้" }
+                    await MainActor.run { errorMessage = tr("ไม่สามารถเปิดรูปที่เลือกได้", "Unable to open the selected photo") }
                     return
                 }
                 await MainActor.run {

@@ -122,7 +122,7 @@ struct AIChatView: View {
                             }
                             HStack(spacing: 16) {
                                 DraftInfoPill(icon: "banknote", text: "\(draft.budget) ฿", color: Color(hex: "#2ECC71"))
-                                DraftInfoPill(icon: "person.2", text: "สูงสุด \(draft.maxParticipants) คน", color: .appSecondary)
+                                DraftInfoPill(icon: "person.2", text: "\(tr("สูงสุด", "Up to")) \(draft.maxParticipants) \(tr("คน", "people"))", color: .appSecondary)
                             }
                         }
                         
@@ -225,10 +225,10 @@ struct AIChatView: View {
                 }
             }
         }
-        .alert("สร้างทริปสำเร็จ! 🎉", isPresented: $showAutoCreateSuccess) {
-            Button("ตกลง", role: .cancel) {}
+        .alert(tr("สร้างทริปสำเร็จ! 🎉", "Trip created! 🎉"), isPresented: $showAutoCreateSuccess) {
+            Button(tr("ตกลง", "OK"), role: .cancel) {}
         } message: {
-            Text("ทริปของคุณถูกสร้างแล้ว ไปดูได้ที่หน้าแรกเลย!")
+            Text(tr("ทริปของคุณถูกสร้างแล้ว ไปดูได้ที่หน้าแรกเลย!", "Your trip has been created. View it on the Home screen!"))
         }
     }
     
@@ -291,7 +291,7 @@ struct AIChatView: View {
             } catch {
                 await MainActor.run {
                     isAutoCreating = false
-                    viewModel.messages.append(ChatMessage(content: "เกิดข้อผิดพลาดในการสร้างทริป: \(error.localizedDescription)", isUser: false))
+                    viewModel.messages.append(ChatMessage(content: "\(tr("เกิดข้อผิดพลาดในการสร้างทริป", "Unable to create trip")): \(error.localizedDescription)", isUser: false))
                 }
             }
         }
@@ -457,7 +457,7 @@ class AIChatViewModel: ObservableObject {
                             cleanText = cleanText.replacingOccurrences(of: "```", with: "")
                             cleanText = cleanText.trimmingCharacters(in: .whitespacesAndNewlines)
                             
-                            let displayContent = cleanText.isEmpty ? "ผมได้ร่างทริปให้คุณแล้วครับ กดดูรายละเอียดด้านล่างได้เลย! 👇" : cleanText
+                            let displayContent = cleanText.isEmpty ? tr("ผมได้ร่างทริปให้คุณแล้วครับ กดดูรายละเอียดด้านล่างได้เลย! 👇", "I've drafted a trip for you. View the details below! 👇") : cleanText
                             
                             messages.append(ChatMessage(content: displayContent, isUser: false))
                             isLoading = false
@@ -475,7 +475,7 @@ class AIChatViewModel: ObservableObject {
             }
         } catch {
             await MainActor.run {
-                messages.append(ChatMessage(content: "เกิดข้อผิดพลาด: \(error.localizedDescription)", isUser: false))
+                messages.append(ChatMessage(content: "\(tr("เกิดข้อผิดพลาด", "Error")): \(error.localizedDescription)", isUser: false))
                 isLoading = false
             }
         }

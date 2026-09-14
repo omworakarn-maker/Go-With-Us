@@ -2,6 +2,7 @@ import SwiftUI
 import PhotosUI
 
 struct EditProfileView: View {
+    @ObservedObject private var settings = SettingsManager.shared
     @EnvironmentObject var authViewModel: AuthViewModel
     @Environment(\.dismiss) var dismiss
     
@@ -101,15 +102,14 @@ struct EditProfileView: View {
             }
         )
     }
-    @State private var activityStyle: Double = 5
+    @State private var activityStyle: Double = 3
     @State private var timeOfDay: [String] = []
     
-    let timeOptions: [(String, String)] = [
-        ("morning", "เช้า"),
-        ("noon", "กลางวัน"),
-        ("evening", "เย็น"),
-        ("night", "ดึก")
-    ]
+    var timeOptions: [(String, String)] {
+        SettingsManager.shared.currentLanguage == .thai
+            ? [("morning", "เช้า"), ("noon", "กลางวัน"), ("evening", "เย็น"), ("night", "ดึก")]
+            : [("morning", "Morning"), ("noon", "Afternoon"), ("evening", "Evening"), ("night", "Night")]
+    }
     
     // Privacy settings
     @State private var isProfilePublic = true
@@ -120,25 +120,24 @@ struct EditProfileView: View {
     @State private var showEmail = false
     
     // Photo picker (6 slots)
-    @State private var selectedItems: [PhotosPickerItem?] = Array(repeating: nil, count: 6)
+    @State private var selectedPhotoItem: PhotosPickerItem?
+    @State private var selectedPhotoSlot: Int?
+    @State private var showPhotoPicker = false
     @State private var profileImages: [UIImage?] = Array(repeating: nil, count: 6)
     
     var body: some View {
         NavigationView {
             Form {
                 // Profile Image Section
-                Section(header: Text("รูปโปรไฟล์ (สูงสุด 6 รูป)")) {
-                    Text("เลือกได้ตั้งแต่ 1–6 รูป ไม่จำเป็นต้องใส่ให้ครบ โดยรูปแรกที่เลือกจะเป็นรูปหลัก")
-                        .font(.caption)
-                        .foregroundColor(.adaptiveSecondaryText)
-
+                Section(header: Text(SettingsManager.shared.text(thai: "รูปโปรไฟล์ (สูงสุด 6 รูป)", english: "Profile photos (up to 6)"))) {
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 3), spacing: 16) {
                         ForEach(0..<6, id: \.self) { index in
                             ZStack(alignment: .topTrailing) {
-                                PhotosPicker(selection: Binding(
-                                    get: { selectedItems[index] },
-                                    set: { selectedItems[index] = $0 }
-                                ), matching: .images) {
+                                Button {
+                                    selectedPhotoSlot = index
+                                    selectedPhotoItem = nil
+                                    showPhotoPicker = true
+                                } label: {
                                     if let image = profileImages[index] {
                                         Image(uiImage: image)
                                             .resizable()
@@ -166,21 +165,11 @@ struct EditProfileView: View {
                                             )
                                     }
                                 }
-                                .onChange(of: selectedItems[index]) { oldItem, newItem in
-                                    Task {
-                                        if let data = try? await newItem?.loadTransferable(type: Data.self),
-                                           let uiImage = UIImage(data: data) {
-                                            await MainActor.run {
-                                                profileImages[index] = uiImage
-                                            }
-                                        }
-                                    }
-                                }
+                                .buttonStyle(.plain)
                                 
                                 if profileImages[index] != nil {
                                     Button(action: {
                                         profileImages[index] = nil
-                                        selectedItems[index] = nil
                                     }) {
                                         Circle()
                                             .fill(Color.red)
@@ -192,8 +181,26 @@ struct EditProfileView: View {
                                             )
                                     }
                                     .buttonStyle(.plain)
-                                    .offset(x: 8, y: -8)
+                                    .padding(6)
                                 }
+                            }
+                        }
+                    }
+                    .photosPicker(
+                        isPresented: $showPhotoPicker,
+                        selection: $selectedPhotoItem,
+                        matching: .images
+                    )
+                    .onChange(of: selectedPhotoItem) { _, newItem in
+                        guard let newItem, let targetSlot = selectedPhotoSlot else { return }
+                        Task {
+                            guard let data = try? await newItem.loadTransferable(type: Data.self),
+                                  let uiImage = UIImage(data: data) else { return }
+                            await MainActor.run {
+                                profileImages[targetSlot] = uiImage
+                                selectedPhotoItem = nil
+                                selectedPhotoSlot = nil
+                                showPhotoPicker = false
                             }
                         }
                     }
@@ -202,8 +209,8 @@ struct EditProfileView: View {
                     .listRowInsets(EdgeInsets())
                 }
                 
-                Section(header: Text("ข้อมูลส่วนตัว")) {
-                    TextField("ชื่อ", text: $name)
+                Section(header: Text(SettingsManager.shared.text(thai: "ข้อมูลส่วนตัว", english: "Personal information"))) {
+                    TextField(SettingsManager.shared.text(thai: "ชื่อ", english: "Name"), text: $name)
                         .font(.system(size: 16, weight: .medium))
                     
                     // @ Handle / Username
@@ -224,14 +231,14 @@ struct EditProfileView: View {
                                     .foregroundColor(.gray)
                                 Spacer()
                                 VStack(alignment: .trailing, spacing: 2) {
-                                    Text("เปลี่ยนได้อีกครั้ง:")
+                                    Text(SettingsManager.shared.text(thai: "เปลี่ยนได้อีกครั้ง:", english: "Can be changed again:"))
                                         .font(.system(size: 10))
                                     Text(thirtyDaysLater, style: .date)
                                         .font(.system(size: 10, weight: .bold))
                                 }
                                 .foregroundColor(.red)
                             } else {
-                                TextField(authViewModel.currentUser?.username == nil ? "ตั้งได้ครั้งเดียว (เปลี่ยนได้ทุก 30 วัน)" : "เปลี่ยน username", text: $username)
+                                TextField(authViewModel.currentUser?.username == nil ? tr("ตั้งได้ครั้งเดียว (เปลี่ยนได้ทุก 30 วัน)", "Set a username (changeable every 30 days)") : tr("เปลี่ยน username", "Change username"), text: $username)
                                     .font(.system(size: 16, weight: .medium))
                                     .textInputAutocapitalization(.never)
                                     .autocorrectionDisabled(true)
@@ -263,7 +270,7 @@ struct EditProfileView: View {
                                 Text(SettingsManager.shared.localizedString(for: "username_available")).foregroundColor(.green)
                             case .idle:
                                 if authViewModel.currentUser?.username != nil {
-                                    Text("สามารถเปลี่ยนได้ทุก 30 วัน").foregroundColor(.gray)
+                                    Text(SettingsManager.shared.text(thai: "สามารถเปลี่ยนได้ทุก 30 วัน", english: "Can be changed every 30 days")).foregroundColor(.gray)
                                 } else {
                                     Text(SettingsManager.shared.localizedString(for: "username_taken")).foregroundColor(.gray)
                                 }
@@ -275,17 +282,17 @@ struct EditProfileView: View {
                     }
                     
                     // Gender Selection
-                    Picker("เพศ", selection: $gender) {
-                        Text("-- เลือกเพศ --").tag("")
-                        Text("ชาย").tag("male")
-                        Text("หญิง").tag("female")
-                        Text("อื่นๆ").tag("other")
+                    Picker(tr("เพศ", "Gender"), selection: $gender) {
+                        Text(SettingsManager.shared.text(thai: "-- เลือกเพศ --", english: "-- Select gender --")).tag("")
+                        Text(SettingsManager.shared.text(thai: "ชาย", english: "Male")).tag("male")
+                        Text(SettingsManager.shared.text(thai: "หญิง", english: "Female")).tag("female")
+                        Text(SettingsManager.shared.text(thai: "อื่นๆ", english: "Other")).tag("other")
                     }
                     .font(.system(size: 16, weight: .medium))
                     
                     // Birth Date Picker
                     HStack {
-                        Text("วันเกิด")
+                        Text(SettingsManager.shared.text(thai: "วันเกิด", english: "Date of birth"))
                         Spacer()
                         if isBirthDateSet {
                             DatePicker(
@@ -298,7 +305,7 @@ struct EditProfileView: View {
                             Button(action: {
                                 isBirthDateSet = true
                             }) {
-                                Text("ตั้งวันเกิด")
+                                Text(SettingsManager.shared.text(thai: "ตั้งวันเกิด", english: "Set date of birth"))
                                     .foregroundColor(.appAccent)
                             }
                         }
@@ -313,7 +320,7 @@ struct EditProfileView: View {
                         .listRowSeparator(.hidden)
                         
                     HStack {
-                        Text("เขียนรายละเอียดตรงนี้")
+                        Text(SettingsManager.shared.text(thai: "เขียนรายละเอียดตรงนี้", english: "Write something about yourself"))
                             .font(.system(size: 12))
                             .foregroundColor(.gray.opacity(0.7))
                         
@@ -329,7 +336,7 @@ struct EditProfileView: View {
                     Button(action: { showQuiz = true }) {
                         HStack {
                             Image(systemName: "pencil.and.outline")
-                            Text("ทำแบบสำรวจไลฟ์สไตล์ใหม่")
+                            Text(SettingsManager.shared.text(thai: "ทำแบบสำรวจไลฟ์สไตล์ใหม่", english: "Retake lifestyle questionnaire"))
                                 .fontWeight(.bold)
                             Spacer()
                             Image(systemName: "chevron.right")
@@ -341,9 +348,9 @@ struct EditProfileView: View {
                     
                 }
 
-                Section(header: Text("สไตล์การเที่ยว (เลือกได้สูงสุด 5 ข้อ)")) {
+                Section(header: Text(SettingsManager.shared.text(thai: "สไตล์การเที่ยว (เลือกได้สูงสุด 5 ข้อ)", english: "Travel styles (select up to 5)"))) {
                     ForEach(INTEREST_SECTIONS) { section in
-                        Text(section.title)
+                        Text(section.displayTitle)
                             .font(.system(size: 13, weight: .bold))
                             .foregroundColor(.secondary)
                             .padding(.top, 8)
@@ -352,7 +359,7 @@ struct EditProfileView: View {
                         LazyVGrid(columns: [GridItem(.adaptive(minimum: 100))], spacing: 10) {
                             ForEach(section.categories) { cat in
                                 InterestTag(
-                                    label: cat.label,
+                                    label: cat.displayLabel,
                                     icon: cat.icon,
                                     isSelected: selectedInterests.contains(cat.label)
                                 ) {
@@ -370,23 +377,23 @@ struct EditProfileView: View {
                     }
                 }
                 
-                Section(header: Text("ตั้งค่าความเป็นส่วนตัว")) {
-                    Toggle("เปิดโปรไฟล์สาธารณะ", isOn: $isProfilePublic)
+                Section(header: Text(SettingsManager.shared.text(thai: "ตั้งค่าความเป็นส่วนตัว", english: "Privacy settings"))) {
+                    Toggle(tr("เปิดโปรไฟล์สาธารณะ", "Public profile"), isOn: $isProfilePublic)
                         .font(.system(size: 14, weight: .medium))
                     
                     if isProfilePublic {
-                        Toggle("แสดงเพศ", isOn: $showGender)
+                        Toggle(tr("แสดงเพศ", "Show gender"), isOn: $showGender)
                             .font(.system(size: 14, weight: .medium))
-                        Toggle("แสดงอายุ", isOn: $showAge)
+                        Toggle(tr("แสดงอายุ", "Show age"), isOn: $showAge)
                             .font(.system(size: 14, weight: .medium))
-                        Toggle("แสดงประวัติส่วนตัว", isOn: $showBio)
+                        Toggle(tr("แสดงประวัติส่วนตัว", "Show bio"), isOn: $showBio)
                             .font(.system(size: 14, weight: .medium))
-                        Toggle("แสดงสไตล์การเที่ยว", isOn: $showInterests)
+                        Toggle(tr("แสดงสไตล์การเที่ยว", "Show travel styles"), isOn: $showInterests)
                             .font(.system(size: 14, weight: .medium))
-                        Toggle("แสดงอีเมล", isOn: $showEmail)
+                        Toggle(tr("แสดงอีเมล", "Show email"), isOn: $showEmail)
                             .font(.system(size: 14, weight: .medium))
                     } else {
-                        Text("โปรไฟล์ถูกซ่อนจากผู้ใช้คนอื่น")
+                        Text(SettingsManager.shared.text(thai: "โปรไฟล์ถูกซ่อนจากผู้ใช้คนอื่น", english: "Your profile is hidden from other users"))
                             .font(.system(size: 12))
                             .foregroundColor(.adaptiveSecondaryText)
                     }
@@ -394,17 +401,17 @@ struct EditProfileView: View {
                 
 
             }
-            .navigationTitle("แก้ไขโปรไฟล์")
+            .navigationTitle(SettingsManager.shared.text(thai: "แก้ไขโปรไฟล์", english: "Edit Profile"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
-                    Button("เสร็จสิ้น") {
+                    Button(SettingsManager.shared.text(thai: "เสร็จสิ้น", english: "Done")) {
                         isBioFocused = false
                     }
                 }
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("ยกเลิก") { dismiss() }
+                    Button(SettingsManager.shared.text(thai: "ยกเลิก", english: "Cancel")) { dismiss() }
                         .foregroundColor(.appAccent)
                 }
                 ToolbarItem(placement: .confirmationAction) {
@@ -488,7 +495,7 @@ struct EditProfileView: View {
                                 .progressViewStyle(CircularProgressViewStyle())
                                 .tint(.appAccent)
                         } else {
-                            Text("บันทึก")
+                            Text(SettingsManager.shared.text(thai: "บันทึก", english: "Save"))
                         }
                     }
                     .foregroundColor(.appAccent)

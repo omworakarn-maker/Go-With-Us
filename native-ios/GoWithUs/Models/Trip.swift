@@ -167,6 +167,25 @@ enum TripCategory: String, Codable, CaseIterable {
     case temple = "ไหว้พระ"
     case other = "อื่นๆ"
 
+    var displayName: String {
+        guard SettingsManager.shared.currentLanguage == .english else { return rawValue }
+        switch self {
+        case .beach: return "Beach"
+        case .mountain: return "Mountain"
+        case .camping: return "Camping"
+        case .city: return "City"
+        case .cafe: return "Cafe"
+        case .food: return "Food"
+        case .hangout: return "Hangout"
+        case .photography: return "Photography"
+        case .shopping: return "Shopping"
+        case .concert: return "Concert"
+        case .adventure: return "Adventure"
+        case .temple: return "Temple"
+        case .other: return "Other"
+        }
+    }
+
     /// Bundled illustrated cover used only when the trip has no uploaded image.
     var coverAssetName: String {
         switch self {

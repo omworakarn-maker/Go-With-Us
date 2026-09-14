@@ -30,7 +30,7 @@ struct LoginView: View {
                                 .foregroundColor(.adaptiveText)
                                 .tracking(-1)
                             
-                            Text("ไปกับเรา สนุกกว่า")
+                            Text(tr("ไปกับเรา สนุกกว่า", "Travel is better together"))
                                 .font(.system(size: 14, weight: .medium))
                                 .foregroundColor(.gray)
                         }
@@ -42,7 +42,7 @@ struct LoginView: View {
                     VStack(spacing: 16) {
                         // Email Field
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("อีเมล")
+                            Text(tr("อีเมล", "Email"))
                                 .font(.system(size: 11, weight: .bold))
                                 .foregroundColor(.gray)
                                 .textCase(.uppercase)
@@ -68,7 +68,7 @@ struct LoginView: View {
                         
                         // Password Field
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("รหัสผ่าน")
+                            Text(tr("รหัสผ่าน", "Password"))
                                 .font(.system(size: 11, weight: .bold))
                                 .foregroundColor(.gray)
                                 .textCase(.uppercase)
@@ -109,7 +109,7 @@ struct LoginView: View {
                                     ProgressView()
                                         .tint(.white)
                                 } else {
-                                    Text("เข้าสู่ระบบ")
+                                    Text(tr("เข้าสู่ระบบ", "Log in"))
                                         .font(.system(size: 15, weight: .bold))
                                 }
                             }
@@ -125,9 +125,9 @@ struct LoginView: View {
                         // Register Link
                         NavigationLink(destination: RegisterView()) {
                             HStack(spacing: 4) {
-                                Text("ยังไม่มีบัญชี?")
+                                Text(tr("ยังไม่มีบัญชี?", "Don't have an account?"))
                                     .foregroundColor(.gray)
-                                Text("สมัครสมาชิก")
+                                Text(tr("สมัครสมาชิก", "Sign up"))
                                     .foregroundColor(Color.appPrimary)
                                     .fontWeight(.bold)
                             }

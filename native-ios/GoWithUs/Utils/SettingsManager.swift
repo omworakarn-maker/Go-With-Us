@@ -117,7 +117,7 @@ class SettingsManager: ObservableObject {
             // Alerts
             "logout_confirm": [.thai: "คุณต้องการออกจากระบบใช่หรือไม่?", .english: "Are you sure you want to logout?"],
             "language_change_title": [.thai: "เปลี่ยนภาษาสำเร็จ", .english: "Language Changed"],
-            "language_change_message": [.thai: "กรุณาปิดแอพและเปิดใหม่เพื่อให้การเปลี่ยนแปลงมีผลสมบูรณ์", .english: "Please close and restart the app for the changes to take full effect."],
+            "language_change_message": [.thai: "ทุกหน้าจะเปลี่ยนภาษาให้ทันที", .english: "All screens have been updated immediately."],
             "ok": [.thai: "ตกลง", .english: "OK"],
             "refresh": [.thai: "รีเฟรช", .english: "Refresh"],
             "loading_buddies": [.thai: "กำลังค้นหาเพื่อนใหม่...", .english: "Finding new buddies..."],
@@ -125,6 +125,11 @@ class SettingsManager: ObservableObject {
             "close": [.thai: "ปิด", .english: "Close"]
         ]
         return map[key]?[currentLanguage] ?? key
+    }
+
+    /// Use for screen-specific copy that does not need a reusable localization key.
+    func text(thai: String, english: String) -> String {
+        currentLanguage == .thai ? thai : english
     }
     
     // MARK: - Haptic Triggering
@@ -148,4 +153,26 @@ class SettingsManager: ObservableObject {
         generator.prepare()
         generator.selectionChanged()
     }
+}
+
+/// Short localization helper for view-specific copy.
+func tr(_ thai: String, _ english: String) -> String {
+    SettingsManager.shared.text(thai: thai, english: english)
+}
+
+/// Keeps the stored Thai location value unchanged while presenting a readable
+/// Latin form when the interface language is English.
+func localizedPlaceName(_ value: String) -> String {
+    guard SettingsManager.shared.currentLanguage == .english else { return value }
+    let commonNames = [
+        "กรุงเทพมหานคร": "Bangkok", "เชียงใหม่": "Chiang Mai", "เชียงราย": "Chiang Rai",
+        "ภูเก็ต": "Phuket", "กระบี่": "Krabi", "ชลบุรี": "Chon Buri", "อยุธยา": "Ayutthaya",
+        "พระนครศรีอยุธยา": "Phra Nakhon Si Ayutthaya", "นครราชสีมา": "Nakhon Ratchasima",
+        "สุราษฎร์ธานี": "Surat Thani", "ประจวบคีรีขันธ์": "Prachuap Khiri Khan"
+    ]
+    if let knownName = commonNames[value] { return knownName }
+    return value
+        .applyingTransform(.toLatin, reverse: false)?
+        .folding(options: [.diacriticInsensitive, .widthInsensitive], locale: Locale(identifier: "en_US"))
+        .capitalized ?? value
 }
