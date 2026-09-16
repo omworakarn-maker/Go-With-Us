@@ -59,13 +59,17 @@ const blockCosinePercentage = (userBlock, tripBlock) => (
     Math.round(clamp(cosineSimilarity(userBlock, tripBlock), 0, 1) * 100)
 );
 
-// Ratio-based similarity for positive quantities. Equal values score 100%;
-// the score decreases continuously as the values move apart.
-const ratioSimilarityPercentage = (first, second) => {
-    const a = Number(first);
-    const b = Number(second);
-    if (!Number.isFinite(a) || !Number.isFinite(b) || a <= 0 || b <= 0) return null;
-    return Math.round((Math.min(a, b) / Math.max(a, b)) * 100);
+// Range-normalized distance for a preferred number of activities per day.
+// Both values use the 1...10 range, whose maximum possible distance is 9.
+const activityDistancePercentage = (userValue, tripValue) => {
+    const userActivities = Number(userValue);
+    const tripActivities = Number(tripValue);
+    if (!Number.isFinite(userActivities) || !Number.isFinite(tripActivities)) return null;
+
+    const distance = Math.abs(
+        clamp(userActivities, 1, 10) - clamp(tripActivities, 1, 10)
+    );
+    return Math.round(clamp(1 - (distance / 9), 0, 1) * 100);
 };
 
 
@@ -288,12 +292,12 @@ export const calculateTripCompatibilityDetailed = (user, trip) => {
 
     }
 
-    // 2. จำนวนกิจกรรมต่อวัน: เปรียบเทียบจำนวนจริงด้วยอัตราส่วน min/max
+    // 2. จำนวนกิจกรรมต่อวัน: เปรียบเทียบระยะห่างของจำนวนจริงในช่วง 1...10
     // ดึงจำนวนกิจกรรมเฉลี่ยต่อวันของทริป (ถ้าไม่ระบุ ให้ดึงจากผู้สร้างทริปแทน)
     const tripPace = trip.activityStyle != null ? trip.activityStyle : (styleC ? styleC.activityStyle : null);
     // ตรวจสอบว่ามีข้อมูลกิจกรรมทั้งสองฝั่ง
     if (styleU && styleU.activityStyle !== null && tripPace !== null) {
-        breakdown.activityStyle = ratioSimilarityPercentage(styleU.activityStyle, tripPace);
+        breakdown.activityStyle = activityDistancePercentage(styleU.activityStyle, tripPace);
     }
 
     // 3. ช่วงเวลาของวัน: Cosine Similarity ของเวกเตอร์แบบ multi-hot

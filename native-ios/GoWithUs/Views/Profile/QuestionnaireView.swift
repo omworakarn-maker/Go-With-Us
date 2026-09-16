@@ -275,35 +275,43 @@ struct QuestionnaireView: View {
                             
                         } else if displayedStep == 2 {
                             // Activity Style Step
-                            Text(tr("🎯 จำนวนสถานที่ท่องเที่ยวต่อวัน (Places per Day)", "🎯 Places per day"))
+                            Text(tr("🎯 จำนวนสถานที่ท่องเที่ยวต่อวัน (Places per Day)", "🎯 Places per Day"))
                                 .font(.title2).bold()
                             Text(tr("เลือกจำนวนสถานที่ที่คุณสะดวกเที่ยวในหนึ่งวัน", "Choose how many places you prefer to visit in one day"))
                                 .font(.subheadline).foregroundColor(.secondary)
                             
-                            VStack(spacing: 18) {
-                                Text("\(Int(activityStyle))")
-                                    .font(.system(size: 52, weight: .bold))
-                                    .foregroundColor(.appPrimary)
+                            VStack(spacing: 10) {
+                                ForEach(1...10, id: \.self) { value in
+                                    let isSelected = Int(activityStyle) == value
+                                    Button {
+                                        triggerHapticFeedback()
+                                        activityStyle = Double(value)
+                                    } label: {
+                                        HStack {
+                                            Text(tr("\(value) สถานที่ต่อวัน", "\(value) places per day"))
+                                                .font(.system(size: 16, weight: .semibold))
 
-                                Text(tr("สถานที่ต่อวัน", "places per day"))
-                                    .font(.headline)
-                                    .foregroundColor(.secondary)
+                                            Spacer()
 
-                                Stepper(
-                                    tr("ปรับจำนวนสถานที่", "Adjust number of places"),
-                                    value: $activityStyle,
-                                    in: 1...10,
-                                    step: 1
-                                )
-                                .labelsHidden()
-
-                                Text(tr(
-                                    "เลือกเป็นจำนวนจริงที่คุณสะดวกเที่ยว ระบบจะเปรียบเทียบกับจำนวนสถานที่เฉลี่ยต่อวันของทริป",
-                                    "Choose the actual number you prefer. The system compares it with the trip's average places per day."
-                                ))
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                                .multilineTextAlignment(.center)
+                                            Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                                                .font(.system(size: 21, weight: .semibold))
+                                        }
+                                        .foregroundColor(isSelected ? .white : .adaptiveText)
+                                        .padding(.horizontal, 18)
+                                        .frame(maxWidth: .infinity)
+                                        .frame(height: 58)
+                                        .background(isSelected ? Color.appPrimary : Color.gray.opacity(0.08))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 14)
+                                                .stroke(
+                                                    isSelected ? Color.appPrimary : Color.gray.opacity(0.18),
+                                                    lineWidth: 1
+                                                )
+                                        )
+                                        .cornerRadius(14)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.top, 20)
