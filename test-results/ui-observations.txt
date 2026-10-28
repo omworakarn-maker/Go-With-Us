@@ -1,0 +1,8 @@
+TC-34 home card label (user a, budget-only profile): เข้ากันได้ 50%, TC34 B Future Trip, Phuket, 3 พ.ย. - 5 พ.ย., ฿1,000, 1, /5, T, TC34 b
+TC-35 home 'แนะนำ' list: ended trip IS listed, label=เข้ากันได้ 0%, TC34 Ended Trip, Phuket, 18 ต.ค. - 20 ต.ค., ฿1,000, 1, /5, T, TC34 b
+TC-35 match tab shows a single swipe deck; only the top card is visible, so presence of the ended trip in the deck is not verifiable from the screenshot
+TC-36b OTP field value before submit: 123456
+TC-38 after join: join button present=false, leave button present=true
+TC-39 pencil(edit) present=false, trash present=false
+TC-40 refresh icon hittable=true
+TC-40 retry button visible=true, error text visible=true

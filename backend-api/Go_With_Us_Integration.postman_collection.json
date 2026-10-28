@@ -427,6 +427,21 @@
           "response": [],
           "event": [
             {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Join returns 201 only for a NEW participant; an existing participant gets 200 (profile update).",
+                  "// Make the request repeatable: leave the trip first so User B is not already a participant. 404 = not a participant (fine).",
+                  "pm.sendRequest({",
+                  "  url: pm.variables.get('baseUrl') + '/api/trips/' + pm.variables.get('tripId') + '/leave',",
+                  "  method: 'DELETE',",
+                  "  header: { Authorization: 'Bearer ' + pm.variables.get('tokenB') }",
+                  "}, () => {});"
+                ]
+              }
+            },
+            {
               "listen": "test",
               "script": {
                 "id": "1ccaa41f-2aa8-4882-9b5a-12cfb12c3590",
