@@ -1,0 +1,65 @@
+[
+  {
+    "id": "TC-34",
+    "name": "Missing preference answers: score averages only answered factors",
+    "expected": "budget=50 (500/1000) is the only factor; matchScore=50; other factors null",
+    "actual": "status=200, matchScore=50, breakdown={\"budget\":50,\"activityStyle\":null,\"category\":null,\"timeOfDay\":null,\"groupMatch\":null}",
+    "pass": true
+  },
+  {
+    "id": "TC-35",
+    "name": "Ended trip is not shown in recommended list",
+    "expected": "ended trip id absent from /match/trips, future trip present",
+    "actual": "status=200, endedTripListed=false, futureTripListed=true",
+    "pass": true
+  },
+  {
+    "id": "TC-36a",
+    "name": "Wrong OTP is rejected",
+    "expected": "400 Invalid OTP, no account created",
+    "actual": "status=400, body={\"error\":\"Invalid OTP.\"}",
+    "pass": true
+  },
+  {
+    "id": "TC-36b",
+    "name": "Correct but expired OTP is rejected",
+    "expected": "400 OTP has expired, no account created",
+    "actual": "status=400, body={\"error\":\"OTP has expired. Please request a new one.\"}, accountCreated=false",
+    "pass": true
+  },
+  {
+    "id": "TC-37",
+    "name": "Register with an email that already exists",
+    "expected": "400 Email already registered",
+    "actual": "status=400, body={\"error\":\"Email already registered.\"}",
+    "pass": true
+  },
+  {
+    "id": "TC-38",
+    "name": "Join the same trip twice",
+    "expected": "first 201; second must not create a duplicate (participant rows for user = 1)",
+    "actual": "first=201, second=200 \"Participant updated successfully\", participantRows=1",
+    "pass": true
+  },
+  {
+    "id": "TC-39",
+    "name": "Non-owner edits / deletes a trip",
+    "expected": "403 for both, trip unchanged",
+    "actual": "edit=403, delete=403, title=\"tc34 future trip\", exists=true",
+    "pass": true
+  },
+  {
+    "id": "IT-06",
+    "name": "Postman join trip: user B joins trip created by A",
+    "expected": "status 201 (assertion in collection)",
+    "actual": "status=201, body={\"message\":\"Successfully joined the trip\",\"participant\":{\"id\":\"f3045fde-b115-4f8e-96ab-165bc3c7eeca\",\"tripId\":\"abdeb2f4-78b4-4801-b0a1-15e8eee69b34\",\"userId\":\"13d0833c-59a6-447b-988e-1352bb9f3523\",\"name\":\"Integration User B\",\"interests\":[\"ทะเล\",\"ถ่ายรูป\"],\"status\":\"going\",\"joinedAt\":\"2026-10-28T09:41:52.939Z\"}}",
+    "pass": true
+  },
+  {
+    "id": "IT-06-owner",
+    "name": "Join using the CREATOR token (creator is auto-added as participant)",
+    "expected": "informational: status returned",
+    "actual": "status=200, message=Participant updated successfully",
+    "pass": true
+  }
+]

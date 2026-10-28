@@ -1,0 +1,37 @@
+name: GoWithUs
+options:
+  bundleIdPrefix: com.gowithus
+  deploymentTarget:
+    iOS: "17.0"
+targets:
+  GoWithUs:
+    type: application
+    platform: iOS
+    sources:
+      - path: GoWithUs
+        excludes:
+          - "Info.plist"
+          - "Resources/Info.plist"
+    settings:
+      base:
+        INFOPLIST_FILE: GoWithUs/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: com.gowithus.GoWithUs
+        GENERATE_INFOPLIST_FILE: NO
+        SWIFT_VERSION: "5.0"
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGNING_ALLOWED: YES
+        CODE_SIGNING_REQUIRED: NO
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+  GoWithUsUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - GoWithUsUITests
+    dependencies:
+      - target: GoWithUs
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.gowithus.GoWithUsUITests
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGNING_ALLOWED: NO
+        TEST_TARGET_NAME: GoWithUs

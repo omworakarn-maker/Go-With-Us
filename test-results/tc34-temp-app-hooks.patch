@@ -1,0 +1,38 @@
+diff --git a/native-ios/GoWithUs/Services/APIService.swift b/native-ios/GoWithUs/Services/APIService.swift
+index cc66478..92fe37a 100644
+--- a/native-ios/GoWithUs/Services/APIService.swift
++++ b/native-ios/GoWithUs/Services/APIService.swift
+@@ -17,7 +17,7 @@ class APIService {
+     // private let baseURL = "http://192.168.1.88:3000/api" // Local backup
+     
+     // Base URL - Production (Render)
+-    let baseURL = "https://go-with-us-czc8.onrender.com/api"
++    let baseURL = "http://localhost:3000/api" // TEMP-TC34 (revert)
+     
+     private init() {}
+     
+diff --git a/native-ios/GoWithUs/ViewModels/AuthViewModel.swift b/native-ios/GoWithUs/ViewModels/AuthViewModel.swift
+index 0cf7e5c..8ab0959 100644
+--- a/native-ios/GoWithUs/ViewModels/AuthViewModel.swift
++++ b/native-ios/GoWithUs/ViewModels/AuthViewModel.swift
+@@ -16,8 +16,20 @@ class AuthViewModel: ObservableObject {
+     @Published var showOTPVerification = false
+     
+     init() {
++        applyTC34LaunchOverrides() // TEMP-TC34 (revert)
+         checkAuthStatus()
+     }
++
++    // TEMP-TC34 (revert): lets UI tests start logged-out and pre-fill form fields via launch arguments
++    // (-tc34Logout YES -tc34Email x -tc34Password y -tc34Name n -tc34Confirm y) because XCUITest cannot type into SecureField reliably.
++    private func applyTC34LaunchOverrides() {
++        let d = UserDefaults.standard
++        if d.bool(forKey: "tc34Logout") { AuthService.shared.logout() }
++        if let v = d.string(forKey: "tc34Email") { email = v }
++        if let v = d.string(forKey: "tc34Password") { password = v }
++        if let v = d.string(forKey: "tc34Name") { name = v }
++        if let v = d.string(forKey: "tc34Confirm") { confirmPassword = v }
++    }
+     
+     // MARK: - Check Auth Status
+     func checkAuthStatus() {
