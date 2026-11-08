@@ -9,12 +9,16 @@ import notificationRoutes from './routes/notificationRoutes.js';
 import matchRoutes from './routes/matchRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { createServerDiagnostics } from './utils/serverDiagnostics.js';
 
 // Load environment variables from the local .env file.
 dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3000;
+const diagnostics = createServerDiagnostics();
+// Track stalled requests before parsing uploads or accessing the database.
+app.use(diagnostics.middleware);
 
 // Middleware
 app.use(cors({
@@ -76,6 +80,8 @@ if (!process.env.VERCEL) {
   
   // Initialize WebSocket server
   initWebSocketServer(server);
+  diagnostics.start();
+  server.once('close', () => diagnostics.stop());
   
   server.listen(port, '0.0.0.0', () => {
     console.log(`🚀 Server is running on port ${port}`);
