@@ -102,7 +102,7 @@ const Explore: React.FC = () => {
   };
 
   const handleSendMessage = async (text: string) => {
-    if (!text.trim()) return;
+    if (!text.trim() || loading) return;
 
     // Add User Message
     const userMsg: Message = { id: Date.now().toString(), sender: 'user', text };
@@ -131,7 +131,7 @@ const Explore: React.FC = () => {
       setMessages(prev => [...prev, {
         id: Date.now().toString(),
         sender: 'ai',
-        text: 'ขออภัยครับ เกิดข้อผิดพลาดในการเชื่อมต่อกับ AI ลองใหม่อีกครั้งนะครับ 😅 ' + (error as any).message
+        text: error instanceof Error ? error.message : 'AI ไม่พร้อมใช้งานชั่วคราว กรุณาลองใหม่ภายหลัง'
       }]);
     } finally {
       setLoading(false);

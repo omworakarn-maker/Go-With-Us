@@ -1,23 +1,7 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { generateAIText } from "./aiRequest";
 import { Trip, AIRecommendation } from "../types";
 
-// Get API key from environment variables
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-
-// Initialize AI with API key if available
-const genAI = API_KEY ? new GoogleGenerativeAI(API_KEY) : null;
-
 export const analyzeTripPlan = async (trip: Trip, userPrompt?: string): Promise<AIRecommendation> => {
-  // Check if AI is initialized
-  if (!genAI) {
-    throw new Error('Gemini API key is not configured. Please set VITE_GEMINI_API_KEY in .env.local');
-  }
-
-  const model = genAI.getGenerativeModel({
-    model: "gemini-2.5-flash-lite",
-    generationConfig: { responseMimeType: "application/json", temperature: 0.35 }
-  });
-
   const start = new Date(trip.startDate);
   const end = trip.endDate ? new Date(trip.endDate) : start;
   const totalDays = Math.max(1, Math.floor((Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate()) - Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate())) / 86400000) + 1);
@@ -68,9 +52,7 @@ export const analyzeTripPlan = async (trip: Trip, userPrompt?: string): Promise<
   `;
 
   try {
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    let text = response.text();
+    let text = await generateAIText(prompt, { responseMimeType: "application/json", temperature: 0.35 });
 
     // Clean JSON string
     text = text.replace(/```json/g, '').replace(/```/g, '').trim();
@@ -109,12 +91,6 @@ export const exploreTrips = async (
   userProfile?: { name: string; interests: string[] }
 ): Promise<{ answer: string; suggestedTripIds: string[]; proposedTrip?: ProposedTrip | null }> => {
   try {
-    if (!genAI) {
-      throw new Error('Gemini API is not configured.');
-    }
-
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
-
     const tripsContext = availableTrips
       .map(
         (t) =>
@@ -169,9 +145,7 @@ export const exploreTrips = async (
       }
     `;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    let text = response.text();
+    let text = await generateAIText(prompt, { responseMimeType: "application/json", temperature: 0.35 });
 
     // Clean JSON string
     text = text.replace(/```json/g, '').replace(/```/g, '').trim();
@@ -184,28 +158,10 @@ export const exploreTrips = async (
     }
 
     return JSON.parse(jsonMatch[0]);
-    return JSON.parse(jsonMatch[0]);
   } catch (error) {
     console.error("Explore AI Error:", error);
 
-    // --- MOCK FALLBACK (เมื่อ AI พัง/Token หมด ให้ตอบแบบจำลองแทน) ---
-    console.log("⚠️ Switching to MOCK mode due to API Error");
-
-    const mockProposedTrip: ProposedTrip = {
-      title: "ทริปเชียงใหม่ สัมผัสอากาศหนาว",
-      destination: "เชียงใหม่",
-      description: "สัมผัสบรรยากาศดอยอินทนนท์ ชมดอกนางพญาเสือโคร่ง และไหว้พระธาตุดอยสุเทพ ทริป 3 วัน 2 คืน พักผ่อนท่ามกลางธรรมชาติ",
-      startDate: new Date(Date.now() + 86400000 * 7).toISOString().split('T')[0], // Next week
-      endDate: new Date(Date.now() + 86400000 * 10).toISOString().split('T')[0],
-      budget: "Moderate",
-      category: "Nature"
-    };
-
-    return {
-      answer: "ตอนนี้ AI ตัวจริงพักผ่อนอยู่ครับ (Token หมด/Error) 😅\nแต่ไม่ต้องห่วง! ผมจำลอง **ทริปตัวอย่าง** มาให้คุณลองกดเล่นดูนะครับ 👇",
-      suggestedTripIds: availableTrips.slice(0, 2).map(t => t.id), // แนะนำทริปที่มีอยู่มั่วๆ 2 อัน
-      proposedTrip: query.includes("สร้าง") || query.includes("ทริป") ? mockProposedTrip : undefined
-    };
+    throw error instanceof Error ? error : new Error('AI ไม่พร้อมใช้งานชั่วคราว กรุณาลองใหม่ภายหลัง');
   }
 };
 
@@ -213,10 +169,6 @@ export const exploreTrips = async (
 // NEW: Risk Assessment (Consultative AI)
 // ==========================================
 export const analyzeTripRisk = async (trip: Trip): Promise<{ riskLevel: string; analysis: string }> => {
-  if (!genAI) throw new Error('Gemini API is not configured.');
-
-  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
-
   const prompt = `
     Role: Professional Travel Risk Consultant.
     Task: Analyze the following trip plan for potential risks.
@@ -241,9 +193,7 @@ export const analyzeTripRisk = async (trip: Trip): Promise<{ riskLevel: string; 
   `;
 
   try {
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    let text = response.text();
+    let text = await generateAIText(prompt, { responseMimeType: "application/json", temperature: 0.35 });
     text = text.replace(/```json/g, '').replace(/```/g, '').trim();
     return JSON.parse(text);
   } catch (error) {

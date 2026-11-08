@@ -36,7 +36,8 @@ export const TripDetails: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [loading, setLoading] = useState(false);
+  const [aiLoading, setAILoading] = useState(false);
+  const [aiError, setAIError] = useState('');
   const [fetchingTrip, setFetchingTrip] = useState(true);
   const [recommendation, setRecommendation] = useState<AIRecommendation | null>(null);
   const [trip, setTrip] = useState<Trip | null>(null);
@@ -256,7 +257,9 @@ export const TripDetails: React.FC = () => {
     setShowAIConfirmModal(false);
     if (!trip) return;
 
-    setLoading(true);
+    if (aiLoading) return;
+    setAIError('');
+    setAILoading(true);
     try {
       const res = await analyzeTripPlan(trip, aiPrompt);
       setRecommendation(res);
@@ -273,11 +276,10 @@ export const TripDetails: React.FC = () => {
         }, 2000);
       }
     } catch (error) {
-      setNotification({ message: 'AI เกิดข้อผิดพลาดในการวิเคราะห์ กรุณาลองใหม่อีกครั้ง', type: 'error' });
-      setTimeout(() => setNotification(null), 3000);
+      setAIError(error instanceof Error ? error.message : 'AI ไม่พร้อมใช้งานชั่วคราว กรุณาลองใหม่ภายหลัง');
       console.error(error);
     } finally {
-      setLoading(false);
+      setAILoading(false);
     }
   };
 
@@ -659,7 +661,12 @@ export const TripDetails: React.FC = () => {
                 </div>
               </div>
             )}
-            {loading && (
+            {aiError && (
+              <p role="alert" className="rounded-2xl bg-amber-50 p-4 mb-4 text-sm text-amber-900">
+                {aiError} คุณยังดูทริป แชท และสร้างแผนเองได้
+              </p>
+            )}
+            {aiLoading && (
               <div className="flex flex-col items-center justify-center py-20 space-y-4">
                 <div className="w-6 h-6 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
                 <p className="text-sm text-gray-400 italic">กำลังออกแบบทริปที่ใช่สำหรับคุณ...</p>
@@ -667,7 +674,7 @@ export const TripDetails: React.FC = () => {
             )}
 
             {/* Itinerary Creation Section - Only for Creator OR Admin */}
-            {(isCreator || isAdmin) && !recommendation && !loading && (
+            {(isCreator || isAdmin) && !recommendation && (
               <div className="flex flex-col items-center justify-center p-12 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
                 <h3 className="text-2xl font-bold text-gray-900 mb-3">สร้างแผนการเดินทาง</h3>
                 <p className="text-sm text-gray-500 text-center mb-8 max-w-md">
@@ -705,6 +712,7 @@ export const TripDetails: React.FC = () => {
                     <p className="text-sm text-gray-600 mb-4">ให้ Gemini AI วิเคราะห์และสร้างแผนการเดินทางให้อัตโนมัติ</p>
                     <button
                       onClick={handleAIAnalysis}
+                      disabled={aiLoading}
                       className="w-full py-3 bg-gray-900 text-white text-sm font-bold rounded-xl hover:bg-gray-800 transition-all"
                     >
                       วิเคราะห์ด้วย AI
@@ -757,11 +765,11 @@ export const TripDetails: React.FC = () => {
                     <h2 className="text-sm uppercase tracking-widest text-gray-400 font-bold">มุมมองจาก AI</h2>
                     <button
                       onClick={handleAIAnalysis}
-                      disabled={loading}
+                      disabled={aiLoading}
                       className="text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors flex items-center gap-1 bg-indigo-50 px-3 py-2 rounded-full hover:bg-indigo-100"
                     >
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                      {loading ? 'กำลังวิเคราะห์...' : 'วิเคราะห์ใหม่'}
+                      {aiLoading ? 'กำลังวิเคราะห์...' : 'วิเคราะห์ใหม่'}
                     </button>
                   </div>
 
