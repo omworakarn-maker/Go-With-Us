@@ -29,7 +29,7 @@ npm run db:deploy
 npm run test:sessions
 ```
 
-`db:deploy` runs `prisma migrate deploy` followed by `prisma generate`. Configure the backend Render build to run:
+`db:deploy` generates Prisma Client, checks the known registration-table migration drift, then runs `prisma migrate deploy`. If the registration table already exists but its migration is missing/failed, recovery marks it applied only after verifying its columns, nullability, timestamp precision, defaults, primary key, and the failed migration checksum. A mismatch stops deployment without changing the table. Configure the backend Render build to run:
 
 ```sh
 npm ci --include=dev && npm run db:deploy
