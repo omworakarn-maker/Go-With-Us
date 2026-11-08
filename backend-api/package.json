@@ -11,7 +11,9 @@
     "create-admin": "node create-admin.js",
     "send-noti": "node send-notification.js",
     "del-noti": "node delete-notification.js",
-    "rm": "node reset_matches.js"
+    "rm": "node reset_matches.js",
+    "db:deploy": "prisma migrate deploy && prisma generate",
+    "test:sessions": "node tests/deviceSessions.test.cjs"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

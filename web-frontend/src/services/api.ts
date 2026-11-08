@@ -1,3 +1,4 @@
+import { getDeviceIdentity } from './deviceIdentity';
 // API Base URL
 import { DayPlan } from '../types';
 // Use relative path '/api' by default so it works with both Vite proxy (local) and Vercel rewrites (prod)
@@ -32,16 +33,21 @@ const authFetch = async (url: string, options: RequestInit = {}) => {
     if (!response.ok) {
         // Try to parse error as JSON, fallback to text
         let errorMessage = 'An error occurred';
+        let errorData: any = {};
         try {
             if (text) {
                 const error = JSON.parse(text);
+                errorData = error;
                 errorMessage = error.error || error.message || errorMessage;
             }
         } catch (e) {
             // If JSON parse fails, use text or status text
             errorMessage = text || response.statusText || errorMessage;
         }
-        throw new Error(errorMessage);
+        if (token && getAuthToken() === token && (errorData.code === 'SESSION_REVOKED' || (response.status === 401 && !url.includes('/auth/login')))) {
+            window.dispatchEvent(new Event('session-revoked'));
+        }
+        throw Object.assign(new Error(errorMessage), { status: response.status, code: errorData.code, sessions: errorData.sessions });
     }
 
     // Parse successful response
@@ -64,9 +70,19 @@ export interface RegisterData {
     password: string;
 }
 
+export interface DeviceSession {
+    id: string;
+    deviceName: string;
+    createdAt: string;
+    lastSeenAt: string;
+    expiresAt: string;
+    isCurrent?: boolean;
+}
+
 export interface LoginData {
     email: string;
     password: string;
+    replaceSessionId?: string;
 }
 
 export interface AuthResponse {
@@ -101,7 +117,7 @@ export const authAPI = {
     login: async (data: LoginData): Promise<AuthResponse> => {
         const response = await authFetch(`${API_BASE_URL}/auth/login`, {
             method: 'POST',
-            body: JSON.stringify(data),
+            body: JSON.stringify({ ...data, ...getDeviceIdentity() }),
         });
 
         // Save token to localStorage
@@ -118,11 +134,20 @@ export const authAPI = {
         return authFetch(`${API_BASE_URL}/auth/me`);
     },
 
-    // Logout
-    logout: () => {
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('currentUser');
-        window.location.href = '/login';
+    getSessions: async (): Promise<{ sessions: DeviceSession[]; maxDevices: number }> => authFetch(`${API_BASE_URL}/auth/sessions`),
+    revokeSession: async (id: string) => authFetch(`${API_BASE_URL}/auth/sessions/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+    logoutOthers: async () => authFetch(`${API_BASE_URL}/auth/sessions/others`, { method: 'DELETE' }),
+
+    // Revoke the server session before clearing this browser's credentials.
+    logout: async () => {
+        try { await authFetch(`${API_BASE_URL}/auth/logout`, { method: 'POST' }); }
+        catch { console.warn('Server logout unavailable; clearing this browser session'); }
+        finally {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('currentUser');
+            window.dispatchEvent(new Event('session-revoked'));
+            window.location.href = '/login';
+        }
     },
 
     // Check if user is logged in

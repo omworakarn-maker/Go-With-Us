@@ -53,6 +53,7 @@ model User {
   faceScanImage      String?   @db.Text
 
   // Relations
+  sessions         DeviceSession[]
   trips            Trip[] // Trips created by this user
   sentMessages     Message[]     @relation("SentMessages")
   receivedMessages Message[]     @relation("ReceivedMessages")
@@ -201,4 +202,23 @@ model UserMatch {
 
   @@unique([likerId, likedId])
   @@map("user_matches")
+}
+
+// One row per account/installation. Revoked rows remain until their token expires.
+model DeviceSession {
+  id          String    @id @default(uuid())
+  userId      String    @map("user_id")
+  deviceKey   String    @map("device_key")
+  deviceName  String    @map("device_name")
+  userAgent   String    @default("") @map("user_agent")
+  version     Int       @default(1)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  lastSeenAt  DateTime  @default(now()) @map("last_seen_at")
+  expiresAt   DateTime  @map("expires_at")
+  revokedAt   DateTime? @map("revoked_at")
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, deviceKey])
+  @@index([userId, revokedAt, expiresAt])
+  @@map("device_sessions")
 }

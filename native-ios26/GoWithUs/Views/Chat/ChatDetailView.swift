@@ -1,0 +1,362 @@
+import SwiftUI
+import PhotosUI
+
+struct ChatDetailView: View {
+    @StateObject private var viewModel = ChatViewModel()
+    let chatTitle: String
+    let tripId: String? // If set, it's a group chat
+    let partnerId: String? // If set, it's a private chat
+    @State private var messageText = ""
+    @State private var showPartnerProfile = false
+    @State private var partnerUser: User? = nil
+    @State private var selectedItem: PhotosPickerItem? = nil
+    @State private var selectedImageData: Data? = nil
+    @State private var isSendingImage = false
+    @Environment(\.dismiss) private var dismiss
+
+    init(chatTitle: String, tripId: String? = nil, partnerId: String? = nil, initialPartnerUser: User? = nil, isModal: Bool = false) {
+        self.isModal = isModal
+        self.chatTitle = chatTitle
+        self.tripId = tripId
+        self.partnerId = partnerId
+        self._partnerUser = State(initialValue: initialPartnerUser)
+    }
+
+    var isModal = false
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Messages List
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(spacing: 12) {
+                        ForEach(viewModel.messages) { message in
+                            MessageBubble(
+                                message: message,
+                                isCurrentUser: viewModel.isFromCurrentUser(message: message),
+                                onTapAvatar: {
+                                    // Tap on avatar to view sender profile
+                                    if let sender = message.sender,
+                                       !viewModel.isFromCurrentUser(message: message) {
+                                        partnerUser = User(
+                                            id: sender.id,
+                                            name: sender.name,
+                                            email: sender.email
+                                        )
+                                        showPartnerProfile = true
+                                    }
+                                }
+                            )
+                            .id(message.id)
+                            .contextMenu {
+                                Button {
+                                    UIPasteboard.general.string = message.content
+                                    HapticManager.shared.notification(type: .success)
+                                } label: {
+                                    Label(tr("คัดลอกข้อความ", "Copy message"), systemImage: "doc.on.doc")
+                                }
+
+                                if viewModel.isFromCurrentUser(message: message) {
+                                    Button(role: .destructive) {
+                                        Task {
+                                            await viewModel.deleteMessage(message)
+                                        }
+                                    } label: {
+                                        Label(tr("ยกเลิกข้อความ", "Unsend message"), systemImage: "trash")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    .padding()
+                    .id("Bottom")
+                }
+                .refreshable {
+                    if let tripId = tripId {
+                        await viewModel.loadTripMessages(tripId: tripId)
+                    } else if let partnerId = partnerId {
+                        await viewModel.loadPrivateMessages(userId: partnerId)
+                    }
+                }
+                .onChange(of: viewModel.messages) { _, _ in
+                    withAnimation {
+                        proxy.scrollTo("Bottom", anchor: .bottom)
+                    }
+                }
+            }
+            .frame(maxHeight: .infinity)
+            .background(Color(UIColor.systemGroupedBackground))
+
+            // Input Bar
+            VStack(spacing: 0) {
+                if let imageData = selectedImageData, let uiImage = UIImage(data: imageData) {
+                    HStack {
+                        ZStack(alignment: .topTrailing) {
+                            Image(uiImage: uiImage)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 80, height: 80)
+                                .cornerRadius(8)
+                                .clipped()
+
+                            Button(action: {
+                                selectedImageData = nil
+                                selectedItem = nil
+                            }) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundColor(.gray)
+                                    .background(Color.white.clipShape(Circle()))
+                            }
+                            .offset(x: 8, y: -8)
+                        }
+                        Spacer()
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 8)
+                }
+
+                HStack(alignment: .bottom, spacing: 10) {
+                    PhotosPicker(selection: $selectedItem, matching: .images) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 28))
+                            .foregroundColor(.gray.opacity(0.7))
+                    }
+                    .padding(.bottom, 8)
+
+                    HStack(alignment: .bottom, spacing: 0) {
+                        TextField(tr("พิมพ์ข้อความ...", "Type a message…"), text: $messageText, axis: .vertical)
+                            .lineLimit(1...5)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
+                            .foregroundColor(.adaptiveText)
+
+                        if !messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || selectedImageData != nil || isSendingImage {
+                            Button(action: {
+                                let content = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
+                                let base64Image = selectedImageData?.base64EncodedString()
+
+                                guard !content.isEmpty || base64Image != nil else { return }
+
+                                isSendingImage = true
+                                messageText = ""
+                                selectedItem = nil
+                                let dataToSend = selectedImageData
+                                selectedImageData = nil
+
+                                Task {
+                                    let img64 = dataToSend?.base64EncodedString()
+                                    await sendMessage(content: content, imageUrl: img64)
+                                    isSendingImage = false
+                                }
+                            }) {
+                                if isSendingImage {
+                                    ProgressView()
+                                        .frame(width: 34, height: 34)
+                                        .padding(.trailing, 6)
+                                        .padding(.bottom, 6)
+                                } else {
+                                    Image(systemName: "arrow.up.circle.fill")
+                                        .font(.system(size: 32))
+                                        .foregroundColor(Color.appPrimary)
+                                        .padding(.trailing, 6)
+                                        .padding(.bottom, 4)
+                                        .shadow(color: Color.appPrimary.opacity(0.3), radius: 3, x: 0, y: 2)
+                                }
+                            }
+                            .disabled(isSendingImage)
+                        }
+                    }
+                    .background(Color.adaptiveCardBackground)
+                    .cornerRadius(22)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 22)
+                            .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                    )
+                    .shadow(color: Color.black.opacity(0.03), radius: 5, x: 0, y: 2)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .padding(.bottom, getSafeAreaBottom() > 0 ? 0 : 8)
+            }
+            .background(Color.adaptiveBackground)
+            .shadow(color: .black.opacity(0.03), radius: 10, x: 0, y: -5)
+            .background(Color.adaptiveBackground)
+        }
+        .navigationTitle(chatTitle.isEmpty ? tr("แชท", "Chat") : chatTitle)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.visible, for: .navigationBar)
+        .toolbar {
+            if isModal {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button(tr("ปิด", "Close"), systemImage: "xmark") { dismiss() }
+                }
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                if let partnerId {
+                    Button(tr("ดูโปรไฟล์", "View profile"), systemImage: "person.crop.circle") {
+                        if partnerUser == nil {
+                            partnerUser = User(id: partnerId, name: chatTitle.isEmpty ? tr("ผู้ใช้", "User") : chatTitle, email: "")
+                        }
+                        showPartnerProfile = true
+                    }
+                }
+            }
+        }
+        .hideTabBar(true)
+        .onAppear {
+            // Initial load
+            if let tripId = tripId {
+                Task { await viewModel.loadTripMessages(tripId: tripId) }
+            } else if let partnerId = partnerId {
+                Task { await viewModel.loadPrivateMessages(userId: partnerId) }
+            }
+
+            // Fetch partner profile if it's a private chat
+            if let pid = partnerId {
+                Task {
+                    if let user = try? await AuthService.shared.fetchPublicProfile(userId: pid) {
+                        partnerUser = user
+                    }
+                }
+            }
+            // WebSocket automatically pushes new messages via NSNotification "WebSocketNewMessage"
+            // No more polling required!
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("WebSocketNewMessage"))) { notification in
+            if let message = notification.userInfo?["message"] as? Message {
+                // Ensure the message belongs to this chat before appending
+                let isForThisChat = (tripId != nil && message.tripId == tripId) ||
+                                    (partnerId != nil && (message.senderId == partnerId || message.recipientId == partnerId))
+
+                if isForThisChat && !viewModel.messages.contains(where: { $0.id == message.id }) {
+                    viewModel.messages.append(message)
+                }
+            }
+        }
+        .sheet(isPresented: $showPartnerProfile) {
+            if let user = partnerUser {
+                NavigationStack {
+                    UserProfileView(user: user, isModal: true)
+                }
+            }
+        }
+    }
+
+    private func sendMessage(content: String, imageUrl: String?) async {
+        if let tripId = tripId {
+            await viewModel.sendTripMessage(tripId: tripId, content: content, imageUrl: imageUrl)
+        } else if let partnerId = partnerId {
+            await viewModel.sendPrivateMessage(userId: partnerId, content: content, imageUrl: imageUrl)
+        }
+    }
+}
+
+struct MessageBubble: View {
+    let message: Message
+    let isCurrentUser: Bool
+    var onTapAvatar: (() -> Void)? = nil
+
+    private static let timeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        return formatter
+    }()
+
+    private var timeString: String {
+        return Self.timeFormatter.string(from: message.createdAt)
+    }
+
+    var body: some View {
+        HStack(alignment: .bottom, spacing: 8) {
+            if !isCurrentUser {
+                // Sender Avatar — tappable to view profile
+                Button(action: { onTapAvatar?() }) {
+                    let senderUser = message.sender.map { chatUser in
+                        User(id: chatUser.id, name: chatUser.name, email: chatUser.email, profileImage: chatUser.profileImage ?? chatUser.avatarUrl)
+                    }
+                    UserAvatarView(user: senderUser, size: 32)
+                }
+            } else {
+                Spacer()
+
+                // Time for current user (left of bubble)
+                Text(timeString)
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundColor(.gray.opacity(0.8))
+                    .padding(.bottom, 4)
+            }
+
+            VStack(alignment: isCurrentUser ? .trailing : .leading, spacing: 4) {
+                if !isCurrentUser {
+                    // Sender name — tappable to view profile
+                    Button(action: { onTapAvatar?() }) {
+                        Text(message.sender?.name ?? "Unknown")
+                            .font(.caption)
+                            .foregroundColor(.appPrimary)
+                            .padding(.leading, 4)
+                    }
+                }
+
+
+                if let base64String = message.imageUrl,
+                   let data = Data(base64Encoded: base64String),
+                   let uiImage = UIImage(data: data) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(maxWidth: 220)
+                        .cornerRadius(12)
+                        .padding(.horizontal, isCurrentUser ? 0 : 8)
+                        .padding(.vertical, 4)
+                }
+
+                if !message.content.isEmpty {
+                    Text(message.content)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .background(
+                            isCurrentUser ?
+                            AnyShapeStyle(LinearGradient(gradient: Gradient(colors: [Color.appPrimary, Color.appPrimary.opacity(0.8)]), startPoint: .topLeading, endPoint: .bottomTrailing)) :
+                                AnyShapeStyle(Color.adaptiveCardBackground)
+                        )
+                        .foregroundColor(isCurrentUser ? .white : .adaptiveText)
+                        .clipShape(
+                            RoundedCorner(
+                                radius: 20,
+                                corners: isCurrentUser ? [.topLeft, .topRight, .bottomLeft] : [.topLeft, .topRight, .bottomRight]
+                            )
+                        )
+                        .shadow(color: Color.black.opacity(0.04), radius: 2, x: 0, y: 1)
+                }
+            }
+
+            if !isCurrentUser {
+                // Time for other user (right of bubble)
+                Text(timeString)
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundColor(.gray.opacity(0.8))
+                    .padding(.bottom, 4)
+
+                Spacer()
+            } else {
+                VStack(alignment: .trailing, spacing: 2) {
+                    // Current User Avatar
+                    let senderUser = message.sender.map { chatUser in
+                        User(id: chatUser.id, name: chatUser.name, email: chatUser.email, profileImage: chatUser.profileImage ?? chatUser.avatarUrl)
+                    }
+                    UserAvatarView(user: senderUser, size: 32)
+
+                    // Read receipt
+                    if message.isRead == true {
+                        Text(tr("อ่านแล้ว", "Read"))
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(.gray)
+                            .padding(.top, 2)
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Helper for specific corner rounding

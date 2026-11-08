@@ -1,3 +1,4 @@
+import { startVisiblePolling } from '../services/visiblePolling';
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -35,10 +36,7 @@ const Navbar: React.FC<NavbarProps> = ({ onCreateActivity }) => {
       }
     };
 
-    loadUnreadCount();
-    const interval = setInterval(loadUnreadCount, 30000);
-
-    return () => clearInterval(interval);
+    return startVisiblePolling(loadUnreadCount, 30000);
   }, [isAuthenticated]);
 
   const handleCreateClick = () => {

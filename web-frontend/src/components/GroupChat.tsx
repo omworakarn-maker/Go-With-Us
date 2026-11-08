@@ -1,3 +1,4 @@
+import { startVisiblePolling } from '../services/visiblePolling';
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Message } from '../types';
@@ -23,9 +24,7 @@ export const GroupChat: React.FC<GroupChatProps> = ({ tripId, tripTitle, onClose
 
     // Fetch messages
     useEffect(() => {
-        fetchMessages();
-        const interval = setInterval(fetchMessages, 3000); // Poll every 3 seconds
-        return () => clearInterval(interval);
+        return startVisiblePolling(fetchMessages, 3000);
     }, [tripId]);
 
     // Auto scroll to bottom

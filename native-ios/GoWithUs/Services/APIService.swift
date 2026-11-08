@@ -57,7 +57,8 @@ class APIService {
         request.cachePolicy = .reloadIgnoringLocalCacheData
         
         // Add auth token if required
-        if requiresAuth, let token = KeychainService.shared.getToken() {
+        let authorizationToken = requiresAuth ? KeychainService.shared.getToken() : nil
+        if let token = authorizationToken {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
             print("🔑 Using auth token")
         }
@@ -68,7 +69,7 @@ class APIService {
             encoder.dateEncodingStrategy = .iso8601  // Use ISO8601 for backend
             let jsonData = try encoder.encode(body)
             request.httpBody = jsonData
-            if let jsonString = String(data: jsonData, encoding: .utf8) {
+            if !endpoint.hasPrefix("/auth/"), let jsonString = String(data: jsonData, encoding: .utf8) {
                 print("📤 Request Body: \(jsonString)")
             }
         }
@@ -84,13 +85,41 @@ class APIService {
             print("📥 Response Status: \(httpResponse.statusCode)")
             
             // Print raw response for debugging
-            if let responseString = String(data: data, encoding: .utf8) {
+            if !endpoint.hasPrefix("/auth/"), let responseString = String(data: data, encoding: .utf8) {
                 print("📥 Response Data: \(responseString)")
             }
             
             guard (200...299).contains(httpResponse.statusCode) else {
                 print("❌ HTTP Error: \(httpResponse.statusCode)")
                 
+                if httpResponse.statusCode == 401 && requiresAuth {
+                    let matchesCurrentSession = await MainActor.run {
+                        guard authorizationToken == KeychainService.shared.getToken() else { return false }
+                        NotificationCenter.default.post(name: .init("SessionRevoked"), object: nil)
+                        return true
+                    }
+                    guard matchesCurrentSession else { throw URLError(.cancelled) }
+                    throw APIError.unauthorized
+                }
+                if let errorJSON = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                    if errorJSON["code"] as? String == "DEVICE_LIMIT_REACHED",
+                       let rawSessions = errorJSON["sessions"],
+                       let sessionsData = try? JSONSerialization.data(withJSONObject: rawSessions) {
+                        let sessionDecoder = JSONDecoder()
+                        sessionDecoder.dateDecodingStrategy = .custom { decoder in
+                            let container = try decoder.singleValueContainer()
+                            let value = try container.decode(String.self)
+                            let formatter = ISO8601DateFormatter()
+                            formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+                            if let date = formatter.date(from: value) { return date }
+                            formatter.formatOptions = [.withInternetDateTime]
+                            if let date = formatter.date(from: value) { return date }
+                            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Invalid session date")
+                        }
+                        throw APIError.deviceLimit(try sessionDecoder.decode([DeviceSession].self, from: sessionsData))
+                    }
+                }
+
                 if let errorJson = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                    let needsVerification = errorJson["needsVerification"] as? Bool, needsVerification == true {
                     throw APIError.needsVerification
@@ -188,9 +217,12 @@ enum APIError: LocalizedError {
     case needsVerification
     case serverError(String)
     case previewNetworkDisabled
+    case deviceLimit([DeviceSession])
     
     var errorDescription: String? {
         switch self {
+        case .deviceLimit:
+            return "เข้าสู่ระบบครบ 3 อุปกรณ์แล้ว กรุณาเลือกอุปกรณ์ที่จะออกจากระบบ"
         case .invalidURL:
             return "Invalid URL"
         case .invalidResponse:
@@ -267,7 +299,7 @@ class WebSocketService {
             }
         }
         
-        receiveMessage()
+        if let task = webSocketTask { receiveMessage(from: task) }
     }
     
     func disconnect() {
@@ -275,31 +307,26 @@ class WebSocketService {
         webSocketTask = nil
     }
     
-    private func receiveMessage() {
-        webSocketTask?.receive { [weak self] result in
-            switch result {
-            case .failure(let error):
-                print("❌ WebSocket Receive Error: \(error)")
-                // Optionally handle reconnect logic here
-                self?.webSocketTask = nil
-            case .success(let message):
-                switch message {
-                case .string(let text):
-                    self?.handleIncomingMessage(text)
-                case .data(let data):
-                    if let text = String(data: data, encoding: .utf8) {
-                        self?.handleIncomingMessage(text)
+    private func receiveMessage(from task: URLSessionWebSocketTask) {
+        task.receive { [weak self, weak task] result in
+            Task { @MainActor [weak self, weak task] in
+                guard let self, let task, self.webSocketTask === task else { return }
+                switch result {
+                case .failure:
+                    self.webSocketTask = nil
+                case .success(let message):
+                    switch message {
+                    case .string(let text): self.handleIncomingMessage(text)
+                    case .data(let data):
+                        if let text = String(data: data, encoding: .utf8) { self.handleIncomingMessage(text) }
+                    @unknown default: break
                     }
-                @unknown default:
-                    break
+                    if self.webSocketTask === task { self.receiveMessage(from: task) }
                 }
-                
-                // Continue listening
-                self?.receiveMessage()
             }
         }
     }
-    
+
     private func handleIncomingMessage(_ text: String) {
         guard let data = text.data(using: .utf8) else { return }
         
@@ -308,7 +335,10 @@ class WebSocketService {
             if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
                let type = json["type"] as? String {
                 
-                if type == "new_message", let messageDict = json["message"] {
+                if type == "session_revoked" || type == "error" {
+                    disconnect()
+                    NotificationCenter.default.post(name: .init("SessionRevoked"), object: nil)
+                } else if type == "new_message", let messageDict = json["message"] {
                     // Re-encode and decode just the message part
                     let messageData = try JSONSerialization.data(withJSONObject: messageDict)
                     let decoder = JSONDecoder()

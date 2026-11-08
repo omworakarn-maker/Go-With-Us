@@ -1,0 +1,212 @@
+import SwiftUI
+import Combine
+
+struct MyTripsView: View {
+    @StateObject private var viewModel = MyTripsViewModel()
+    @EnvironmentObject var authViewModel: AuthViewModel
+    @Binding var showSideMenu: Bool
+
+    @State private var selectedTab: Int
+
+    init(showSideMenu: Binding<Bool>, initialTab: Int = 0) {
+        self._showSideMenu = showSideMenu
+        self._selectedTab = State(initialValue: initialTab)
+    }
+
+    var body: some View {
+        ZStack {
+            Color.adaptiveBackground.ignoresSafeArea()
+
+            NavigationStack {
+                VStack(spacing: 0) {
+                    // Header
+                    HStack {
+                        Button(action: {
+                            withAnimation {
+                                showSideMenu.toggle()
+                            }
+                        }) {
+                            Image(systemName: "line.3.horizontal")
+                                .font(.system(size: 24, weight: .bold))
+                                .foregroundColor(.adaptiveText)
+                        }
+
+                        Spacer()
+
+                        Text(SettingsManager.shared.localizedString(for: "my_trips"))
+                            .font(.system(size: 22, weight: .bold))
+                            .foregroundColor(.adaptiveText)
+
+                        Spacer()
+
+                        // Balance space
+                        Image(systemName: "line.3.horizontal")
+                            .font(.system(size: 24, weight: .bold))
+                            .foregroundColor(.clear)
+                    }
+                    .padding()
+                    .background(Color.adaptiveBackground)
+
+                    Picker(tr("หมวดหมู่", "Category"), selection: $selectedTab) {
+                        Text(SettingsManager.shared.text(thai: "สร้างเอง", english: "Created")).tag(0)
+                        Text(SettingsManager.shared.text(thai: "เข้าร่วมแล้ว", english: "Joined")).tag(1)
+                        Text(SettingsManager.shared.text(thai: "รายการโปรด", english: "Favorites")).tag(2)
+                    }
+                    .pickerStyle(SegmentedPickerStyle())
+                    .padding(.horizontal)
+                    .padding(.bottom, 10)
+
+                    Group {
+                        if viewModel.isLoading {
+                            Spacer()
+                            ProgressView()
+                            Spacer()
+                        } else if selectedTrips.isEmpty {
+                            Spacer()
+                            VStack(spacing: 16) {
+                                Image(systemName: selectedTab == 2 ? "heart.fill" : "airplane.departure")
+                                    .font(.system(size: 60))
+                                    .foregroundColor(.gray.opacity(0.3))
+                                Text(emptyStateMessage)
+                                    .font(.headline)
+
+                                if selectedTab == 0 {
+                                    NavigationLink(destination: CreateTripView()) {
+                                         Text(SettingsManager.shared.localizedString(for: "create"))
+                                            .font(.headline)
+                                            .foregroundColor(.white)
+                                            .padding()
+                                            .background(Color.appPrimary)
+                                            .cornerRadius(12)
+                                    }
+                                }
+                            }
+                            Spacer()
+                        } else {
+                            ScrollView {
+                                LazyVStack(spacing: 20) {
+                                    ForEach(selectedTrips) { trip in
+                                        NavigationLink(destination: TripDetailView(tripId: trip.id)) {
+                                            TripCardView(trip: trip)
+                                        }
+                                        .buttonStyle(PlainButtonStyle())
+                                    }
+                                }
+                                .padding()
+                            }
+                            .refreshable {
+                                if let userId = authViewModel.currentUser?.id {
+                                    await viewModel.fetchMyTrips(userId: userId)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .task {
+            if authViewModel.currentUser == nil {
+                await authViewModel.loadCurrentUser()
+            }
+            if let userId = authViewModel.currentUser?.id {
+                await viewModel.fetchMyTrips(userId: userId)
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("TripCreated"))) { notification in
+            if let createdTrip = notification.object as? Trip {
+                viewModel.insertCreatedTrip(createdTrip)
+            }
+            Task {
+                if authViewModel.currentUser == nil {
+                    await authViewModel.loadCurrentUser()
+                }
+                if let userId = authViewModel.currentUser?.id {
+                    await viewModel.fetchMyTrips(userId: userId)
+                }
+                await MainActor.run { selectedTab = 0 }
+            }
+        }
+    }
+
+    private var selectedTrips: [Trip] {
+        switch selectedTab {
+        case 0: return viewModel.createdTrips
+        case 1: return viewModel.joinedTrips
+        case 2: return viewModel.interestedTrips
+        default: return []
+        }
+    }
+
+    private var emptyStateMessage: String {
+        switch selectedTab {
+        case 0: return SettingsManager.shared.currentLanguage == .thai ? "คุณยังไม่มีทริปที่สร้างไว้" : "You haven't created any trips yet"
+        case 1: return SettingsManager.shared.currentLanguage == .thai ? "คุณยังไม่ได้เข้าร่วมทริปใดเลย" : "You haven't joined any trips yet"
+        case 2: return SettingsManager.shared.currentLanguage == .thai ? "ยังไม่มีทริปในรายการโปรด" : "No favorite trips yet"
+        default: return ""
+        }
+    }
+}
+
+class MyTripsViewModel: ObservableObject {
+    @Published var createdTrips: [Trip] = []
+    @Published var joinedTrips: [Trip] = []
+    @Published var interestedTrips: [Trip] = []
+    @Published var isLoading = false
+    @Published var errorMessage: String?
+
+    func fetchMyTrips(userId: String) async {
+        await MainActor.run {
+            // Keep an already-created trip visible while refreshing the other tabs.
+            isLoading = createdTrips.isEmpty
+            errorMessage = nil
+        }
+
+        do {
+            // Created trips are the primary content of this screen. Do not hide them
+            // just because the secondary all-trips request fails or decodes badly.
+            let created = try await TripService.shared.getMyCreatedTrips(userId: userId)
+            await MainActor.run {
+                self.createdTrips = created
+                self.isLoading = false
+            }
+
+            var joined: [Trip] = []
+            var interested: [Trip] = []
+
+            do {
+                let response: TripListResponse = try await APIService.shared.request(endpoint: "/trips", method: .get)
+                joined = response.trips.filter {
+                    $0.creatorId != userId &&
+                    $0.participants?.contains(where: { $0.userId == userId && $0.status == "going" }) == true
+                }
+                interested = response.trips.filter {
+                    $0.participants?.contains(where: { $0.userId == userId && $0.status == "interested" }) == true
+                }
+            } catch {
+                print("Could not load joined/favorite trips: \(error)")
+            }
+
+            await MainActor.run {
+                self.joinedTrips = joined
+                self.interestedTrips = interested
+                self.isLoading = false
+            }
+        } catch {
+            await MainActor.run {
+                self.errorMessage = SettingsManager.shared.currentLanguage == .thai ? "โหลดข้อมูลล้มเหลว" : "Failed to load data"
+                self.isLoading = false
+                print("Error loading my trips: \(error)")
+            }
+        }
+    }
+
+    @MainActor
+    func insertCreatedTrip(_ trip: Trip) {
+        guard !createdTrips.contains(where: { $0.id == trip.id }) else { return }
+        createdTrips.insert(trip, at: 0)
+    }
+}
+
+struct TripListResponse: Decodable {
+    let trips: [Trip]
+}

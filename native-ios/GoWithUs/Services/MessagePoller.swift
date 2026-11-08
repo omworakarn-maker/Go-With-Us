@@ -1,9 +1,12 @@
+import UIKit
 import Foundation
 import UserNotifications
+import Combine
 
 final class MessagePoller: ObservableObject {
     static let shared = MessagePoller()
 
+    private var isChecking = false
     private var timer: Timer?
     // Keep last seen message id per conversation to detect new messages
     private var lastMessageIds: [String: String] = [:]
@@ -51,9 +54,13 @@ final class MessagePoller: ObservableObject {
     func checkConversations() {
         guard !AppRuntime.isRunningForPreview else { return }
 
-        Task {
+        guard let token = KeychainService.shared.getToken(), UIApplication.shared.applicationState == .active, !isChecking else { return }
+        isChecking = true
+        Task { @MainActor in
+            defer { isChecking = false }
             do {
                 let conversations = try await MessageService.shared.getConversations()
+                guard KeychainService.shared.getToken() == token else { return }
                 let totalUnread = conversations.compactMap { $0.unreadCount }.reduce(0, +)
                 // Ensure UI updates and notifications happen on main thread
                 await MainActor.run {

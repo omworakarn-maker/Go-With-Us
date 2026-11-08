@@ -1,3 +1,4 @@
+import DeviceSessions from '../components/DeviceSessions';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { TripCard } from '../components/TripCard';
@@ -591,6 +592,8 @@ const Profile: React.FC = () => {
                         )}
                     </div>
                 </div>
+
+                <div className="max-w-xl mx-auto"><DeviceSessions /></div>
 
                 {/* Tabs & Content */}
                 <div className="space-y-8 max-w-4xl mx-auto">

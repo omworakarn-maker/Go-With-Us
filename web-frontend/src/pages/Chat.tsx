@@ -1,3 +1,4 @@
+import { startVisiblePolling } from '../services/visiblePolling';
 import React, { useState, useEffect, useRef } from 'react';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../contexts/AuthContext';
@@ -65,14 +66,7 @@ const Chat: React.FC = () => {
     // Load Messages when active conversation changes
     useEffect(() => {
         if (activeConversation?.user?.id) {
-            loadMessages(activeConversation.user.id);
-            // Polling for real-time (simplified)
-            const interval = setInterval(() => {
-                if (activeConversation?.user?.id) {
-                    loadMessages(activeConversation.user.id);
-                }
-            }, 3000);
-            return () => clearInterval(interval);
+            return startVisiblePolling(() => loadMessages(activeConversation.user.id), 3000);
         }
     }, [activeConversation]);
 

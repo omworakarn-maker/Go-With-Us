@@ -14,6 +14,7 @@ class AuthViewModel: ObservableObject {
     @Published var currentUser: User?
     @Published var needsOnboarding = false
     @Published var showOTPVerification = false
+    @Published var deviceSessions: [DeviceSession] = []
     
     init() {
         checkAuthStatus()
@@ -45,16 +46,17 @@ class AuthViewModel: ObservableObject {
                 print("⚠️ User has token but email is NOT verified. Forcing OTP screen.")
                 showOTPVerification = true
             }
+        } catch APIError.unauthorized {
+            logout()
         } catch let error as URLError where error.code == .cancelled {
             // Ignore cancellation, don't logout
         } catch {
-            // Token might be expired, logout
-            logout()
+            errorMessage = error.localizedDescription
         }
     }
     
     // MARK: - Login
-    func login() async {
+    func login(replacing sessionId: String? = nil) async {
         guard !email.isEmpty, !password.isEmpty else {
             errorMessage = "กรุณากรอกอีเมลและรหัสผ่าน"
             return
@@ -65,13 +67,17 @@ class AuthViewModel: ObservableObject {
         
         do {
             print("🔐 Starting login...")
-            let user = try await AuthService.shared.login(email: email, password: password)
+            let user = try await AuthService.shared.login(email: email, password: password, replaceSessionId: sessionId)
             print("✅ Login successful! User: \(user.name)")
+            deviceSessions = []
             currentUser = user
             isAuthenticated = true
             print("✅ isAuthenticated set to: \(isAuthenticated)")
             // Fetch full profile immediately so all fields (bio, gender, etc.) are available
             await loadCurrentUser()
+        } catch APIError.deviceLimit(let sessions) {
+            deviceSessions = sessions
+            errorMessage = "เข้าสู่ระบบครบ 3 อุปกรณ์แล้ว เลือกอุปกรณ์ที่จะออกจากระบบ"
         } catch APIError.needsVerification {
             print("⚠️ Login needs verification")
             showOTPVerification = true
