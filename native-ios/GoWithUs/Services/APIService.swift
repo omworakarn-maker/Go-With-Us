@@ -52,6 +52,8 @@ class APIService {
         print("🌐 API Request: \(method.rawValue) \(urlString)")
         
         var request = URLRequest(url: url)
+        // Allow Render cold starts and longer AI itinerary generation.
+        request.timeoutInterval = endpoint == "/ai/chat" ? 120 : 90
         request.httpMethod = method.rawValue
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.cachePolicy = .reloadIgnoringLocalCacheData

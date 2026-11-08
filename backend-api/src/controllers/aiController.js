@@ -2,6 +2,7 @@ import axios from 'axios';
 
 // Never queue AI work on the API server. Normal routes do not use this gate.
 const MAX_ACTIVE_AI_REQUESTS = 2;
+const AI_TIMEOUT_MS = 90_000;
 const AI_RETRY_DELAY_MS = 60_000;
 const activeUsers = new Set();
 let activeAIRequests = 0;
@@ -14,8 +15,8 @@ const unavailable = (res, code, message, retrySeconds) => {
 
 export const chatWithGemini = async (req, res, next) => {
     const { contents, generationConfig } = req.body || {};
-    const apiKey = process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
-    const model = 'gemini-flash-latest';
+    const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
+    const model = process.env.GEMINI_MODEL || 'gemini-flash-latest';
     const userId = req.user?.userId;
 
     if (!contents || !Array.isArray(contents)) {
@@ -40,8 +41,8 @@ export const chatWithGemini = async (req, res, next) => {
             contents,
             ...(generationConfig && { generationConfig })
         }, {
-            timeout: 20_000,
-            signal: AbortSignal.timeout(20_000),
+            timeout: AI_TIMEOUT_MS,
+            signal: AbortSignal.timeout(AI_TIMEOUT_MS),
             maxBodyLength: 256 * 1024,
             maxContentLength: 1024 * 1024,
             headers: { 'Content-Type': 'application/json' }
@@ -51,8 +52,8 @@ export const chatWithGemini = async (req, res, next) => {
     } catch (error) {
         const upstreamStatus = error.response?.status;
         const timedOut = ['ECONNABORTED', 'ETIMEDOUT', 'ERR_CANCELED'].includes(error.code);
-        // Back off only on provider outages/rate limits/network failures.
-        if (timedOut || !upstreamStatus || upstreamStatus === 429 || upstreamStatus >= 500) {
+        // A slow individual generation must not disable AI for all users.
+        if (upstreamStatus === 429 || upstreamStatus >= 500) {
             retryAfter = Date.now() + AI_RETRY_DELAY_MS;
         }
         // Do not expose upstream payloads, request contents, or API keys.
