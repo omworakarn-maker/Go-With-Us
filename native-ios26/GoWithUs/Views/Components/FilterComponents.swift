@@ -1,0 +1,250 @@
+import SwiftUI
+
+// MARK: - Reusable Filter Button
+struct FilterButton: View {
+    let title: String
+    let isSelected: Bool
+    let icon: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: {
+            SettingsManager.shared.triggerSelection()
+            action()
+        }) {
+            HStack(spacing: 4) {
+                Text(icon)
+                    .font(.system(size: 14))
+                Text(title)
+                    .font(.system(size: 13, weight: .bold))
+            }
+            .foregroundColor(isSelected ? .appPrimary : .adaptiveText)
+            .padding(.horizontal, 16)
+            .frame(minHeight: 44)
+            .fixedSize(horizontal: true, vertical: false)
+            .appGlass(in: Capsule(), tint: isSelected ? Color.appAccent.opacity(0.35) : nil, interactive: true)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Pickers (Sheets)
+
+struct ProvincePicker: View {
+    @ObservedObject private var settings = SettingsManager.shared
+    @Environment(\.dismiss) var dismiss
+    @Binding var selectedProvince: String?
+    let provinces = [
+        "ทุกจังหวัด",
+        "กรุงเทพมหานคร", "กระบี่", "กาญจนบุรี", "กาฬสินธุ์", "กำแพงเพชร", "ขอนแก่น", "จันทบุรี", "ฉะเชิงเทรา",
+        "ชลบุรี", "ชัยนาท", "ชัยภูมิ", "ชุมพร", "เชียงราย", "เชียงใหม่", "ตรัง", "ตราด", "ตาก", "นครนายก", "นครปฐม",
+        "นครพนม", "นครราชสีมา", "นครศรีธรรมราช", "นครสวรรค์", "นนทบุรี", "นราธิวาส", "น่าน", "บึงกาฬ", "บุรีรัมย์",
+        "ปทุมธานี", "ประจวบคีรีขันธ์", "ปราจีนบุรี", "ปัตตานี", "พระนครศรีอยุธยา", "พะเยา", "พังงา", "พัทลุง", "พิจิตร",
+        "พิษณุโลก", "เพชรบุรี", "เพชรบูรณ์", "แพร่", "ภูเก็ต", "มหาสารคาม", "มุกดาหาร", "แม่ฮ่องสอน", "ยโสธร", "ยะลา",
+        "ร้อยเอ็ด", "ระนอง", "ระยอง", "ราชบุรี", "ลพบุรี", "ลำปาง", "ลำพูน", "เลย", "ศรีสะเกษ", "สกลนคร", "สงขลา", "สตูล",
+        "สมุทรปราการ", "สมุทรสงคราม", "สมุทรสาคร", "สระแก้ว", "สระบุรี", "สิงห์บุรี", "สุโขทัย", "สุพรรณบุรี",
+        "สุราษฎร์ธานี", "สุรินทร์", "หนองคาย", "หนองบัวลำภู", "อ่างทอง", "อำนาจเจริญ", "อุดรธานี", "อุตรดิตถ์",
+        "อุทัยธานี", "อุบลราชธานี"
+    ]
+
+    // Use a local state for the picker, so we can confirm selection
+    @State private var tempSelection: String
+
+    init(selectedProvince: Binding<String?>) {
+        self._selectedProvince = selectedProvince
+        self._tempSelection = State(initialValue: selectedProvince.wrappedValue ?? "ทุกจังหวัด")
+    }
+
+    var body: some View {
+        NavigationView {
+            VStack {
+                Picker(SettingsManager.shared.text(thai: "เลือกจังหวัด", english: "Select province"), selection: $tempSelection) {
+                    ForEach(provinces, id: \.self) { province in
+                        Text(province == "ทุกจังหวัด" ? tr("ทุกจังหวัด", "All provinces") : localizedPlaceName(province)).tag(province)
+                    }
+                }
+                .pickerStyle(.wheel)
+                .frame(height: 250)
+
+                Spacer()
+
+                Button(action: {
+                    if tempSelection == "ทุกจังหวัด" {
+                        selectedProvince = nil
+                    } else {
+                        selectedProvince = tempSelection
+                    }
+                    SettingsManager.shared.triggerSelection()
+                    dismiss()
+                }) {
+                    Text(SettingsManager.shared.text(thai: "ตกลง", english: "Apply"))
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.appSecondary)
+                        .cornerRadius(12)
+                        .padding(.horizontal, 24)
+                }
+                .padding(.bottom, 20)
+            }
+            .navigationTitle(SettingsManager.shared.text(thai: "เลือกจังหวัด", english: "Select province"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(SettingsManager.shared.text(thai: "ยกเลิก", english: "Cancel")) { dismiss() }
+                        .foregroundColor(.appSecondary)
+                }
+            }
+        }
+        .presentationDetents([.medium])
+    }
+}
+
+struct DatePickerSheet: View {
+    @ObservedObject private var settings = SettingsManager.shared
+    @Environment(\.dismiss) var dismiss
+    @Binding var selectedDate: Date?
+    @Binding var selectedEndDate: Date?
+
+    @State private var startDate: Date? = nil
+    @State private var endDate: Date? = nil
+
+    init(selectedDate: Binding<Date?>, selectedEndDate: Binding<Date?> = .constant(nil)) {
+        self._selectedDate = selectedDate
+        self._selectedEndDate = selectedEndDate
+    }
+
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 0) {
+                ScrollView {
+                    VStack(spacing: 16) {
+                        // Instruction text
+                        Text(SettingsManager.shared.text(thai: "แตะวันเริ่ม แล้วแตะวันสิ้นสุดได้เลย", english: "Select a start date, then an end date"))
+                            .font(.system(size: 13, weight: .regular))
+                            .foregroundColor(.gray)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal)
+                            .padding(.top, 12)
+
+                        CustomDateRangePicker(
+                            startDate: $startDate,
+                            endDate: $endDate
+                        )
+                        .padding(.horizontal)
+                    }
+                    .padding(.bottom, 16)
+                }
+
+                // Bottom Actions
+                VStack(spacing: 12) {
+                    Button(action: {
+                        SettingsManager.shared.triggerNotification(type: .success)
+                        selectedDate = startDate
+                        selectedEndDate = endDate
+                        dismiss()
+                    }) {
+                        Text(SettingsManager.shared.text(thai: "ตกลง", english: "Apply"))
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(startDate != nil ? Color.appSecondary : Color.gray.opacity(0.4))
+                            .cornerRadius(12)
+                    }
+                    .disabled(startDate == nil)
+
+                    Button(SettingsManager.shared.text(thai: "ล้างค่า", english: "Clear")) {
+                        startDate = nil
+                        endDate = nil
+                        selectedDate = nil
+                        selectedEndDate = nil
+                        dismiss()
+                    }
+                    .foregroundColor(.gray)
+                    .font(.system(size: 15, weight: .semibold))
+                }
+                .padding()
+                .background(Color.adaptiveBackground)
+                .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: -5)
+            }
+            .background(Color.adaptiveBackground.ignoresSafeArea())
+            .navigationTitle(SettingsManager.shared.text(thai: "เลือกวันเดินทาง", english: "Select travel dates"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(SettingsManager.shared.text(thai: "ปิด", english: "Close")) { dismiss() }
+                        .foregroundColor(.black)
+                }
+            }
+        }
+        .presentationDetents([.large])
+        .onAppear {
+            startDate = selectedDate
+            endDate = selectedEndDate
+        }
+    }
+}
+
+struct CategoryPicker: View {
+    @ObservedObject private var settings = SettingsManager.shared
+    @Environment(\.dismiss) var dismiss
+    @Binding var selectedCategory: TripCategory?
+
+    // We need a temp selection that can hold nil (represented by "ทุกสไตล์")
+    @State private var tempSelectionRaw: String
+
+    init(selectedCategory: Binding<TripCategory?>) {
+        self._selectedCategory = selectedCategory
+        self._tempSelectionRaw = State(initialValue: selectedCategory.wrappedValue?.rawValue ?? "ทุกสไตล์")
+    }
+
+    var body: some View {
+        NavigationView {
+            VStack {
+                Picker(SettingsManager.shared.text(thai: "เลือกสไตล์", english: "Select style"), selection: $tempSelectionRaw) {
+                    Text(SettingsManager.shared.text(thai: "ทุกสไตล์", english: "All styles")).tag("ทุกสไตล์")
+                    ForEach(TripCategory.allCases, id: \.self) { category in
+                        Text(category.displayName).tag(category.rawValue)
+                    }
+                }
+                .pickerStyle(.wheel)
+                .frame(height: 250)
+
+                Spacer()
+
+                Button(action: {
+                    if tempSelectionRaw == "ทุกสไตล์" {
+                        selectedCategory = nil
+                    } else {
+                        if let category = TripCategory(rawValue: tempSelectionRaw) {
+                            selectedCategory = category
+                        }
+                    }
+                    SettingsManager.shared.triggerSelection()
+                    dismiss()
+                }) {
+                    Text(SettingsManager.shared.text(thai: "ตกลง", english: "Apply"))
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.appSecondary)
+                        .cornerRadius(12)
+                        .padding(.horizontal, 24)
+                }
+                .padding(.bottom, 20)
+            }
+            .navigationTitle(SettingsManager.shared.text(thai: "เลือกสไตล์", english: "Select style"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(SettingsManager.shared.text(thai: "ยกเลิก", english: "Cancel")) { dismiss() }
+                        .foregroundColor(.appSecondary)
+                }
+            }
+        }
+        .presentationDetents([.medium])
+    }
+}

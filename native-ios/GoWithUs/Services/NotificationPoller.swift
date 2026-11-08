@@ -1,3 +1,4 @@
+import Combine
 import Foundation
 import UserNotifications
 import UIKit
@@ -5,6 +6,7 @@ import UIKit
 class NotificationPoller: ObservableObject {
     static let shared = NotificationPoller()
     
+    private var isChecking = false
     private var timer: Timer?
     private var lastChecked: Date = Date()
     @Published var unreadCount: Int = 0
@@ -34,10 +36,14 @@ class NotificationPoller: ObservableObject {
     func checkNotifications() {
         guard !AppRuntime.isRunningForPreview else { return }
 
-        Task {
+        guard let token = KeychainService.shared.getToken(), UIApplication.shared.applicationState == .active, !isChecking else { return }
+        isChecking = true
+        Task { @MainActor in
+            defer { isChecking = false }
             do {
                 // 1. Get unread count for badge
                 let count = try await NotificationService.shared.getUnreadCount()
+                guard KeychainService.shared.getToken() == token else { return }
                 
                     await MainActor.run {
                         self.unreadCount = count
@@ -51,6 +57,7 @@ class NotificationPoller: ObservableObject {
                 
                 // 2. Get latest notifications to see if we need to alert
                 let notifications = try await NotificationService.shared.getNotifications()
+                guard KeychainService.shared.getToken() == token else { return }
                 
                 // Filter for new notifications (created after last checked time)
                 let newNotifications = notifications.filter { notification in

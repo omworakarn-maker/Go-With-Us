@@ -1,3 +1,4 @@
+import { startVisiblePolling } from '../services/visiblePolling';
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { authAPI } from '../services/api';
 
@@ -16,9 +17,9 @@ interface AuthContextType {
     user: User | null;
     isAuthenticated: boolean;
     isLoading: boolean;
-    login: (email: string, password: string) => Promise<void>;
+    login: (email: string, password: string, replaceSessionId?: string) => Promise<void>;
     register: (name: string, email: string, password: string) => Promise<void>;
-    logout: () => void;
+    logout: () => Promise<void>;
     refreshUser: () => Promise<void>;
 }
 
@@ -47,11 +48,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     const response = await authAPI.getCurrentUser();
                     setUser(response.user);
                     localStorage.setItem('currentUser', JSON.stringify(response.user));
-                } catch (error) {
-                    // Token is invalid, clear it
-                    localStorage.removeItem('authToken');
-                    localStorage.removeItem('currentUser');
-                    setUser(null);
+                } catch (error: any) {
+                    if (localStorage.getItem('authToken') === token) {
+                        if (error.status === 401) {
+                            localStorage.removeItem('authToken');
+                            localStorage.removeItem('currentUser');
+                        }
+                        setUser(null);
+                    }
                 }
             }
             setIsLoading(false);
@@ -60,8 +64,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         initAuth();
     }, []);
 
-    const login = async (email: string, password: string) => {
-        const response = await authAPI.login({ email, password });
+    const login = async (email: string, password: string, replaceSessionId?: string) => {
+        const response = await authAPI.login({ email, password, replaceSessionId });
         setUser(response.user);
     };
 
@@ -70,9 +74,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(response.user);
     };
 
-    const logout = () => {
-        authAPI.logout();
-        setUser(null);
+    const logout = async () => {
+        try { await authAPI.logout(); }
+        finally { setUser(null); }
     };
 
     const refreshUser = async () => {
@@ -83,6 +87,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             console.error('Failed to refresh user:', error);
         }
     };
+
+    useEffect(() => {
+        const clearSession = () => {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('currentUser');
+            setUser(null);
+        };
+        const syncTabs = (event: StorageEvent) => {
+            if (event.key !== 'authToken') return;
+            if (!event.newValue) setUser(null); else void refreshUser();
+        };
+        window.addEventListener('session-revoked', clearSession);
+        window.addEventListener('storage', syncTabs);
+        return () => {
+            window.removeEventListener('session-revoked', clearSession);
+            window.removeEventListener('storage', syncTabs);
+        };
+    }, []);
+
+    useEffect(() => {
+        if (!user) return;
+        return startVisiblePolling(refreshUser, 60_000);
+    }, [user?.id]);
 
     return (
         <AuthContext.Provider

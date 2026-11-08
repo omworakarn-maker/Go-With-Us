@@ -1,3 +1,4 @@
+import { DeviceSession } from '../services/api';
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -10,18 +11,21 @@ const Login: React.FC = () => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [sessions, setSessions] = useState<DeviceSession[]>([]);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSubmit = async (e?: React.FormEvent, replaceSessionId?: string) => {
+        e?.preventDefault();
+        if (loading) return;
         setError('');
         setLoading(true);
 
         try {
-            await login(email, password);
+            await login(email, password, replaceSessionId);
             const from = (location.state as any)?.from?.pathname || '/';
             navigate(from, { replace: true });
         } catch (err: any) {
             setError(err.message || 'อีเมลหรือรหัสผ่านไม่ถูกต้อง');
+            if (err.code === 'DEVICE_LIMIT_REACHED') setSessions(err.sessions || []);
         } finally {
             setLoading(false);
         }
@@ -54,6 +58,17 @@ const Login: React.FC = () => {
                         </div>
                     )}
 
+                    {sessions.length > 0 && <section className="mb-6 rounded-2xl border border-gray-200 p-4">
+                        <h3 className="font-bold mb-2">เลือกอุปกรณ์ที่จะออกจากระบบ</h3>
+                        <p className="text-sm text-gray-500 mb-3">เมื่อเลือกแล้ว เครื่องนี้จะเข้าสู่ระบบแทน โดยไม่กระทบอุปกรณ์อื่น</p>
+                        {sessions.map(session => <button key={session.id} type="button" disabled={loading}
+                            onClick={() => handleSubmit(undefined, session.id)}
+                            className="block w-full text-left p-3 border-t border-gray-100 disabled:opacity-50">
+                            <span className="font-medium">{session.deviceName}</span>
+                            <span className="block text-xs text-gray-500">ใช้งานล่าสุด {new Date(session.lastSeenAt).toLocaleString('th-TH')}</span>
+                        </button>)}
+                    </section>}
+
                     <form onSubmit={handleSubmit} className="space-y-5">
                         {/* Email */}
                         <div className="space-y-2">
@@ -64,7 +79,7 @@ const Login: React.FC = () => {
                                 type="email"
                                 required
                                 value={email}
-                                onChange={(e) => setEmail(e.target.value)}
+                                onChange={(e) => { setEmail(e.target.value); setSessions([]); }}
                                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-black placeholder-gray-400 focus:ring-2 focus:ring-black focus:border-black outline-none transition-all"
                                 placeholder="your@email.com"
                             />
@@ -79,7 +94,7 @@ const Login: React.FC = () => {
                                 type="password"
                                 required
                                 value={password}
-                                onChange={(e) => setPassword(e.target.value)}
+                                onChange={(e) => { setPassword(e.target.value); setSessions([]); }}
                                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-black placeholder-gray-400 focus:ring-2 focus:ring-black focus:border-black outline-none transition-all"
                                 placeholder="••••••••"
                             />

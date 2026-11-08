@@ -1,3 +1,4 @@
+import { createDeviceSession, SESSION_LIFETIME_SECONDS } from '../utils/deviceSessions.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
@@ -144,10 +145,11 @@ export const login = async (req, res, next) => {
         }
 
         // Generate JWT token
+        const session = await createDeviceSession(user.id, req);
         const token = jwt.sign(
-            { userId: user.id, email: user.email, role: user.role },
+            { userId: user.id, email: user.email, role: user.role, sid: session.id, sessionVersion: session.version },
             JWT_SECRET,
-            { expiresIn: '7d' }
+            { expiresIn: SESSION_LIFETIME_SECONDS }
         );
 
         res.json({
@@ -272,10 +274,11 @@ export const verifyOTP = async (req, res, next) => {
             return createdUser;
         });
 
+        const session = await createDeviceSession(user.id, req);
         const token = jwt.sign(
-            { userId: user.id, email: user.email, role: user.role },
+            { userId: user.id, email: user.email, role: user.role, sid: session.id, sessionVersion: session.version },
             JWT_SECRET,
-            { expiresIn: '7d' }
+            { expiresIn: SESSION_LIFETIME_SECONDS }
         );
 
         res.status(201).json({

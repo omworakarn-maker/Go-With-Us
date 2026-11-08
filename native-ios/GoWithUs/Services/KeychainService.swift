@@ -10,6 +10,29 @@ class KeychainService {
     
     private init() {}
     
+    /// Stable random installation ID; it is separate from the login token.
+    func deviceId() -> String {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: "deviceInstallationId",
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+        var result: AnyObject?
+        if SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
+           let data = result as? Data, let id = String(data: data, encoding: .utf8) { return id }
+        let id = UserDefaults.standard.string(forKey: "deviceInstallationId") ?? UUID().uuidString
+        UserDefaults.standard.set(id, forKey: "deviceInstallationId")
+        var attributes = query
+        attributes.removeValue(forKey: kSecReturnData as String)
+        attributes.removeValue(forKey: kSecMatchLimit as String)
+        attributes[kSecValueData as String] = Data(id.utf8)
+        attributes[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+        SecItemAdd(attributes as CFDictionary, nil)
+        return id
+    }
+
     // MARK: - Save Token
     func saveToken(_ token: String) -> Bool {
         let data = Data(token.utf8)
@@ -22,7 +45,9 @@ class KeychainService {
         ]
         
         // Delete existing item
-        SecItemDelete(query as CFDictionary)
+        var existingQuery = query
+        existingQuery.removeValue(forKey: kSecValueData as String)
+        SecItemDelete(existingQuery as CFDictionary)
         
         // Add new item
         let status = SecItemAdd(query as CFDictionary, nil)

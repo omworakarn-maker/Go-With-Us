@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:sessions": "node tests/devicePolling.test.cjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.0.2",

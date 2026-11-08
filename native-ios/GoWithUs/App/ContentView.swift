@@ -120,14 +120,21 @@ struct ContentView: View {
                 }
             }
             .task {
+                WebSocketService.shared.connect()
+                NotificationPoller.shared.startPolling()
                 await fetchUnreadCounts()
             }
             .onChange(of: scenePhase) { newPhase in
                 switch newPhase {
                 case .background:
+                    WebSocketService.shared.disconnect()
+                    NotificationPoller.shared.stopPolling()
+                    MessagePoller.shared.stopPolling()
                     // Record when we went to background
                     backgroundedAt = Date()
                 case .active:
+                    WebSocketService.shared.connect()
+                    NotificationPoller.shared.startPolling()
                     // If we were backgrounded for 10+ minutes, force full refresh
                     if let bg = backgroundedAt, Date().timeIntervalSince(bg) > 600 {
                         // Reset all caches
@@ -169,6 +176,9 @@ struct ContentView: View {
             LoginView()
         }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .init("SessionRevoked"))) { _ in
+            authViewModel.logout()
+        }
         .fullScreenCover(isPresented: $authViewModel.needsOnboarding) {
             NavigationStack {
                 QuestionnaireView(isOnboarding: true)
@@ -184,9 +194,16 @@ struct ContentView: View {
     @State private var lastUnreadCount: Int = 0
     @State private var localOverrideTotal: Int = 0
     
+    @State private var isFetchingUnread = false
+
     private func fetchUnreadCounts() async {
+        guard authViewModel.isAuthenticated, scenePhase == .active, !isFetchingUnread else { return }
+        let token = KeychainService.shared.getToken()
+        isFetchingUnread = true
+        defer { isFetchingUnread = false }
         do {
             let conversations = try await MessageService.shared.getConversations()
+            guard KeychainService.shared.getToken() == token else { return }
             let totalUnread = conversations.compactMap { $0.unreadCount }.reduce(0, +)
             
                 await MainActor.run {

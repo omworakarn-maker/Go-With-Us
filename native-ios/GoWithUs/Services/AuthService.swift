@@ -8,13 +8,17 @@ class AuthService {
     private init() {}
     
     // MARK: - Login
-    func login(email: String, password: String) async throws -> User {
+    func login(email: String, password: String, replaceSessionId: String? = nil) async throws -> User {
         struct LoginRequest: Encodable {
             let email: String
             let password: String
+            let deviceId: String
+            let deviceName: String
+            let replaceSessionId: String?
         }
         
-        let request = LoginRequest(email: email, password: password)
+        let request = LoginRequest(email: email, password: password,
+            deviceId: KeychainService.shared.deviceId(), deviceName: "GoWithUs บน \(UIDevice.current.name)", replaceSessionId: replaceSessionId)
         let response: AuthResponse = try await APIService.shared.request(
             endpoint: "/auth/login",
             method: .post,
@@ -23,9 +27,10 @@ class AuthService {
         )
         
         // Save token to keychain
-        _ = KeychainService.shared.saveToken(response.token)
-        // Save user ID to UserDefaults
-        UserDefaults.standard.set(response.user.id, forKey: "current_user_id")
+        await MainActor.run {
+            _ = KeychainService.shared.saveToken(response.token)
+            UserDefaults.standard.set(response.user.id, forKey: "current_user_id")
+        }
         
         return response.user
     }
@@ -55,8 +60,35 @@ class AuthService {
     
     // MARK: - Logout
     func logout() {
+        let token = KeychainService.shared.getToken()
+        Task { @MainActor in
+            WebSocketService.shared.disconnect()
+            NotificationPoller.shared.stopPolling()
+            MessagePoller.shared.stopPolling()
+        }
         _ = KeychainService.shared.deleteToken()
         UserDefaults.standard.removeObject(forKey: "current_user_id")
+        if let token, let url = URL(string: APIService.shared.baseURL + "/auth/logout") {
+            Task {
+                var request = URLRequest(url: url)
+                request.httpMethod = "POST"
+                request.timeoutInterval = 10
+                request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+                _ = try? await URLSession.shared.data(for: request)
+            }
+        }
+    }
+
+    func getSessions() async throws -> DeviceSessionsResponse {
+        try await APIService.shared.request(endpoint: "/auth/sessions")
+    }
+
+    func revokeSession(id: String) async throws {
+        let _: MessageResponse = try await APIService.shared.request(endpoint: "/auth/sessions/\(id)", method: .delete)
+    }
+
+    func logoutOtherDevices() async throws {
+        let _: MessageResponse = try await APIService.shared.request(endpoint: "/auth/sessions/others", method: .delete)
     }
 
     // MARK: - Account Management
@@ -99,8 +131,11 @@ class AuthService {
         struct VerifyOTPRequest: Encodable {
             let email: String
             let otp: String
+            let deviceId: String
+            let deviceName: String
         }
-        let request = VerifyOTPRequest(email: email, otp: otp)
+        let request = VerifyOTPRequest(email: email, otp: otp,
+            deviceId: KeychainService.shared.deviceId(), deviceName: "GoWithUs บน \(UIDevice.current.name)")
         let response: AuthResponse = try await APIService.shared.request(
             endpoint: "/auth/verify-otp",
             method: .post,
@@ -108,8 +143,10 @@ class AuthService {
             requiresAuth: false
         )
 
-        _ = KeychainService.shared.saveToken(response.token)
-        UserDefaults.standard.set(response.user.id, forKey: "current_user_id")
+        await MainActor.run {
+            _ = KeychainService.shared.saveToken(response.token)
+            UserDefaults.standard.set(response.user.id, forKey: "current_user_id")
+        }
         return response.user
     }
     
@@ -429,4 +466,18 @@ class AuthService {
             body: request
         )
     }
+}
+
+struct DeviceSession: Decodable, Identifiable {
+    let id: String
+    let deviceName: String
+    let createdAt: Date
+    let lastSeenAt: Date
+    let expiresAt: Date
+    let isCurrent: Bool?
+}
+
+struct DeviceSessionsResponse: Decodable {
+    let sessions: [DeviceSession]
+    let maxDevices: Int
 }

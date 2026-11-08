@@ -144,6 +144,19 @@ struct LoginView: View {
             .onTapGesture {
                 hideKeyboard()
             }
+            .confirmationDialog(tr("อุปกรณ์ที่เข้าสู่ระบบครบแล้ว", "Device limit reached"), isPresented: Binding(
+                get: { !viewModel.deviceSessions.isEmpty },
+                set: { if !$0 { viewModel.deviceSessions = [] } }
+            ), titleVisibility: .visible) {
+                ForEach(viewModel.deviceSessions) { session in
+                    Button(session.deviceName) {
+                        Task { await viewModel.login(replacing: session.id) }
+                    }
+                }
+                Button(tr("ยกเลิก", "Cancel"), role: .cancel) { viewModel.deviceSessions = [] }
+            } message: {
+                Text(tr("เลือกอุปกรณ์ที่จะออกจากระบบ เพื่อเข้าใช้งานบนเครื่องนี้", "Choose a device to sign out before using this one."))
+            }
         }
     }
 }
