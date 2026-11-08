@@ -7,6 +7,7 @@ dotenv.config();
 const EMBEDDING_TIMEOUT_MS = 5_000;
 const RETRY_AFTER_MS = 60_000;
 let retryAfter = 0;
+let embeddingInFlight = false;
 
 /**
  * Generate embedding vector from text using Gemini
@@ -15,7 +16,8 @@ let retryAfter = 0;
  */
 export const generateEmbedding = async (text) => {
     const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey || Date.now() < retryAfter) return null;
+    if (!apiKey || embeddingInFlight || Date.now() < retryAfter) return null;
+    embeddingInFlight = true;
 
     try {
         let prompt = "";
@@ -57,6 +59,8 @@ export const generateEmbedding = async (text) => {
             code: error.code
         });
         return null;
+    } finally {
+        embeddingInFlight = false;
     }
 };
 

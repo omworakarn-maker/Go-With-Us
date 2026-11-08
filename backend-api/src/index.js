@@ -26,9 +26,21 @@ app.use(cors({
   },
   credentials: true,
 }));
+// Bound AI payloads before the larger image-upload parser runs.
+app.use('/api/ai', express.json({ limit: '256kb' }));
 // Increase payload limit to handle base64 images (50MB)
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// A process-only probe: it deliberately does not call AI or the database.
+app.get('/healthz', (req, res) => {
+  res.json({
+    status: 'ok',
+    scope: 'process',
+    commit: process.env.RENDER_GIT_COMMIT || null,
+    uptimeSeconds: Math.floor(process.uptime())
+  });
+});
 
 // Routes
 app.get('/', (req, res) => {
