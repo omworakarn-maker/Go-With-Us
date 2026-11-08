@@ -4,7 +4,7 @@
 
 - Up to 3 active installations/browser profiles per account. Browser tabs share an installation ID through localStorage.
 - A fourth login returns device choices only after the password is verified. The user selects a session to replace; no unrelated device is automatically removed.
-- Profile → Signed-in devices lists the device name, last activity, and the current device. Users can sign out one device or all other devices.
+- Native apps: Settings → Manage account → Signed-in devices lists the device name, last activity, and the current device. The web version lists devices in Profile. Users can sign out one device or all other devices.
 - Session revocations and the device limit persist in PostgreSQL across backend restarts. JWTs include a session ID and version; re-login on the same installation replaces that installation's old token.
 - Existing JWTs are enrolled on their next authenticated request. A server that previously stored no session records cannot list historical devices until those clients make another request. Older clients without an installation ID are identified by their token, not by hardware.
 - WebSockets verify the same session as HTTP requests, close on revocation, replace stale connections from the same session, and have authentication deadlines and ping/pong cleanup. Other server instances detect revocation in the batched heartbeat check (normally within 30 seconds).

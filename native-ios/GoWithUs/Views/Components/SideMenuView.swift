@@ -5,6 +5,7 @@ struct SideMenuView: View {
     @Binding var currentScreen: AppScreen
     @Binding var transition: AnyTransition
     @EnvironmentObject var authViewModel: AuthViewModel
+    @State private var showDevices = false
     @State private var showSettings = false
     @State private var showLogoutAlert = false
     @State private var showLanguageAlert = false
@@ -32,6 +33,7 @@ struct SideMenuView: View {
         .frame(width: min(UIScreen.main.bounds.width * 0.8, 320))
         .background(Color.adaptiveBackground)
         .ignoresSafeArea(.all)
+        .sheet(isPresented: $showDevices) { DeviceSessionsView() }
         .sheet(isPresented: $showLogoutAlert) {
             LogoutSheet {
                 withAnimation {
@@ -284,6 +286,17 @@ struct SideMenuView: View {
                                 .foregroundColor(.adaptiveSecondaryText)
 
                             Button {
+                                showDevices = true
+                            } label: {
+                                accountManagementRow(
+                                    icon: "laptopcomputer.and.iphone",
+                                    title: tr("อุปกรณ์ที่เข้าสู่ระบบ", "Signed-in devices"),
+                                    color: .adaptiveText
+                                )
+                            }
+                            .buttonStyle(.plain)
+
+                            Button {
                                 showResetConfirmation = true
                             } label: {
                                 accountManagementRow(
@@ -497,5 +510,76 @@ struct LogoutSheet: View {
             Spacer()
         }
         .presentationDetents([.height(300)])
+    }
+}
+
+private struct DeviceSessionsView: View {
+    @EnvironmentObject private var authViewModel: AuthViewModel
+    @Environment(\.dismiss) private var dismiss
+    @State private var sessions: [DeviceSession] = []
+    @State private var busy = false
+    @State private var error: String?
+    @State private var confirmLogoutOthers = false
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    Text(tr("ใช้ได้สูงสุด 3 อุปกรณ์ต่อบัญชี", "Up to 3 devices per account"))
+                        .foregroundStyle(.secondary)
+                }
+                if let error { Text(error).foregroundStyle(.red) }
+                Section {
+                    ForEach(sessions) { session in
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(session.deviceName)
+                                if session.isCurrent == true { Text(tr("เครื่องนี้", "This device")).font(.caption).foregroundStyle(.secondary) }
+                                Text(session.lastSeenAt.formatted(date: .abbreviated, time: .shortened))
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Button(tr("ออกจากระบบ", "Sign out"), role: .destructive) {
+                                if session.isCurrent == true {
+                                    authViewModel.logout()
+                                    dismiss()
+                                } else {
+                                    Task { await revoke(id: session.id) }
+                                }
+                            }.disabled(busy)
+                        }
+                    }
+                }
+                Button(tr("ออกจากอุปกรณ์อื่นทั้งหมด", "Sign out other devices"), role: .destructive) {
+                    confirmLogoutOthers = true
+                }.disabled(busy || !sessions.contains { $0.isCurrent != true })
+            }
+            .navigationTitle(tr("อุปกรณ์ที่เข้าสู่ระบบ", "Signed-in devices"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(tr("ปิด", "Close"), systemImage: "xmark") { dismiss() }
+                }
+            }
+            .task { await load() }
+            .confirmationDialog(tr("ออกจากอุปกรณ์อื่นทั้งหมด?", "Sign out all other devices?"), isPresented: $confirmLogoutOthers) {
+                Button(tr("ยืนยัน", "Confirm"), role: .destructive) { Task { await revoke(id: nil) } }
+            }
+        }
+    }
+
+    private func load() async {
+        do { sessions = try await AuthService.shared.getSessions().sessions }
+        catch { self.error = error.localizedDescription }
+    }
+    private func revoke(id: String?) async {
+        busy = true
+        error = nil
+        defer { busy = false }
+        do {
+            if let id { try await AuthService.shared.revokeSession(id: id) }
+            else { try await AuthService.shared.logoutOtherDevices() }
+            await load()
+        } catch { self.error = error.localizedDescription }
     }
 }
