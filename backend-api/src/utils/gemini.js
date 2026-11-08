@@ -1,11 +1,12 @@
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import axios from 'axios';
 import dotenv from 'dotenv';
 dotenv.config();
 
-// Initialize Gemini
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-embedding-001" });
+// Embeddings enhance matching but must not prevent normal writes.
+const EMBEDDING_TIMEOUT_MS = 5_000;
+const RETRY_AFTER_MS = 60_000;
+let retryAfter = 0;
 
 /**
  * Generate embedding vector from text using Gemini
@@ -13,6 +14,9 @@ const model = genAI.getGenerativeModel({ model: "gemini-embedding-001" });
  * @returns {Promise<number[]>} - Embedding vector (array of numbers)
  */
 export const generateEmbedding = async (text) => {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey || Date.now() < retryAfter) return null;
+
     try {
         let prompt = "";
         if (Array.isArray(text)) {
@@ -28,15 +32,31 @@ export const generateEmbedding = async (text) => {
             prompt = text;
         }
 
-        const result = await model.embedContent(prompt);
-        const embedding = result.embedding;
-
-        return embedding.values;
+        const { data } = await axios.post(
+            'https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent',
+            {
+                model: 'models/gemini-embedding-001',
+                content: { parts: [{ text: prompt }] }
+            },
+            {
+                headers: { 'x-goog-api-key': apiKey },
+                timeout: EMBEDDING_TIMEOUT_MS,
+                signal: AbortSignal.timeout(EMBEDDING_TIMEOUT_MS)
+            }
+        );
+        const values = data?.embedding?.values;
+        if (!Array.isArray(values) || values.length === 0 ||
+            !values.every(value => typeof value === 'number' && Number.isFinite(value))) {
+            throw new Error('Invalid embedding response');
+        }
+        return values;
     } catch (error) {
-        console.error('Gemini Embedding Error:', error);
-        // Return mock embedding in dev mode if API fails (optional)
-        // return new Array(768).fill(0).map(() => Math.random());
-        return null; // Or throw error
+        retryAfter = Date.now() + RETRY_AFTER_MS;
+        console.warn('Skipping optional AI embedding', {
+            status: error.response?.status,
+            code: error.code
+        });
+        return null;
     }
 };
 

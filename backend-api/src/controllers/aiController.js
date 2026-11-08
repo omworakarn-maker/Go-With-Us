@@ -2,14 +2,13 @@ import axios from 'axios';
 
 export const chatWithGemini = async (req, res, next) => {
     try {
-        const { contents, generationConfig } = req.body;
+        const { contents, generationConfig } = req.body || {};
         // Check both common env var names
         const apiKey = process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
         const model = "gemini-flash-latest"; // Verified stable model for 2026
 
         console.log('--- Gemini Proxy Request ---');
         console.log('Model:', model);
-        console.log('Payload:', JSON.stringify(contents).substring(0, 100) + '...');
 
         if (!apiKey) {
             console.error('❌ Gemini API key is missing on server');
@@ -26,16 +25,24 @@ export const chatWithGemini = async (req, res, next) => {
             contents,
             ...(generationConfig && { generationConfig })
         }, {
+            timeout: 20_000,
+            signal: AbortSignal.timeout(20_000),
             headers: { 'Content-Type': 'application/json' }
         });
 
         console.log('✅ Gemini Response Success');
         res.json(response.data);
     } catch (error) {
-        console.error('Gemini Proxy Error:', error.response?.data || error.message);
-        res.status(error.response?.status || 500).json({
-            error: 'Failed to communicate with Gemini API',
-            details: error.response?.data || error.message
+        const upstreamStatus = error.response?.status;
+        const timedOut = ['ECONNABORTED', 'ETIMEDOUT', 'ERR_CANCELED'].includes(error.code);
+        // Do not expose upstream payloads, request contents, or API keys.
+        console.warn('Gemini proxy unavailable', { status: upstreamStatus, code: error.code });
+        const message = timedOut
+            ? 'AI ตอบกลับช้าเกินไป กรุณาลองใหม่ภายหลัง ส่วนอื่นของแอปยังใช้งานได้'
+            : 'AI ไม่พร้อมใช้งานชั่วคราว กรุณาลองใหม่ภายหลัง ส่วนอื่นของแอปยังใช้งานได้';
+        return res.status(503).json({
+            error: message,
+            code: timedOut ? 'AI_TIMEOUT' : 'AI_UNAVAILABLE'
         });
     }
 };
