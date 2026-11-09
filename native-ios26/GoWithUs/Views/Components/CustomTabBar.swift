@@ -245,6 +245,13 @@ private final class LiquidLensProbeView: UIView {
     private var lastWidth: CGFloat = 0
     private var releaseWork: DispatchWorkItem?
     private var touchBeganAt: CFTimeInterval = 0
+    private var interactionID = UUID()
+    private lazy var pressRecognizer: UILongPressGestureRecognizer = {
+        let recognizer = UILongPressGestureRecognizer(target: self, action: #selector(track(_:)))
+        recognizer.minimumPressDuration = 0
+        recognizer.allowableMovement = .greatestFiniteMagnitude
+        return recognizer
+    }()
     private let symbols = ["house.fill", "arrow.triangle.2.circlepath", "plus.circle.fill", "message.fill", "person.fill"]
     private let titles = ["Home", "Match", "Create", "Chat", "Profile"]
 
@@ -258,14 +265,25 @@ private final class LiquidLensProbeView: UIView {
         stage.addSubview(regularItems)
         makeItems(in: regularItems, color: .label)
         makeItems(in: liftedItems, color: .systemBlue)
-        let recognizer = UILongPressGestureRecognizer(target: self, action: #selector(track(_:)))
-        recognizer.minimumPressDuration = 0
-        recognizer.allowableMovement = .greatestFiniteMagnitude
-        addGestureRecognizer(recognizer)
+        addGestureRecognizer(pressRecognizer)
         prepareLens()
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        // A horizontal scrub beginning on the probe belongs to the probe.
+        // Otherwise the surrounding SwiftUI ScrollView can cancel it as a pan,
+        // which correctly follows the cancellation path back to the old tab.
+        var ancestor = superview
+        while let view = ancestor {
+            if let scrollView = view as? UIScrollView {
+                scrollView.panGestureRecognizer.require(toFail: pressRecognizer)
+            }
+            ancestor = view.superview
+        }
+    }
 
     private func publish(_ message: String) {
         DispatchQueue.main.async { [report] in report(message) }
@@ -413,13 +431,14 @@ private final class LiquidLensProbeView: UIView {
         liftedItems.isHidden = lens == nil
     }
 
-    private func lift(_ lifted: Bool, animated: Bool) {
+    private func lift(_ lifted: Bool, animated: Bool, completion: (() -> Void)? = nil) {
         guard let lens else { return }
         let selector = NSSelectorFromString("setLifted:animated:alongsideAnimations:completion:")
         guard let method = lens.method(for: selector) else { return }
         typealias SetLifted = @convention(c) (AnyObject, Selector, Bool, Bool,
             (@convention(block) () -> Void)?, (@convention(block) () -> Void)?) -> Void
-        unsafeBitCast(method, to: SetLifted.self)(lens, selector, lifted, animated && !reduceMotion, nil, nil)
+        let finished: @convention(block) () -> Void = { completion?() }
+        unsafeBitCast(method, to: SetLifted.self)(lens, selector, lifted, animated && !reduceMotion, nil, finished)
     }
 
     @objc private func track(_ gesture: UILongPressGestureRecognizer) {
@@ -428,29 +447,53 @@ private final class LiquidLensProbeView: UIView {
         switch gesture.state {
         case .began:
             releaseWork?.cancel()
+            interactionID = UUID()
             touchBeganAt = CACurrentMediaTime()
             touching = true
             lift(true, animated: true)
             placeLens(x: x, animated: true)
         case .changed:
             placeLens(x: x, animated: false)
-        case .ended, .cancelled, .failed:
-            if gesture.state == .ended, stage.bounds.insetBy(dx: -20, dy: -24).contains(point) {
-                selected = min(max(Int(point.x / itemWidth), 0), symbols.count - 1)
+        case .ended:
+            // Commit before UIKit lowers the lens, using the same clamped
+            // horizontal position that was displayed under the finger.
+            if stage.bounds.insetBy(dx: -20, dy: -24).contains(point) {
+                selected = min(max(Int(x / itemWidth), 0), symbols.count - 1)
+                publish("ปล่อยนิ้ว → เลือก \(titles[selected])\nกำลังวางเลนส์ที่ปุ่มนี้")
+            } else {
+                publish("ปล่อยนอกแถบทดลอง → กลับ \(titles[selected])")
             }
-            let work = DispatchWorkItem { [weak self] in
-                guard let self else { return }
-                self.touching = false
-                self.lift(false, animated: true)
-                self.placeLens(x: self.centerForSelection, animated: true)
-            }
-            releaseWork = work
-            DispatchQueue.main.asyncAfter(deadline: .now() + max(0, 0.22 - (CACurrentMediaTime() - touchBeganAt)), execute: work)
+            finishInteraction()
+        case .cancelled, .failed:
+            publish("การลากถูกยกเลิก → คง \(titles[selected])")
+            finishInteraction()
         default: break
         }
     }
 
+    private func finishInteraction() {
+        let finishedID = interactionID
+        let destination = selected
+        let work = DispatchWorkItem { [weak self] in
+            guard let self, self.interactionID == finishedID else { return }
+            self.touching = false
+            // Set the committed position before the internal unlift transition.
+            self.placeLens(x: self.centerForSelection, animated: true)
+            self.lift(false, animated: true) { [weak self] in
+                guard let self, self.interactionID == finishedID,
+                      !self.touching, self.selected == destination else { return }
+                // UIKit may complete its own geometry animation after ours.
+                // Reassert the resting frame, never an earlier interaction's tab.
+                self.placeLens(x: self.centerForSelection, animated: false)
+            }
+        }
+        releaseWork?.cancel()
+        releaseWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + max(0, 0.22 - (CACurrentMediaTime() - touchBeganAt)), execute: work)
+    }
+
     func stop() {
+        interactionID = UUID()
         releaseWork?.cancel()
         releaseWork = nil
         touching = false
