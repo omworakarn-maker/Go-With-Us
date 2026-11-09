@@ -1,8 +1,6 @@
 import SwiftUI
-#if DEBUG
 import UIKit
 import ObjectiveC
-#endif
 
 // Shared selection identifiers; the iOS 26 bar owns its touch animation.
 enum Tab: String, CaseIterable {
@@ -13,7 +11,90 @@ enum Tab: String, CaseIterable {
     case profile = "Profile"
 }
 
+// Use the same native UIKit lens that was validated in Liquid Lens Lab.
 struct LiquidGlassTabBar: View {
+    @Binding var selection: Tab
+    let chatBadge: Int
+    @ObservedObject private var settings = SettingsManager.shared
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.layoutDirection) private var layoutDirection
+    @State private var lensUnavailable = false
+
+    var body: some View {
+        Group {
+            if lensUnavailable || reduceTransparency {
+                FallbackGlassTabBar(selection: $selection, chatBadge: chatBadge)
+            } else {
+                NativeLiquidLensTabBar(
+                    selection: $selection,
+                    tabs: layoutDirection == .rightToLeft ? Array(Tab.allCases.reversed()) : Tab.allCases,
+                    titles: tabTitles,
+                    chatBadge: chatBadge,
+                    reduceMotion: reduceMotion,
+                    unavailable: { lensUnavailable = true }
+                )
+                .frame(height: 80)
+                .padding(.horizontal, 12)
+            }
+        }
+    }
+
+    private var tabTitles: [Tab: String] {
+        [.home: settings.localizedString(for: "home"),
+         .matchTrip: tr("แมตช์ทริป", "Match Trip"),
+         .create: settings.localizedString(for: "create"),
+         .chat: tr("แชท", "Chat"),
+         .profile: settings.localizedString(for: "profile")]
+    }
+}
+
+private struct NativeLiquidLensTabBar: UIViewRepresentable {
+    @Binding var selection: Tab
+    let tabs: [Tab]
+    let titles: [Tab: String]
+    let chatBadge: Int
+    let reduceMotion: Bool
+    let unavailable: () -> Void
+
+    func makeUIView(context: Context) -> LiquidLensBarUIView {
+        let view = LiquidLensBarUIView(reduceMotion: reduceMotion, report: { _ in })
+        configure(view)
+        if !view.hasNativeLens {
+            DispatchQueue.main.async { unavailable() }
+        }
+        return view
+    }
+
+    func updateUIView(_ view: LiquidLensBarUIView, context: Context) { configure(view) }
+
+    private func configure(_ view: LiquidLensBarUIView) {
+        view.reduceMotion = reduceMotion
+        view.onSelect = { index in
+            guard tabs.indices.contains(index) else { return tabs.firstIndex(of: selection) ?? 0 }
+            let previous = tabs.firstIndex(of: selection) ?? 0
+            let requested = tabs[index]
+            selection = requested
+            // Create is an action, not a destination. Return the accepted
+            // index explicitly instead of reading SwiftUI state mid-update.
+            return requested == .create ? previous : index
+        }
+        view.onHover = { SettingsManager.shared.triggerSelection() }
+        let symbols: [Tab: String] = [.home: "house.fill", .matchTrip: "arrow.triangle.2.circlepath",
+                                     .create: "plus.circle.fill", .chat: "message.fill", .profile: "person.fill"]
+        view.configure(
+            titles: tabs.map { titles[$0] ?? $0.rawValue },
+            symbols: tabs.map { symbols[$0] ?? "circle" },
+            selection: tabs.firstIndex(of: selection) ?? 0,
+            badgeIndex: tabs.firstIndex(of: .chat), badgeCount: chatBadge,
+            accent: UIColor(Color.appSecondary)
+        )
+    }
+
+    static func dismantleUIView(_ view: LiquidLensBarUIView, coordinator: ()) { view.stop() }
+}
+
+private struct FallbackGlassTabBar: View {
     @Binding var selection: Tab
     let chatBadge: Int
     @ObservedObject private var settings = SettingsManager.shared
@@ -219,20 +300,23 @@ private struct LiquidLensExperimentSurface: UIViewRepresentable {
     let reduceMotion: Bool
     let report: (String) -> Void
 
-    func makeUIView(context: Context) -> LiquidLensProbeView {
-        LiquidLensProbeView(reduceMotion: reduceMotion, report: report)
+    func makeUIView(context: Context) -> LiquidLensBarUIView {
+        LiquidLensBarUIView(reduceMotion: reduceMotion, report: report)
     }
 
-    func updateUIView(_ view: LiquidLensProbeView, context: Context) {
+    func updateUIView(_ view: LiquidLensBarUIView, context: Context) {
         view.reduceMotion = reduceMotion
     }
 
-    static func dismantleUIView(_ view: LiquidLensProbeView, coordinator: ()) {
+    static func dismantleUIView(_ view: LiquidLensBarUIView, coordinator: ()) {
         view.stop()
     }
 }
-// Runtime calls are confined to this Debug-only probe, not the shipping bar.
-private final class LiquidLensProbeView: UIView {
+#endif
+
+// All dynamic calls stay behind runtime signature checks. The lab and live bar
+// share this renderer so a tested gesture fix also applies to the live tabs.
+private final class LiquidLensBarUIView: UIView {
     var reduceMotion: Bool
     private let report: (String) -> Void
     private let glass = UIVisualEffectView(effect: UIGlassEffect(style: .regular))
@@ -240,7 +324,15 @@ private final class LiquidLensProbeView: UIView {
     private let regularItems = UIView()
     private let liftedItems = UIView()
     private var lens: UIView?
+    var onSelect: ((Int) -> Int)?
+    var onHover: (() -> Void)?
+    var hasNativeLens: Bool { lens != nil }
     private var selected = 0
+    private var hovered: Int?
+    private var badgeIndex: Int?
+    private var badgeCount = 0
+    private var accent = UIColor.systemBlue
+    private var accessibilityTabs: [GlassTabAccessibilityElement] = []
     private var touching = false
     private var lastWidth: CGFloat = 0
     private var releaseWork: DispatchWorkItem?
@@ -252,8 +344,8 @@ private final class LiquidLensProbeView: UIView {
         recognizer.allowableMovement = .greatestFiniteMagnitude
         return recognizer
     }()
-    private let symbols = ["house.fill", "arrow.triangle.2.circlepath", "plus.circle.fill", "message.fill", "person.fill"]
-    private let titles = ["Home", "Match", "Create", "Chat", "Profile"]
+    private var symbols = ["house.fill", "arrow.triangle.2.circlepath", "plus.circle.fill", "message.fill", "person.fill"]
+    private var titles = ["Home", "Match", "Create", "Chat", "Profile"]
 
     init(reduceMotion: Bool, report: @escaping (String) -> Void) {
         self.reduceMotion = reduceMotion
@@ -267,9 +359,91 @@ private final class LiquidLensProbeView: UIView {
         makeItems(in: liftedItems, color: .systemBlue)
         addGestureRecognizer(pressRecognizer)
         prepareLens()
+        updateAccessibility()
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    func configure(titles: [String], symbols: [String], selection: Int,
+                   badgeIndex: Int?, badgeCount: Int, accent: UIColor) {
+        guard !titles.isEmpty, titles.count == symbols.count, titles.indices.contains(selection) else { return }
+        if self.titles != titles || self.symbols != symbols || self.accent != accent {
+            self.titles = titles
+            self.symbols = symbols
+            self.accent = accent
+            for row in [regularItems, liftedItems] { row.subviews.forEach { $0.removeFromSuperview() } }
+            makeItems(in: regularItems, color: .label)
+            makeItems(in: liftedItems, color: accent)
+            accessibilityTabs = []
+            setNeedsLayout()
+        }
+        if self.badgeIndex != badgeIndex || self.badgeCount != max(0, badgeCount) { setNeedsLayout() }
+        self.badgeIndex = badgeIndex
+        self.badgeCount = max(0, badgeCount)
+        updateBadges()
+        if selected != selection {
+            stop()
+            selected = selection
+            placeLens(x: centerForSelection, animated: window != nil)
+        }
+        updateAccessibility()
+    }
+
+    private func updateBadges() {
+        for row in [regularItems, liftedItems] {
+            for (index, item) in row.subviews.enumerated() {
+                guard let badge = item.viewWithTag(6101) as? UILabel else { continue }
+                badge.isHidden = index != badgeIndex || badgeCount <= 0
+                badge.text = badgeCount > 99 ? "99+" : String(badgeCount)
+            }
+        }
+    }
+
+    private func updateAccessibility() {
+        if accessibilityTabs.count != titles.count {
+            accessibilityTabs = titles.indices.map { index in
+                let element = GlassTabAccessibilityElement(accessibilityContainer: self)
+                element.activate = { [weak self] in self?.activateTab(index) }
+                return element
+            }
+            accessibilityElements = accessibilityTabs
+        }
+        for (index, element) in accessibilityTabs.enumerated() {
+            element.accessibilityLabel = titles[index]
+            element.accessibilityValue = index == badgeIndex && badgeCount > 0 ? String(badgeCount) : nil
+            element.accessibilityTraits = index == selected ? [.button, .selected] : .button
+            element.accessibilityFrameInContainerSpace = CGRect(
+                x: CGFloat(index) * itemWidth, y: glass.frame.minY,
+                width: itemWidth, height: stage.bounds.height)
+        }
+    }
+
+    private func activateTab(_ index: Int) {
+        stop()
+        onHover?()
+        selected = onSelect?(index) ?? index
+        placeLens(x: centerForSelection, animated: true)
+        updateAccessibility()
+    }
+
+    private func updateContact(_ index: Int?) {
+        guard hovered != index else { return }
+        hovered = index
+        if index != nil { onHover?() }
+        let changes = {
+            for row in [self.regularItems, self.liftedItems] {
+                for (position, item) in row.subviews.enumerated() {
+                    let scale: CGFloat = index == position && !self.reduceMotion ? 1.06 : 1
+                    item.transform = CGAffineTransform(scaleX: scale, y: scale)
+                }
+            }
+        }
+        if reduceMotion { UIView.performWithoutAnimation(changes) }
+        else {
+            UIView.animate(withDuration: 0.22, delay: 0, usingSpringWithDamping: 0.8,
+                           initialSpringVelocity: 0, options: [.allowUserInteraction, .beginFromCurrentState], animations: changes)
+        }
+    }
 
     override func didMoveToWindow() {
         super.didMoveToWindow()
@@ -378,7 +552,19 @@ private final class LiquidLensProbeView: UIView {
             label.textColor = color
             label.font = .systemFont(ofSize: 10, weight: .medium)
             stack.addArrangedSubview(icon)
+            label.adjustsFontSizeToFitWidth = true
+            label.minimumScaleFactor = 0.7
             stack.addArrangedSubview(label)
+            let badge = UILabel()
+            badge.tag = 6101
+            badge.font = .systemFont(ofSize: 10, weight: .bold)
+            badge.textColor = .white
+            badge.backgroundColor = .systemRed
+            badge.textAlignment = .center
+            badge.layer.cornerRadius = 8
+            badge.clipsToBounds = true
+            badge.isHidden = true
+            stack.addSubview(badge)
             row.addSubview(stack)
         }
     }
@@ -394,13 +580,18 @@ private final class LiquidLensProbeView: UIView {
         for row in [regularItems, liftedItems] {
             let itemWidth = row.bounds.width / CGFloat(symbols.count)
             for (index, item) in row.subviews.enumerated() {
-                item.frame = CGRect(x: CGFloat(index) * itemWidth, y: 10, width: itemWidth, height: 44)
+                // Set bounds/center rather than frame: contact animation may
+                // currently apply a transform to this item.
+                item.bounds = CGRect(x: 0, y: 0, width: itemWidth, height: 44)
+                item.center = CGPoint(x: (CGFloat(index) + 0.5) * itemWidth, y: 32)
+                item.viewWithTag(6101)?.frame = CGRect(x: itemWidth / 2 + 6, y: -4, width: badgeCount > 99 ? 25 : 19, height: 16)
             }
         }
         if lastWidth != stage.bounds.width {
             lastWidth = stage.bounds.width
             placeLens(x: centerForSelection, animated: false)
         }
+        updateAccessibility()
     }
 
     private var itemWidth: CGFloat { max(1, stage.bounds.width / CGFloat(symbols.count)) }
@@ -450,15 +641,19 @@ private final class LiquidLensProbeView: UIView {
             interactionID = UUID()
             touchBeganAt = CACurrentMediaTime()
             touching = true
+            updateContact(min(max(Int(x / itemWidth), 0), symbols.count - 1))
             lift(true, animated: true)
             placeLens(x: x, animated: true)
         case .changed:
+            updateContact(min(max(Int(x / itemWidth), 0), symbols.count - 1))
             placeLens(x: x, animated: false)
         case .ended:
             // Commit before UIKit lowers the lens, using the same clamped
             // horizontal position that was displayed under the finger.
             if stage.bounds.insetBy(dx: -20, dy: -24).contains(point) {
-                selected = min(max(Int(x / itemWidth), 0), symbols.count - 1)
+                let requested = min(max(Int(x / itemWidth), 0), symbols.count - 1)
+                selected = onSelect?(requested) ?? requested
+                updateAccessibility()
                 publish("ปล่อยนิ้ว → เลือก \(titles[selected])\nกำลังวางเลนส์ที่ปุ่มนี้")
             } else {
                 publish("ปล่อยนอกแถบทดลอง → กลับ \(titles[selected])")
@@ -477,6 +672,7 @@ private final class LiquidLensProbeView: UIView {
         let work = DispatchWorkItem { [weak self] in
             guard let self, self.interactionID == finishedID else { return }
             self.touching = false
+            self.updateContact(nil)
             // Set the committed position before the internal unlift transition.
             self.placeLens(x: self.centerForSelection, animated: true)
             self.lift(false, animated: true) { [weak self] in
@@ -497,7 +693,15 @@ private final class LiquidLensProbeView: UIView {
         releaseWork?.cancel()
         releaseWork = nil
         touching = false
+        updateContact(nil)
         lift(false, animated: false)
     }
 }
-#endif
+
+private final class GlassTabAccessibilityElement: UIAccessibilityElement {
+    var activate: (() -> Void)?
+    override func accessibilityActivate() -> Bool {
+        activate?()
+        return activate != nil
+    }
+}
