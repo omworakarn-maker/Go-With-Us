@@ -15,6 +15,7 @@ struct LiquidGlassTabBar: View {
     @ObservedObject private var settings = SettingsManager.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.layoutDirection) private var layoutDirection
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @GestureState private var isTouching = false
     @State private var fingerX: CGFloat?
     @State private var hoveredTab: Tab?
@@ -28,11 +29,12 @@ struct LiquidGlassTabBar: View {
             let lensX = fingerX.map { min(max($0, inset + width / 2), geometry.size.width - inset - width / 2) } ?? restingX
             ZStack(alignment: .topLeading) {
                 Capsule()
-                    .fill(.clear)
+                    // One glass surface for the bar. The selection is a light
+                    // highlight, not a second refracting glass capsule.
+                    .fill(Color.primary.opacity(reduceTransparency ? 0.12 : (isTouching ? 0.10 : 0.055)))
                     .frame(width: width, height: height - inset * 2)
-                    .appGlass(in: Capsule(), tint: .white.opacity(0.25))
-                    .scaleEffect(x: fingerX != nil && !reduceMotion ? 1.1 : 1,
-                                 y: fingerX != nil && !reduceMotion ? 1.07 : 1)
+                    .scaleEffect(x: isTouching && !reduceMotion ? 1.04 : 1,
+                                 y: isTouching && !reduceMotion ? 1.04 : 1)
                     .position(x: lensX, y: height / 2)
                     .allowsHitTesting(false)
 
@@ -83,9 +85,10 @@ struct LiquidGlassTabBar: View {
                     }
                 }
             }
-            .appGlass(in: Capsule(), interactive: true)
-            .scaleEffect(fingerX != nil && !reduceMotion ? 0.985 : 1)
-            .animation(motion, value: fingerX != nil)
+            .appGlass(in: Capsule())
+            // Spring only when contact begins; dragging tracks the finger
+            // directly and releasing settles without another bounce.
+            .animation(isTouching ? contactMotion : motion, value: isTouching)
             .animation(fingerX == nil ? motion : nil, value: selection)
         }
         .frame(height: height)
@@ -95,7 +98,11 @@ struct LiquidGlassTabBar: View {
     }
 
     private var motion: Animation? {
-        reduceMotion ? nil : .spring(response: 0.38, dampingFraction: 0.68)
+        reduceMotion ? nil : .smooth(duration: 0.2)
+    }
+
+    private var contactMotion: Animation? {
+        reduceMotion ? nil : .spring(response: 0.28, dampingFraction: 0.7)
     }
 
     private var visualTabs: [Tab] {
@@ -114,7 +121,6 @@ struct LiquidGlassTabBar: View {
         return VStack(spacing: 3) {
             Image(systemName: symbol(tab))
                 .font(.system(size: 21, weight: highlighted ? .semibold : .regular))
-                .symbolEffect(.bounce, options: .nonRepeating, value: reduceMotion ? false : highlighted)
                 .overlay(alignment: .topTrailing) {
                     if tab == .chat && chatBadge > 0 {
                         Text(chatBadge > 99 ? "99+" : String(chatBadge))
@@ -132,7 +138,7 @@ struct LiquidGlassTabBar: View {
                 .minimumScaleFactor(0.7)
         }
         .foregroundStyle(highlighted ? Color.appSecondary : Color.primary.opacity(0.65))
-        .scaleEffect(highlighted && fingerX != nil && !reduceMotion ? 1.1 : 1)
+        .scaleEffect(highlighted && isTouching && !reduceMotion ? 1.05 : 1)
         .animation(motion, value: highlighted)
     }
 
