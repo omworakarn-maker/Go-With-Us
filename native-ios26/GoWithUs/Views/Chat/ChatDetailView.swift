@@ -115,72 +115,63 @@ struct ChatDetailView: View {
                     .padding(.bottom, 8)
                 }
 
-                HStack(alignment: .bottom, spacing: 10) {
-                    PhotosPicker(selection: $selectedItem, matching: .images) {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.system(size: 28))
-                            .foregroundColor(.gray.opacity(0.7))
-                    }
-                    .padding(.bottom, 8)
+                GlassEffectContainer(spacing: 10) {
+                    HStack(alignment: .bottom, spacing: 10) {
+                        PhotosPicker(selection: $selectedItem, matching: .images) {
+                            Image(systemName: "plus")
+                                .font(.system(size: 20, weight: .medium))
+                                .frame(width: 22, height: 22)
+                        }
+                        .buttonStyle(.glass)
+                        .buttonBorderShape(.circle)
+                        .controlSize(.large)
+                        .accessibilityLabel(tr("แนบรูปภาพ", "Attach photo"))
+                        .disabled(isSendingImage)
 
-                    HStack(alignment: .bottom, spacing: 0) {
                         TextField(tr("พิมพ์ข้อความ...", "Type a message…"), text: $messageText, axis: .vertical)
                             .lineLimit(1...5)
                             .padding(.horizontal, 16)
-                            .padding(.vertical, 10)
-                            .foregroundColor(.adaptiveText)
+                            .padding(.vertical, 12)
+                            .frame(minHeight: 48)
+                            .foregroundStyle(Color.adaptiveText)
+                            .appGlass(in: RoundedRectangle(cornerRadius: 25))
 
-                        if !messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || selectedImageData != nil || isSendingImage {
-                            Button(action: {
-                                let content = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
-                                let base64Image = selectedImageData?.base64EncodedString()
-
-                                guard !content.isEmpty || base64Image != nil else { return }
-
-                                isSendingImage = true
-                                messageText = ""
-                                selectedItem = nil
-                                let dataToSend = selectedImageData
-                                selectedImageData = nil
-
-                                Task {
-                                    let img64 = dataToSend?.base64EncodedString()
-                                    await sendMessage(content: content, imageUrl: img64)
-                                    isSendingImage = false
-                                }
-                            }) {
+                        Button {
+                            let content = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
+                            guard !isSendingImage, !content.isEmpty || selectedImageData != nil else { return }
+                            SettingsManager.shared.triggerSelection()
+                            isSendingImage = true
+                            messageText = ""
+                            selectedItem = nil
+                            let dataToSend = selectedImageData
+                            selectedImageData = nil
+                            Task {
+                                await sendMessage(content: content, imageUrl: dataToSend?.base64EncodedString())
+                                isSendingImage = false
+                            }
+                        } label: {
+                            ZStack {
                                 if isSendingImage {
-                                    ProgressView()
-                                        .frame(width: 34, height: 34)
-                                        .padding(.trailing, 6)
-                                        .padding(.bottom, 6)
+                                    ProgressView().tint(.white)
                                 } else {
-                                    Image(systemName: "arrow.up.circle.fill")
-                                        .font(.system(size: 32))
-                                        .foregroundColor(Color.appPrimary)
-                                        .padding(.trailing, 6)
-                                        .padding(.bottom, 4)
-                                        .shadow(color: Color.appPrimary.opacity(0.3), radius: 3, x: 0, y: 2)
+                                    Image(systemName: "arrow.up")
+                                        .font(.system(size: 20, weight: .semibold))
                                 }
                             }
-                            .disabled(isSendingImage)
+                            .frame(width: 22, height: 22)
                         }
+                        .buttonStyle(.glassProminent)
+                        .buttonBorderShape(.circle)
+                        .controlSize(.large)
+                        .tint(.appSecondary)
+                        .disabled(isSendingImage || (messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && selectedImageData == nil))
+                        .accessibilityLabel(tr("ส่งข้อความ", "Send message"))
                     }
-                    .background(Color.adaptiveCardBackground)
-                    .cornerRadius(22)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 22)
-                            .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                    )
-                    .shadow(color: Color.black.opacity(0.03), radius: 5, x: 0, y: 2)
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .padding(.bottom, getSafeAreaBottom() > 0 ? 0 : 8)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
             }
-            .background(Color.adaptiveBackground)
-            .shadow(color: .black.opacity(0.03), radius: 10, x: 0, y: -5)
-            .background(Color.adaptiveBackground)
+            .background(Color(UIColor.systemGroupedBackground).opacity(0.35))
         }
         .navigationTitle(chatTitle.isEmpty ? tr("แชท", "Chat") : chatTitle)
         .navigationBarTitleDisplayMode(.inline)

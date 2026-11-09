@@ -1,23 +1,14 @@
 import SwiftUI
 
-// Safe area helper
 func getSafeAreaBottom() -> CGFloat {
     guard let window = UIApplication.shared.connectedScenes
-        .compactMap({ $0 as? UIWindowScene })
-        .first?.windows
-        .first else {
-        return 0
-    }
+        .compactMap({ $0 as? UIWindowScene }).first?.windows.first else { return 0 }
     return window.safeAreaInsets.bottom
 }
 
 func getSafeAreaTop() -> CGFloat {
     guard let window = UIApplication.shared.connectedScenes
-        .compactMap({ $0 as? UIWindowScene })
-        .first?.windows
-        .first else {
-        return 0
-    }
+        .compactMap({ $0 as? UIWindowScene }).first?.windows.first else { return 0 }
     return window.safeAreaInsets.top
 }
 
@@ -25,37 +16,40 @@ struct ChatInputBar: View {
     @Binding var text: String
     var onSend: (String) -> Void
 
-    var body: some View {
-        HStack(spacing: 12) {
-            TextField(tr("พิมพ์ข้อความ...", "Type a message…"), text: $text)
-                .foregroundColor(.adaptiveText)
-                .padding(12)
-                .background(Color.gray.opacity(0.1))
-                .cornerRadius(24)
+    private var content: String { text.trimmingCharacters(in: .whitespacesAndNewlines) }
 
-            Button(action: {
-                let content = text.trimmingCharacters(in: .whitespacesAndNewlines)
-                guard !content.isEmpty else { return }
-                onSend(content)
-                text = ""
-            }) {
-                Circle()
-                    .fill(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? Color.gray.opacity(0.3) : Color.appPrimary)
-                    .frame(width: 44, height: 44)
-                    .overlay(
-                        Image(systemName: "paperplane.fill")
-                            .font(.system(size: 18))
-                            .foregroundColor(.white)
-                            .offset(x: -2, y: 2)
-                    )
+    var body: some View {
+        GlassEffectContainer(spacing: 10) {
+            HStack(spacing: 10) {
+                TextField(tr("พิมพ์ข้อความ...", "Type a message…"), text: $text)
+                    .foregroundStyle(Color.adaptiveText)
+                    .padding(.horizontal, 16)
+                    .frame(minHeight: 48)
+                    .appGlass(in: Capsule())
+                    .submitLabel(.send)
+                    .onSubmit(send)
+
+                Button(action: send) {
+                    Image(systemName: "arrow.up")
+                        .font(.system(size: 20, weight: .semibold))
+                        .frame(width: 22, height: 22)
+                }
+                .buttonStyle(.glassProminent)
+                .buttonBorderShape(.circle)
+                .controlSize(.large)
+                .tint(.appSecondary)
+                .disabled(content.isEmpty)
+                .accessibilityLabel(tr("ส่งข้อความ", "Send message"))
             }
-            .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .appGlass(in: RoundedRectangle(cornerRadius: 28))
-        .padding(.horizontal, 8)
-        .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: -2)
-        // inputAccessoryView handles safe area automatically
+    }
+
+    private func send() {
+        guard !content.isEmpty else { return }
+        SettingsManager.shared.triggerSelection()
+        onSend(content)
+        text = ""
     }
 }

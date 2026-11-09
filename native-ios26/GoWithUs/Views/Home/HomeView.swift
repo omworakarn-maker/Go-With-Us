@@ -132,6 +132,7 @@ struct HomeView: View {
                                 SettingsManager.shared.localizedString(for: "tab_new"),
                                 SettingsManager.shared.localizedString(for: "tab_popular")
                             ],
+                            values: ["แนะนำ", "มาใหม่", "ยอดนิยม"],
                             selected: $viewModel.activeTab
                         )
                         .padding(.horizontal)

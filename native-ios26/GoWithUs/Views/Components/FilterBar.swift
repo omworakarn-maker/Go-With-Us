@@ -2,6 +2,7 @@ import SwiftUI
 
 struct FilterBar: View {
     @ObservedObject private var settings = SettingsManager.shared
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Binding var selectedProvince: String?
     @Binding var selectedDate: Date?
     @Binding var selectedEndDate: Date? // Add binding for End Date
@@ -16,44 +17,50 @@ struct FilterBar: View {
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                // Province Filter
-                FilterButton(
-                    title: selectedProvince != nil && selectedProvince != "ทุกจังหวัด" ? localizedPlaceName(selectedProvince!) : settings.text(thai: "ทุกจังหวัด", english: "All provinces"),
-                    isSelected: selectedProvince != nil && selectedProvince != "ทุกจังหวัด",
-                    icon: "📍",
-                    action: { showProvinceSheet = true }
-                )
+            GlassEffectContainer(spacing: 8) {
+                HStack(spacing: 10) {
+                    // Province Filter
+                    FilterButton(
+                        title: selectedProvince != nil && selectedProvince != "ทุกจังหวัด" ? localizedPlaceName(selectedProvince!) : settings.text(thai: "ทุกจังหวัด", english: "All provinces"),
+                        isSelected: selectedProvince != nil && selectedProvince != "ทุกจังหวัด",
+                        icon: "mappin.and.ellipse",
+                        action: { showProvinceSheet = true }
+                    )
 
-                // Date Filter
-                FilterButton(
-                    title: formatDateButtonTitle(),
-                    isSelected: selectedDate != nil,
-                    icon: "🗓️",
-                    action: { showDateSheet = true }
-                )
+                    // Date Filter
+                    FilterButton(
+                        title: formatDateButtonTitle(),
+                        isSelected: selectedDate != nil,
+                        icon: "calendar",
+                        action: { showDateSheet = true }
+                    )
 
-                // Category Filter
-                FilterButton(
-                    title: selectedCategory?.displayName ?? settings.text(thai: "สไตล์", english: "Style"),
-                    isSelected: selectedCategory != nil,
-                    icon: "🧭",
-                    action: { showCategorySheet = true }
-                )
+                    // Category Filter
+                    FilterButton(
+                        title: selectedCategory?.displayName ?? settings.text(thai: "สไตล์", english: "Style"),
+                        isSelected: selectedCategory != nil,
+                        icon: "slider.horizontal.3",
+                        action: { showCategorySheet = true }
+                    )
 
-                // Clear Filters (Only show if any filter is active)
-                if selectedProvince != nil || selectedDate != nil || selectedCategory != nil {
-                    Button(action: {
-                        withAnimation {
-                            selectedProvince = nil
-                            selectedDate = nil
-                            selectedEndDate = nil
-                            selectedCategory = nil
+                    // Clear Filters (Only show if any filter is active)
+                    if selectedProvince != nil || selectedDate != nil || selectedCategory != nil {
+                        Button(action: {
+                            withAnimation(reduceMotion ? nil : .spring(response: 0.32, dampingFraction: 0.78)) {
+                                selectedProvince = nil
+                                selectedDate = nil
+                                selectedEndDate = nil
+                                selectedCategory = nil
+                            }
+                        }) {
+                            Image(systemName: "xmark")
+                                .foregroundColor(.gray)
+                                .font(.system(size: 16, weight: .medium))
+                                .frame(width: 20, height: 20)
                         }
-                    }) {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(.gray)
-                            .font(.system(size: 20))
+                        .buttonStyle(.glass)
+                        .buttonBorderShape(.circle)
+                        .accessibilityLabel(tr("ล้างตัวกรอง", "Clear filters"))
                     }
                 }
             }

@@ -12,19 +12,21 @@ struct FilterButton: View {
             SettingsManager.shared.triggerSelection()
             action()
         }) {
-            HStack(spacing: 4) {
-                Text(icon)
-                    .font(.system(size: 14))
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: 14, weight: .medium))
                 Text(title)
                     .font(.system(size: 13, weight: .bold))
             }
-            .foregroundColor(isSelected ? .appPrimary : .adaptiveText)
-            .padding(.horizontal, 16)
-            .frame(minHeight: 44)
+            .foregroundStyle(isSelected ? Color.appSecondary : Color.adaptiveText)
+            .frame(minHeight: 32)
             .fixedSize(horizontal: true, vertical: false)
-            .appGlass(in: Capsule(), tint: isSelected ? Color.appAccent.opacity(0.35) : nil, interactive: true)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.glass)
+        .buttonBorderShape(.capsule)
+        .controlSize(.regular)
+        .tint(isSelected ? Color.appAccent.opacity(0.2) : nil)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 
