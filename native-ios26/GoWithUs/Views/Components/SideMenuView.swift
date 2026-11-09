@@ -6,6 +6,9 @@ struct SideMenuView: View {
     @Binding var transition: AnyTransition
     @EnvironmentObject var authViewModel: AuthViewModel
     @State private var showDevices = false
+#if DEBUG
+    @State private var showLiquidLensLab = false
+#endif
     @State private var showSettings = false
     @State private var showLogoutAlert = false
     @State private var showLanguageAlert = false
@@ -34,6 +37,9 @@ struct SideMenuView: View {
         .background(Color.adaptiveBackground)
         .ignoresSafeArea(.all)
         .sheet(isPresented: $showDevices) { DeviceSessionsView() }
+#if DEBUG
+        .sheet(isPresented: $showLiquidLensLab) { LiquidLensExperimentView() }
+#endif
         .sheet(isPresented: $showLogoutAlert) {
             LogoutSheet {
                 withAnimation {
@@ -278,6 +284,16 @@ struct SideMenuView: View {
                         }
                     }
                     .padding(.horizontal, 24)
+
+#if DEBUG
+                    Button {
+                        showLiquidLensLab = true
+                    } label: {
+                        accountManagementRow(icon: "water.waves", title: "Liquid Lens Lab", color: .appPrimary)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.horizontal, 24)
+#endif
 
                     if authViewModel.currentUser != nil {
                         Divider()
