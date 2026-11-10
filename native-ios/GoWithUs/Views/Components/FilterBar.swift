@@ -103,7 +103,7 @@ struct HomeSearchFilterBar: View {
     @State private var expanded = false
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 12) {
             ExpandingTripSearch(text: $searchText, focus: focus, expanded: $expanded)
                 .zIndex(3)
             if !expanded {
@@ -112,7 +112,7 @@ struct HomeSearchFilterBar: View {
                     selectedDate: $selectedDate,
                     selectedEndDate: $selectedEndDate,
                     selectedCategory: $selectedCategory,
-                    horizontalInset: 0
+                    horizontalInset: 8
                 )
                 .frame(maxWidth: .infinity)
                 // Keep scrolling chips inside their own horizontal viewport;
