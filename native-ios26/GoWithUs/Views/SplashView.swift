@@ -21,6 +21,7 @@ struct SplashView: View {
 
     @State private var carPose = CarPose()
     @State private var carHasFaded = false
+    @State private var titleHasFaded = false
     @State private var smoke = SmokePose.waiting
     @State private var eyeIsClosed = false
 
@@ -47,6 +48,16 @@ struct SplashView: View {
                     .rotationEffect(.degrees(carPose.pitch), anchor: UnitPoint(x: 0.5, y: 0.93))
                     .offset(x: carPose.travel * exitDistance, y: carPose.lift * artworkWidth)
                     .opacity(carHasFaded ? 0 : 1)
+
+                Text("GoWithUs")
+                    .font(.system(size: 26, weight: .semibold, design: .rounded))
+                    .tracking(0.4)
+                    .foregroundStyle(Color(red: 0.12, green: 0.14, blue: 0.18))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                    .frame(maxWidth: geometry.size.width - 40)
+                    .offset(y: artworkHeight / 2 + 30)
+                    .opacity(titleHasFaded ? 0 : 1)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
@@ -89,6 +100,7 @@ struct SplashView: View {
     private func play() async {
         carPose = CarPose()
         carHasFaded = false
+        titleHasFaded = false
         smoke = .waiting
         eyeIsClosed = false
 
@@ -97,6 +109,7 @@ struct SplashView: View {
             if reduceMotion {
                 withAnimation(.easeOut(duration: 0.25)) {
                     carHasFaded = true
+                    titleHasFaded = true
                 }
                 try await Task.sleep(nanoseconds: 250_000_000)
             } else {
@@ -113,6 +126,9 @@ struct SplashView: View {
                 }
                 try await Task.sleep(nanoseconds: 100_000_000)
 
+                withAnimation(.easeOut(duration: 0.22)) {
+                    titleHasFaded = true
+                }
                 withAnimation(.timingCurve(0.45, 0.10, 0.65, 0.44, duration: 0.19)) {
                     carPose = CarPose(travel: -0.16, lift: -0.018, pitch: 3.2, heightScale: 1.02)
                 }
