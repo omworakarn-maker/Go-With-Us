@@ -11,6 +11,132 @@ enum Tab: String, CaseIterable {
     case profile = "Profile"
 }
 
+// Decorate the system bar's existing icon images. This does not add a bar,
+// replace its delegate, or change the glass/selection geometry.
+struct NativeTabIconFeedback: UIViewRepresentable {
+    let selection: Int
+    let pulse: UUID
+    let active: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView()
+        view.isUserInteractionEnabled = false
+        return view
+    }
+
+    func updateUIView(_ view: UIView, context: Context) {
+        context.coordinator.update(host: view, selection: selection, pulse: pulse,
+                                   enabled: active && !reduceMotion)
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+    static func dismantleUIView(_ view: UIView, coordinator: Coordinator) { coordinator.cancel() }
+
+    final class Coordinator {
+        private var previousPulse: UUID?
+        private var pending: Task<Void, Never>?
+        private var animatedImages: [UIImageView] = []
+        private let translationKey = "GoWithUs.nativeTabIcon.translation"
+        private let scaleKey = "GoWithUs.nativeTabIcon.scale"
+
+        func cancel() {
+            pending?.cancel()
+            pending = nil
+            for image in animatedImages {
+                image.layer.removeAnimation(forKey: translationKey)
+                image.layer.removeAnimation(forKey: scaleKey)
+            }
+            animatedImages = []
+        }
+
+        func update(host: UIView, selection: Int, pulse: UUID, enabled: Bool) {
+            let previous = previousPulse
+            previousPulse = pulse
+            guard enabled else { cancel(); return }
+            // Initial appearance and badge polling never start an animation.
+            guard let previous, previous != pulse else { return }
+            cancel()
+            pending = Task { @MainActor [weak self, weak host] in
+                do {
+                    // Let Apple's selection/lens transition arrive first.
+                    try await Task.sleep(for: .milliseconds(240))
+                    guard let self, let host, !Task.isCancelled,
+                          let bar = self.findBar(from: host),
+                          !bar.isHidden, bar.alpha > 0.01,
+                          let items = bar.items, items.indices.contains(selection),
+                          bar.selectedItem === items[selection] else { return }
+                    let images = self.iconImages(in: bar, index: selection, count: items.count)
+                    self.animatedImages = images
+                    for image in images {
+                        let rise = CAKeyframeAnimation(keyPath: "transform.translation.y")
+                        rise.values = [0, -3.5, 0, -0.6, 0]
+                        rise.keyTimes = [0, 0.3, 0.65, 0.82, 1]
+                        rise.duration = 0.34
+                        rise.isAdditive = true
+                        let scale = CAKeyframeAnimation(keyPath: "transform.scale")
+                        scale.values = [1, 1.1, 1, 1.015, 1]
+                        scale.keyTimes = rise.keyTimes
+                        scale.duration = rise.duration
+                        // Finite keyframes return to the original model layer;
+                        // no repeating animation or persistent transform remains.
+                        image.layer.add(rise, forKey: self.translationKey)
+                        image.layer.add(scale, forKey: self.scaleKey)
+                    }
+#if DEBUG
+                    if images.isEmpty { print("NativeTabIconFeedback: no visible native icon image for tab \(selection)") }
+#endif
+                    try await Task.sleep(for: .milliseconds(400))
+                    guard !Task.isCancelled else { return }
+                    self.animatedImages = []
+                } catch { /* A newer selection or disappearing bar cancels the pulse. */ }
+            }
+        }
+
+        private func findBar(from host: UIView) -> UITabBar? {
+            guard host.window != nil else { return nil }
+            var responder: UIResponder? = host
+            while let current = responder {
+                if let controller = current as? UIViewController,
+                   let tabs = (controller as? UITabBarController) ?? controller.tabBarController {
+                    return tabs.tabBar
+                }
+                responder = current.next
+            }
+            func search(_ controller: UIViewController, depth: Int) -> UITabBar? {
+                guard depth < 16 else { return nil }
+                if let tabs = controller as? UITabBarController { return tabs.tabBar }
+                for child in controller.children {
+                    if let bar = search(child, depth: depth + 1) { return bar }
+                }
+                return nil
+            }
+            return host.window?.rootViewController.flatMap { search($0, depth: 0) }
+        }
+
+        private func iconImages(in bar: UITabBar, index: Int, count: Int) -> [UIImageView] {
+            let physicalIndex = bar.effectiveUserInterfaceLayoutDirection == .rightToLeft ? count - 1 - index : index
+            let slot = bar.bounds.width / CGFloat(max(1, count))
+            let targetX = bar.bounds.minX + (CGFloat(physicalIndex) + 0.5) * slot
+            var matches: [UIImageView] = []
+            func visit(_ view: UIView) {
+                guard !view.isHidden, view.alpha > 0.01 else { return }
+                if let image = view as? UIImageView, let bitmap = image.image {
+                    let frame = image.convert(image.bounds, to: bar)
+                    let iconSized = frame.width >= 14 && frame.width <= 54 && frame.height >= 16 && frame.height <= 48
+                    let glyph = bitmap.isSymbolImage || (frame.width >= 20 && frame.height >= 20)
+                    if iconSized && glyph && abs(frame.midX - targetX) < slot * 0.42 + 4 {
+                        matches.append(image)
+                    }
+                }
+                for child in view.subviews { visit(child) }
+            }
+            visit(bar)
+            return matches
+        }
+    }
+}
+
 #if DEBUG
 // Retained for the isolated lab; the app uses Apple’s system tab bar.
 // Use the same native UIKit lens that was validated in Liquid Lens Lab.

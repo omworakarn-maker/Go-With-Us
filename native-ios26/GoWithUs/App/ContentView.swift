@@ -11,6 +11,7 @@ struct ContentView: View {
     @State private var showSideMenu = false
     @State private var showingCreateTrip = false
     @State private var badgeCounts: [Tab: Int] = [:]
+    @State private var nativeIconPulse = UUID()
     @State private var activeTransition: AnyTransition = .identity
     /// Timestamp when the app moved to background — used to decide whether to force-refresh
     @State private var backgroundedAt: Date? = nil
@@ -240,6 +241,15 @@ struct ContentView: View {
                 .tag(Tab.profile)
         }
         .tint(.appSecondary)
+        .background {
+            NativeTabIconFeedback(
+                selection: Tab.allCases.firstIndex(of: selectedTabBinding.wrappedValue) ?? 0,
+                pulse: nativeIconPulse,
+                active: isMainTabScreen && scenePhase == .active
+            )
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+        }
         .toolbar(isMainTabScreen ? .automatic : .hidden, for: .tabBar)
     }
 
@@ -272,6 +282,7 @@ struct ContentView: View {
                     case .create: return currentScreen
                     }
                 }()
+                nativeIconPulse = UUID()
             }
         )
     }
