@@ -13,6 +13,7 @@ struct ContentView: View {
     @State private var tripCreation = TripCreationState()
     @State private var creationCanvas = CGSize(width: 390, height: 800)
     @State private var plusButtonFrame: CGRect?
+    @State private var creationBottomInset: CGFloat = 0
     @State private var badgeCounts: [Tab: Int] = [:]
     @State private var nativeIconPulse = UUID()
     @State private var activeTransition: AnyTransition = .identity
@@ -56,6 +57,21 @@ struct ContentView: View {
                 }
             .onGeometryChange(for: CGSize.self) { $0.size } action: { size in
                 if size.width > 0 && size.height > 0 { creationCanvas = size }
+            }
+            .onGeometryChange(for: CGFloat.self) { $0.safeAreaInsets.bottom } action: { inset in
+                creationBottomInset = max(0, inset)
+            }
+            // The expanding page is masked to its content canvas. Cover the
+            // home-indicator inset separately so that mask cannot expose tabs.
+            .overlay(alignment: .bottom) {
+                if tripCreation.id != nil {
+                    Color.adaptiveBackground
+                        .frame(height: creationBottomInset)
+                        .offset(y: creationBottomInset)
+                        .allowsHitTesting(false)
+                        .accessibilityHidden(true)
+                        .transition(.opacity)
+                }
             }
             .overlay {
                 NativePlusButtonFrameReader { plusButtonFrame = $0 }
