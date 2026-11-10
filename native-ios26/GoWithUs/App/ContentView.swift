@@ -5,6 +5,7 @@ struct ContentView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @ObservedObject private var settings = SettingsManager.shared
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     // State for navigation
     @State private var currentScreen: AppScreen = SettingsManager.shared.homeLayoutPreference
@@ -246,7 +247,7 @@ struct ContentView: View {
 
             // The native detached trailing slot keeps Apple's glass and layout.
             // Its action is intercepted below, rather than selecting an empty page.
-            if currentScreen == .home || currentScreen == .homeGrid || currentScreen == .profile {
+            if showsTrailingAction {
                 SwiftUI.Tab(value: Tab.create, role: .search) {
                     Color.clear
                 } label: {
@@ -258,10 +259,15 @@ struct ContentView: View {
             }
         }
         .tint(.appSecondary)
+        // Animate native tab insertion/removal so the system can reshape its
+        // glass grouping, instead of switching between two static layouts.
+        .animation(reduceMotion ? nil : .spring(response: 0.42, dampingFraction: 0.88),
+                   value: showsTrailingAction)
         .background {
             NativeTabIconFeedback(
                 selection: Tab.mainTabs.firstIndex(of: selectedTabBinding.wrappedValue) ?? 0,
                 tab: selectedTabBinding.wrappedValue,
+                separatedAction: showsTrailingAction,
                 pulse: nativeIconPulse,
                 active: isMainTabScreen && scenePhase == .active
             )
@@ -309,6 +315,10 @@ struct ContentView: View {
                 nativeIconPulse = UUID()
             }
         )
+    }
+
+    private var showsTrailingAction: Bool {
+        currentScreen == .home || currentScreen == .homeGrid || currentScreen == .profile
     }
 
     private var isMainTabScreen: Bool {

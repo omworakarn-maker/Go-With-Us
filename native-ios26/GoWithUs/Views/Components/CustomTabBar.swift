@@ -18,6 +18,7 @@ enum Tab: String, CaseIterable {
 struct NativeTabIconFeedback: UIViewRepresentable {
     let selection: Int
     let tab: Tab
+    let separatedAction: Bool
     let pulse: UUID
     let active: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -29,7 +30,8 @@ struct NativeTabIconFeedback: UIViewRepresentable {
     }
 
     func updateUIView(_ view: UIView, context: Context) {
-        context.coordinator.update(host: view, selection: selection, tab: tab, pulse: pulse,
+        context.coordinator.update(host: view, selection: selection, tab: tab,
+                                   separatedAction: separatedAction, pulse: pulse,
                                    enabled: active && !reduceMotion)
     }
 
@@ -38,6 +40,7 @@ struct NativeTabIconFeedback: UIViewRepresentable {
 
     final class Coordinator {
         private var previousPulse: UUID?
+        private var previousSeparation: Bool?
         private var pending: Task<Void, Never>?
         private var animatedImages: [UIImageView] = []
         private let translationKey = "GoWithUs.nativeTabIcon.translation"
@@ -60,17 +63,20 @@ struct NativeTabIconFeedback: UIViewRepresentable {
             animatedImages = []
         }
 
-        func update(host: UIView, selection: Int, tab: Tab, pulse: UUID, enabled: Bool) {
+        func update(host: UIView, selection: Int, tab: Tab, separatedAction: Bool, pulse: UUID, enabled: Bool) {
             let previous = previousPulse
+            let regrouping = previousSeparation.map { $0 != separatedAction } ?? false
             previousPulse = pulse
+            previousSeparation = separatedAction
             guard enabled else { cancel(); return }
             // Initial appearance and badge polling never start an animation.
             guard let previous, previous != pulse else { return }
             cancel()
             pending = Task { @MainActor [weak self, weak host] in
                 do {
-                    // Let Apple's selection/lens transition arrive first.
-                    try await Task.sleep(for: .milliseconds(240))
+                    // Do not place smoke/rays over a slot that is still moving
+                    // while the detached button and main group separate/join.
+                    try await Task.sleep(for: .milliseconds(regrouping ? 420 : 240))
                     guard let self, let host, !Task.isCancelled,
                           let bar = self.findBar(from: host),
                           !bar.isHidden, bar.alpha > 0.01,
