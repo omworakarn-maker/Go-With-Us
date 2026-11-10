@@ -160,38 +160,31 @@ struct NativeTabIconFeedback: UIViewRepresentable {
                 }
             case .chat:
                 let hasBadge = bar.items?[index].badgeValue != nil
-                let origin = CGPoint(x: frame.maxX - (hasBadge ? 8 : 2), y: frame.minY + (hasBadge ? -2 : 2))
-                // Three upright strokes rise in sequence, rather than
-                // radiating outwards from a circular notification burst.
-                let heights: [CGFloat] = [3, 5, 4]
-                for (number, height) in heights.enumerated() {
-                    let line = CAShapeLayer()
-                    let x = origin.x + CGFloat(number - 1) * 3.5
+                let origin = CGPoint(x: frame.maxX - (hasBadge ? 11 : 3), y: frame.minY + 3)
+                // Three open semicircular waves point diagonally out of the
+                // message's upper-right corner; no closed rings or straight rays.
+                let radii: [CGFloat] = [2.5, 4.5, 6.5]
+                for (number, radius) in radii.enumerated() {
+                    let wave = CAShapeLayer()
                     let path = UIBezierPath()
-                    path.move(to: CGPoint(x: x, y: origin.y))
-                    path.addLine(to: CGPoint(x: x, y: origin.y - height))
-                    line.path = path.cgPath
-                    line.strokeColor = color
-                    line.lineWidth = 1.4
-                    line.lineCap = .round
-                    accent(line, in: bar)
+                    path.addArc(withCenter: origin, radius: radius,
+                                startAngle: -.pi * 0.75, endAngle: .pi * 0.25, clockwise: true)
+                    wave.path = path.cgPath
+                    wave.fillColor = UIColor.clear.cgColor
+                    wave.strokeColor = color
+                    wave.lineWidth = 1.2
+                    wave.lineCap = .round
+                    accent(wave, in: bar)
                     let flash = keyframes("opacity", values: [0, 1, 1, 0], times: [0, 0.15, 0.55, 1], duration: 0.46)
-                    flash.beginTime = line.convertTime(CACurrentMediaTime(), from: nil) + Double(number) * 0.05
+                    flash.beginTime = wave.convertTime(CACurrentMediaTime(), from: nil) + Double(number) * 0.06
                     let draw = CABasicAnimation(keyPath: "strokeEnd")
                     draw.fromValue = 0
                     draw.toValue = 1
-                    draw.duration = 0.14
+                    draw.duration = 0.16
                     draw.beginTime = flash.beginTime
                     draw.fillMode = .backwards
-                    let rise = CABasicAnimation(keyPath: "transform.translation.y")
-                    rise.fromValue = 1
-                    rise.toValue = -2
-                    rise.duration = flash.duration
-                    rise.beginTime = flash.beginTime
-                    rise.timingFunction = CAMediaTimingFunction(name: .easeOut)
-                    line.add(flash, forKey: "chat.signal")
-                    line.add(draw, forKey: "chat.draw")
-                    line.add(rise, forKey: "chat.rise")
+                    wave.add(flash, forKey: "chat.signal")
+                    wave.add(draw, forKey: "chat.draw")
                 }
             case .profile:
                 let portrait = CALayer()
