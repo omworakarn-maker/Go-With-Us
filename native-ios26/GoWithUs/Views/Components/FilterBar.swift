@@ -49,7 +49,7 @@ struct FilterBar: View {
                     )
 
                     // Clear Filters (Only show if any filter is active)
-                    if selectedProvince != nil || selectedDate != nil || selectedCategory != nil {
+                    if !embedded && (selectedProvince != nil || selectedDate != nil || selectedEndDate != nil || selectedCategory != nil) {
                         Button(action: {
                             withAnimation(reduceMotion ? nil : .spring(response: 0.32, dampingFraction: 0.78)) {
                                 selectedProvince = nil
@@ -134,6 +134,27 @@ struct HomeSearchFilterBar: View {
                 .mask { Rectangle().padding(.vertical, -16) }
                 .zIndex(0)
                 .transition(.opacity)
+
+                if selectedProvince != nil || selectedDate != nil || selectedEndDate != nil || selectedCategory != nil {
+                    Button {
+                        SettingsManager.shared.triggerSelection()
+                        withAnimation(reduceMotion ? nil : .spring(response: 0.32, dampingFraction: 0.78)) {
+                            selectedProvince = nil
+                            selectedDate = nil
+                            selectedEndDate = nil
+                            selectedCategory = nil
+                        }
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(Color.secondary)
+                            .frame(width: 44, height: 48)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(SettingsManager.shared.text(thai: "ล้างตัวกรอง", english: "Clear filters"))
+                    .transition(.opacity)
+                }
             }
         }
         .frame(height: 48)
