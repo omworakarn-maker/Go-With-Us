@@ -28,7 +28,7 @@ struct SplashView: View {
 
     var body: some View {
         GeometryReader { geometry in
-            let artworkWidth = min(geometry.size.width * 0.86, 440)
+            let artworkWidth = min(geometry.size.width * 0.64, 320)
             let artworkHeight = artworkWidth * 561 / 778
             let exitDistance = (geometry.size.width + artworkWidth) / 2
 
@@ -129,7 +129,7 @@ struct SplashView: View {
                 withAnimation(.timingCurve(0.32, 0.31, 0.61, 0.61, duration: 0.52)) {
                     carPose = CarPose(travel: -1)
                 }
-                try await Task.sleep(nanoseconds: 650_000_000)
+                try await Task.sleep(nanoseconds: 520_000_000)
             }
             guard !Task.isCancelled else { return }
             onFinished()

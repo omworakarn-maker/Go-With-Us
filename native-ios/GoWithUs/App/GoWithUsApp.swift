@@ -12,25 +12,29 @@ struct GoWithUsApp: App {
         WindowGroup {
             ZStack {
                 Color.white.ignoresSafeArea()
+                // Mount the app while the splash plays so layout and initial work
+                // do not compete with the reveal animation.
+                ContentView()
+                    .environmentObject(authViewModel)
+                    .environmentObject(settings)
+                    .environment(\.locale, Locale(identifier: settings.currentLanguage.rawValue))
+                    .scaleEffect(showSplash && !reduceMotion ? 0.975 : 1)
+                    .opacity(showSplash ? 0 : 1)
+                    .allowsHitTesting(!showSplash)
+                    .accessibilityHidden(showSplash)
+                    .animation(reduceMotion ? .easeOut(duration: 0.18) : .timingCurve(0.2, 0.8, 0.2, 1, duration: 0.30), value: showSplash)
+
                 if showSplash {
-                    SplashView(onFinished: { showSplash = false })
+                    SplashView(onFinished: {
+                        withAnimation(.easeOut(duration: 0.18)) { showSplash = false }
+                    })
+                        .background(Color.white.ignoresSafeArea())
                         .zIndex(1)
-                        .transition(.opacity)
-                } else {
-                    ContentView()
-                        .environmentObject(authViewModel)
-                        .environmentObject(settings)
-                        .environment(\.locale, Locale(identifier: settings.currentLanguage.rawValue))
-                        .zIndex(0)
-                        .transition(.asymmetric(
-                            insertion: reduceMotion ? .opacity : .scale(scale: 0.94).combined(with: .opacity),
-                            removal: .opacity
-                        ))
+                        .transition(.opacity.animation(.easeOut(duration: 0.18)))
                 }
             }
             .ignoresSafeArea(edges: .top)
             .tint(.appPrimary)
-            .animation(reduceMotion ? .easeOut(duration: 0.22) : .spring(duration: 0.58, bounce: 0), value: showSplash)
             .onAppear {
                 NotificationPoller.shared.startPolling()
             }
