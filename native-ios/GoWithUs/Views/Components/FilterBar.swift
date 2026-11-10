@@ -105,6 +105,7 @@ struct HomeSearchFilterBar: View {
     var body: some View {
         HStack(spacing: 8) {
             ExpandingTripSearch(text: $searchText, focus: focus, expanded: $expanded)
+                .zIndex(3)
             if !expanded {
                 FilterBar(
                     selectedProvince: $selectedProvince,
@@ -114,6 +115,10 @@ struct HomeSearchFilterBar: View {
                     horizontalInset: 0
                 )
                 .frame(maxWidth: .infinity)
+                // Keep scrolling chips inside their own horizontal viewport;
+                // preserve vertical room for the native glass shadow.
+                .mask { Rectangle().padding(.vertical, -16) }
+                .zIndex(0)
                 .transition(.opacity)
             }
         }

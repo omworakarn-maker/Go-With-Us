@@ -290,6 +290,7 @@ struct ExpandingTripSearch: View {
         }
         .frame(width: expanded ? nil : 48, height: 48)
         .frame(maxWidth: expanded ? .infinity : nil)
+        .clipShape(Capsule())
         .background(.ultraThinMaterial, in: Capsule())
         .overlay(Capsule().stroke(Color.gray.opacity(0.15), lineWidth: 0.5))
         .animation(reduceMotion ? .easeOut(duration: 0.15) : .spring(response: 0.36, dampingFraction: 0.88), value: expanded)
