@@ -34,8 +34,8 @@ struct LiquidGlassTabBar: View {
                     reduceMotion: reduceMotion,
                     unavailable: { lensUnavailable = true }
                 )
-                .frame(height: 80)
-                .padding(.horizontal, 12)
+                .frame(height: 82)
+                .padding(.horizontal, 10)
             }
         }
     }
@@ -341,6 +341,7 @@ private struct TabLensMotion {
     var horizontal = LensAxis()
     var vertical = LensAxis()
     var pressure = LensAxis()
+    var focus = LensAxis()
     var elongation = LensAxis()
     var lean = LensAxis()
     var destination: Double = 0
@@ -389,6 +390,7 @@ private struct TabLensMotion {
             horizontal = LensAxis(position: destination)
             vertical = LensAxis()
             pressure = LensAxis(position: raised ? 1 : 0)
+            focus = LensAxis(position: raised ? 1 : 0)
             elongation = LensAxis()
             lean = LensAxis()
             return
@@ -400,21 +402,25 @@ private struct TabLensMotion {
             horizontal.position = destination
             horizontal.velocity = pointerVelocity
         } else {
-            horizontal.advance(to: destination, seconds: dt, frequency: 25, damping: 0.83)
+            horizontal.advance(to: destination, seconds: dt, frequency: 24, damping: 0.9)
         }
         vertical.advance(to: verticalDestination, seconds: dt, frequency: 26, damping: 0.9)
-        pressure.advance(to: raised ? 1 : 0, seconds: dt, frequency: 25, damping: 1)
+        pressure.advance(to: raised ? 1 : 0, seconds: dt, frequency: 28, damping: 1)
+        // Let the content respond slightly sooner than the glass lift, without
+        // resetting either spring if the next press interrupts the release.
+        focus.advance(to: raised ? 1 : 0, seconds: dt, frequency: 38, damping: 0.9)
         let amount = max(0, min(1, pressure.position))
         let speed = horizontal.velocity
         let stretch = amount * (0.16 * tanh(abs(speed) / 1600) + 0.035 * min(1, lag))
-        elongation.advance(to: stretch, seconds: dt, frequency: 30, damping: 0.8)
-        lean.advance(to: amount * 0.035 * tanh(speed / 1300), seconds: dt, frequency: 28, damping: 0.85)
+        elongation.advance(to: stretch, seconds: dt, frequency: 27, damping: 0.92)
+        lean.advance(to: amount * 0.035 * tanh(speed / 1300), seconds: dt, frequency: 26, damping: 0.95)
     }
 
     var isSettled: Bool {
         abs(horizontal.position - destination) < 0.02 && abs(horizontal.velocity) < 0.2 &&
         abs(vertical.position - verticalDestination) < 0.02 && abs(vertical.velocity) < 0.2 &&
         abs(pressure.position - (raised ? 1 : 0)) < 0.001 && abs(pressure.velocity) < 0.02 &&
+        abs(focus.position - (raised ? 1 : 0)) < 0.001 && abs(focus.velocity) < 0.02 &&
         abs(elongation.position) < 0.001 && abs(elongation.velocity) < 0.02 &&
         abs(lean.position) < 0.001 && abs(lean.velocity) < 0.02
     }
@@ -727,7 +733,7 @@ private final class LiquidLensBarUIView: UIView {
                 // Set bounds/center rather than frame: contact animation may
                 // currently apply a transform to this item.
                 item.bounds = CGRect(x: 0, y: 0, width: itemWidth, height: 44)
-                item.center = CGPoint(x: (CGFloat(index) + 0.5) * itemWidth, y: 32)
+                item.center = CGPoint(x: (CGFloat(index) + 0.5) * itemWidth, y: stage.bounds.midY)
                 item.viewWithTag(6101)?.frame = CGRect(x: itemWidth / 2 + 6, y: -4, width: badgeCount > 99 ? 25 : 19, height: 16)
             }
         }
@@ -800,14 +806,17 @@ private final class LiquidLensBarUIView: UIView {
     private func renderMotion() {
         guard let lens, stage.bounds.width > 0 else { return }
         let pressure = reduceMotion ? 0 : CGFloat(max(0, min(1, motion.pressure.position)))
-        let margin: CGFloat = 4 - pressure * 8
+        let focus = reduceMotion ? 0 : CGFloat(max(0, min(1, motion.focus.position)))
+        let margin: CGFloat = 3 - pressure * 8.5
         let size = CGSize(width: max(1, itemWidth - margin * 2), height: max(1, stage.bounds.height - margin * 2))
         let center = CGPoint(x: min(max(CGFloat(motion.horizontal.position), itemWidth / 2 - 8), stage.bounds.width - itemWidth / 2 + 8),
                              y: stage.bounds.midY + CGFloat(motion.vertical.position))
         let elongation = reduceMotion ? 0 : CGFloat(max(-0.03, min(0.2, motion.elongation.position)))
         let stretch = 1 + elongation
         let skew = reduceMotion ? 0 : CGFloat(max(-0.045, min(0.045, motion.lean.position)))
-        let shapeTransform = CGAffineTransform(a: stretch, b: 0, c: skew, d: 1 / sqrt(stretch), tx: 0, ty: 0)
+        let pressZoom = 1 + focus * 0.025
+        let shapeTransform = CGAffineTransform(a: stretch * pressZoom, b: 0, c: skew,
+                                               d: pressZoom / sqrt(stretch), tx: 0, ty: 0)
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         lens.bounds = CGRect(origin: .zero, size: size)
@@ -827,7 +836,7 @@ private final class LiquidLensBarUIView: UIView {
         // row. Native lens optics then refract this layer as the finger moves.
         for item in liftedItems.subviews {
             let distance = min(1, abs(item.center.x - center.x) / itemWidth)
-            let scale = 1 + pressure * (0.15 - 0.025 * distance)
+            let scale = 1 + focus * (0.19 - 0.02 * distance)
             item.transform = CGAffineTransform(scaleX: scale, y: scale)
         }
         CATransaction.commit()

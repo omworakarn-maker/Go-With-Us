@@ -75,10 +75,27 @@ private enum LensMotionRegression {
         require(reduced.elongation.position == 0 && reduced.lean.position == 0,
                 "Reduce Motion must disable deformation")
 
+        var tapping = TabLensMotion()
+        tapping.reset(at: 35)
+        tapping.point(at: 35, vertical: 0, time: 0, follows: false)
+        advance(&tapping, seconds: 0.1)
+        require(tapping.focus.position > tapping.pressure.position,
+                "Pressed content should respond before the slower glass lift")
+        tapping.raised = false
+        advance(&tapping, seconds: 0.05)
+        let interruptedZoom = tapping.focus.position
+        tapping.point(at: 105, vertical: 0, time: 0.15, follows: false)
+        require(tapping.focus.position == interruptedZoom,
+                "A second press must continue the existing zoom instead of snapping its scale")
+        tapping.settle(at: 105)
+        tapping.raised = false
+        advance(&tapping, seconds: 1.5)
+        require(tapping.isSettled, "Zoom must fully settle after quick repeated presses")
+
         var delayed = movingPointer(step: 10)
         delayed.advance(seconds: 100, itemWidth: 0, reduceMotion: false)
         require(delayed.horizontal.position.isFinite && delayed.elongation.position.isFinite,
                 "A delayed frame or zero-width layout must not corrupt motion")
-        print("Lens motion: 7 regression scenarios passed")
+        print("Lens motion: 8 regression scenarios passed")
     }
 }
