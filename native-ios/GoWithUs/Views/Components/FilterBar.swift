@@ -109,6 +109,8 @@ struct HomeSearchFilterBar: View {
     var body: some View {
         HStack(spacing: 8) {
             ExpandingTripSearch(text: $searchText, focus: focus, expanded: $expanded)
+                .padding(.leading, 16)
+                .padding(.trailing, expanded ? 16 : 0)
                 .zIndex(3)
             if !expanded {
                 FilterBar(
@@ -143,13 +145,13 @@ struct HomeSearchFilterBar: View {
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    .padding(.trailing, 16)
                     .accessibilityLabel(SettingsManager.shared.text(thai: "ล้างตัวกรอง", english: "Clear filters"))
                     .transition(.opacity)
                 }
             }
         }
         .frame(height: 56)
-        .padding(.horizontal, 16)
         .animation(reduceMotion ? .easeOut(duration: 0.15) : .spring(response: 0.36, dampingFraction: 0.88), value: expanded)
     }
 }
