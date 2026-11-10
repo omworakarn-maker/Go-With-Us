@@ -187,26 +187,18 @@ struct NativeTabIconFeedback: UIViewRepresentable {
                     wave.add(draw, forKey: "chat.draw")
                 }
             case .profile:
-                let portrait = CALayer()
-                let format = UIGraphicsImageRendererFormat()
-                format.scale = source.window?.windowScene?.screen.scale ?? 2
-                let snapshot = UIGraphicsImageRenderer(size: source.bounds.size, format: format).image { context in
-                    source.layer.render(in: context.cgContext)
-                }
-                portrait.contents = snapshot.cgImage
-                portrait.contentsScale = format.scale
-                portrait.frame = frame
-                accent(portrait, in: bar)
-                let arrival = keyframes("transform.translation.x", values: [-12, -12, 0, 0], times: [0, 0.12, 0.72, 1], duration: 0.52)
-                let appear = keyframes("opacity", values: [0, 0, 1, 1, 0], times: [0, 0.12, 0.45, 0.86, 1], duration: 0.52)
-                portrait.add(arrival, forKey: "profile.arrive")
-                portrait.add(appear, forKey: "profile.appear")
+                // Move the real native glyph instead of a raster snapshot,
+                // which can capture an opaque backdrop from the system bar.
                 for image in images {
-                    let depart = keyframes("transform.translation.x", values: [0, 8, 10, 10, 0], times: [0, 0.32, 0.5, 0.88, 1], duration: 0.52)
-                    depart.isAdditive = true
-                    let fade = keyframes("opacity", values: [1, 0, 0, 0, 1], times: [0, 0.3, 0.5, 0.85, 1], duration: 0.52)
-                    image.layer.add(depart, forKey: translationKey)
+                    let times: [Double] = [0, 0.3, 0.49, 0.5, 0.72, 1]
+                    let slide = keyframes("transform.translation.x", values: [0, -6, -8, 8, 3, 0], times: times, duration: 0.48)
+                    slide.isAdditive = true
+                    let opacity = Double(image.layer.opacity)
+                    let fade = keyframes("opacity", values: [opacity, 0, 0, 0, opacity * 0.85, opacity], times: times, duration: 0.48)
+                    let zoom = keyframes("transform.scale", values: [1, 0.95, 0.95, 0.95, 1.035, 1], times: times, duration: 0.48)
+                    image.layer.add(slide, forKey: translationKey)
                     image.layer.add(fade, forKey: opacityKey)
+                    image.layer.add(zoom, forKey: scaleKey)
                 }
             case .create:
                 break
