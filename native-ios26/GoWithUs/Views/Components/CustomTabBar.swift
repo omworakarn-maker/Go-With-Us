@@ -9,12 +9,15 @@ enum Tab: String, CaseIterable {
     case create = "Create"
     case chat = "Chat"
     case profile = "Profile"
+
+    static let mainTabs: [Tab] = [.home, .matchTrip, .chat, .profile]
 }
 
 // Decorate the system bar's existing icon images. This does not add a bar,
 // replace its delegate, or change the glass/selection geometry.
 struct NativeTabIconFeedback: UIViewRepresentable {
     let selection: Int
+    let tab: Tab
     let pulse: UUID
     let active: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -26,7 +29,7 @@ struct NativeTabIconFeedback: UIViewRepresentable {
     }
 
     func updateUIView(_ view: UIView, context: Context) {
-        context.coordinator.update(host: view, selection: selection, pulse: pulse,
+        context.coordinator.update(host: view, selection: selection, tab: tab, pulse: pulse,
                                    enabled: active && !reduceMotion)
     }
 
@@ -39,6 +42,9 @@ struct NativeTabIconFeedback: UIViewRepresentable {
         private var animatedImages: [UIImageView] = []
         private let translationKey = "GoWithUs.nativeTabIcon.translation"
         private let scaleKey = "GoWithUs.nativeTabIcon.scale"
+        private let rotationKey = "GoWithUs.nativeTabIcon.rotation"
+        private let opacityKey = "GoWithUs.nativeTabIcon.opacity"
+        private var accents: [CALayer] = []
 
         func cancel() {
             pending?.cancel()
@@ -46,11 +52,15 @@ struct NativeTabIconFeedback: UIViewRepresentable {
             for image in animatedImages {
                 image.layer.removeAnimation(forKey: translationKey)
                 image.layer.removeAnimation(forKey: scaleKey)
+                image.layer.removeAnimation(forKey: rotationKey)
+                image.layer.removeAnimation(forKey: opacityKey)
             }
+            accents.forEach { $0.removeFromSuperlayer() }
+            accents = []
             animatedImages = []
         }
 
-        func update(host: UIView, selection: Int, pulse: UUID, enabled: Bool) {
+        func update(host: UIView, selection: Int, tab: Tab, pulse: UUID, enabled: Bool) {
             let previous = previousPulse
             previousPulse = pulse
             guard enabled else { cancel(); return }
@@ -68,28 +78,126 @@ struct NativeTabIconFeedback: UIViewRepresentable {
                           bar.selectedItem === items[selection] else { return }
                     let images = self.iconImages(in: bar, index: selection, count: items.count)
                     self.animatedImages = images
-                    for image in images {
-                        let rise = CAKeyframeAnimation(keyPath: "transform.translation.y")
-                        rise.values = [0, -3.5, 0, -0.6, 0]
-                        rise.keyTimes = [0, 0.3, 0.65, 0.82, 1]
-                        rise.duration = 0.34
-                        rise.isAdditive = true
-                        let scale = CAKeyframeAnimation(keyPath: "transform.scale")
-                        scale.values = [1, 1.1, 1, 1.015, 1]
-                        scale.keyTimes = rise.keyTimes
-                        scale.duration = rise.duration
-                        // Finite keyframes return to the original model layer;
-                        // no repeating animation or persistent transform remains.
-                        image.layer.add(rise, forKey: self.translationKey)
-                        image.layer.add(scale, forKey: self.scaleKey)
-                    }
+                    self.animate(tab, images: images, in: bar, index: selection)
 #if DEBUG
                     if images.isEmpty { print("NativeTabIconFeedback: no visible native icon image for tab \(selection)") }
 #endif
-                    try await Task.sleep(for: .milliseconds(400))
+                    try await Task.sleep(for: .milliseconds(950))
                     guard !Task.isCancelled else { return }
+                    self.accents.forEach { $0.removeFromSuperlayer() }
+                    self.accents = []
                     self.animatedImages = []
                 } catch { /* A newer selection or disappearing bar cancels the pulse. */ }
+            }
+        }
+
+        private func keyframes(_ keyPath: String, values: [Double], times: [Double], duration: Double) -> CAKeyframeAnimation {
+            let animation = CAKeyframeAnimation(keyPath: keyPath)
+            animation.values = values
+            animation.keyTimes = times.map { NSNumber(value: $0) }
+            animation.duration = duration
+            animation.calculationMode = .cubic
+            return animation
+        }
+
+        private func accent(_ layer: CALayer, in bar: UITabBar) {
+            if layer is CAShapeLayer { layer.frame = bar.bounds }
+            layer.opacity = 0
+            layer.zPosition = 100
+            bar.layer.addSublayer(layer)
+            accents.append(layer)
+        }
+
+        private func animate(_ tab: Tab, images: [UIImageView], in bar: UITabBar, index: Int) {
+            guard let source = images.max(by: { $0.bounds.width * $0.bounds.height < $1.bounds.width * $1.bounds.height }) else { return }
+            let frame = source.convert(source.bounds, to: bar)
+            let color = bar.tintColor.resolvedColor(with: bar.traitCollection).cgColor
+            switch tab {
+            case .home:
+                // A single small puff from the chimney, split into three wisps.
+                for number in 0..<3 {
+                    let smoke = CAShapeLayer()
+                    let x = frame.minX + frame.width * 0.73 + CGFloat(number) * 0.7
+                    let y = frame.minY + frame.height * 0.15
+                    let path = UIBezierPath()
+                    path.move(to: CGPoint(x: x, y: y))
+                    path.addCurve(to: CGPoint(x: x + 0.8, y: y - 4.5),
+                                  controlPoint1: CGPoint(x: x - 2, y: y - 1.5),
+                                  controlPoint2: CGPoint(x: x + 2.5, y: y - 3))
+                    smoke.path = path.cgPath
+                    smoke.strokeColor = color
+                    smoke.fillColor = UIColor.clear.cgColor
+                    smoke.lineWidth = 1.2
+                    smoke.lineCap = .round
+                    accent(smoke, in: bar)
+                    let delay = Double(number) * 0.1
+                    let fade = keyframes("opacity", values: [0, 0.8, 0.55, 0], times: [0, 0.2, 0.6, 1], duration: 0.55)
+                    fade.beginTime = smoke.convertTime(CACurrentMediaTime(), from: nil) + delay
+                    let drift = CABasicAnimation(keyPath: "transform.translation.y")
+                    drift.fromValue = 1
+                    drift.toValue = -7
+                    drift.duration = fade.duration
+                    drift.beginTime = fade.beginTime
+                    drift.timingFunction = CAMediaTimingFunction(name: .easeOut)
+                    smoke.add(fade, forKey: "smoke.fade")
+                    smoke.add(drift, forKey: "smoke.rise")
+                }
+            case .matchTrip:
+                for image in images {
+                    let turn = CABasicAnimation(keyPath: "transform.rotation.z")
+                    turn.fromValue = 0
+                    turn.toValue = Double.pi * 2
+                    turn.duration = 0.58
+                    turn.isAdditive = true
+                    turn.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                    image.layer.add(turn, forKey: rotationKey)
+                }
+            case .chat:
+                let hasBadge = bar.items?[index].badgeValue != nil
+                let origin = CGPoint(x: frame.maxX - (hasBadge ? 8 : 2), y: frame.minY + (hasBadge ? -2 : 2))
+                let rays: [(CGPoint, CGPoint)] = [
+                    (CGPoint(x: 0, y: -2), CGPoint(x: 0.5, y: -5)),
+                    (CGPoint(x: 2, y: -1), CGPoint(x: 4.5, y: -3)),
+                    (CGPoint(x: 3, y: 1), CGPoint(x: 6, y: 1))
+                ]
+                for (number, points) in rays.enumerated() {
+                    let ray = CAShapeLayer()
+                    let path = UIBezierPath()
+                    path.move(to: CGPoint(x: origin.x + points.0.x, y: origin.y + points.0.y))
+                    path.addLine(to: CGPoint(x: origin.x + points.1.x, y: origin.y + points.1.y))
+                    ray.path = path.cgPath
+                    ray.strokeColor = color
+                    ray.lineWidth = 1.4
+                    ray.lineCap = .round
+                    accent(ray, in: bar)
+                    let flash = keyframes("opacity", values: [0, 1, 1, 0], times: [0, 0.2, 0.45, 1], duration: 0.4)
+                    flash.beginTime = ray.convertTime(CACurrentMediaTime(), from: nil) + Double(number) * 0.035
+                    ray.add(flash, forKey: "chat.signal")
+                }
+            case .profile:
+                let portrait = CALayer()
+                let format = UIGraphicsImageRendererFormat()
+                format.scale = source.window?.windowScene?.screen.scale ?? 2
+                let snapshot = UIGraphicsImageRenderer(size: source.bounds.size, format: format).image { context in
+                    source.layer.render(in: context.cgContext)
+                }
+                portrait.contents = snapshot.cgImage
+                portrait.contentsScale = format.scale
+                portrait.frame = frame
+                accent(portrait, in: bar)
+                let arrival = keyframes("transform.translation.x", values: [-12, -12, 0, 0], times: [0, 0.12, 0.72, 1], duration: 0.52)
+                let appear = keyframes("opacity", values: [0, 0, 1, 1, 0], times: [0, 0.12, 0.45, 0.86, 1], duration: 0.52)
+                portrait.add(arrival, forKey: "profile.arrive")
+                portrait.add(appear, forKey: "profile.appear")
+                for image in images {
+                    let depart = keyframes("transform.translation.x", values: [0, 8, 10, 10, 0], times: [0, 0.32, 0.5, 0.88, 1], duration: 0.52)
+                    depart.isAdditive = true
+                    let fade = keyframes("opacity", values: [1, 0, 0, 0, 1], times: [0, 0.3, 0.5, 0.85, 1], duration: 0.52)
+                    image.layer.add(depart, forKey: translationKey)
+                    image.layer.add(fade, forKey: opacityKey)
+                }
+            case .create:
+                break
             }
         }
 

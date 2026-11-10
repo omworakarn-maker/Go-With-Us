@@ -10,6 +10,7 @@ struct ContentView: View {
     @State private var currentScreen: AppScreen = SettingsManager.shared.homeLayoutPreference
     @State private var showSideMenu = false
     @State private var showingCreateTrip = false
+    @State private var profileSettingsRequest: UUID?
     @State private var badgeCounts: [Tab: Int] = [:]
     @State private var nativeIconPulse = UUID()
     @State private var activeTransition: AnyTransition = .identity
@@ -54,7 +55,8 @@ struct ContentView: View {
             }
             .overlay(alignment: .leading) {
                 // Side Menu Panel
-                SideMenuView(isShowing: $showSideMenu, currentScreen: $currentScreen, transition: $activeTransition)
+                SideMenuView(isShowing: $showSideMenu, currentScreen: $currentScreen, transition: $activeTransition,
+                             settingsRequest: profileSettingsRequest)
                     .frame(width: min(UIScreen.main.bounds.width * 0.8, 320))
                     .offset(x: showSideMenu ? 0 : -UIScreen.main.bounds.width)
                     .animation(.easeInOut(duration: 0.3), value: showSideMenu)
@@ -208,42 +210,58 @@ struct ContentView: View {
     // iOS owns the tab bar material, selection effects, and layout.
     private var nativeTabs: some View {
         TabView(selection: selectedTabBinding) {
-            Group {
-                if settings.homeLayoutPreference == .homeGrid {
-                    HomeGridView(showSideMenu: $showSideMenu, currentScreen: $currentScreen)
-                        .id("homeGrid-\(forceRefreshToken)")
-                } else {
-                    HomeView(showSideMenu: $showSideMenu, currentScreen: $currentScreen)
-                        .id("home-\(forceRefreshToken)")
+            SwiftUI.Tab(value: Tab.home) {
+                Group {
+                    if settings.homeLayoutPreference == .homeGrid {
+                        HomeGridView(showSideMenu: $showSideMenu, currentScreen: $currentScreen)
+                            .id("homeGrid-\(forceRefreshToken)")
+                    } else {
+                        HomeView(showSideMenu: $showSideMenu, currentScreen: $currentScreen)
+                            .id("home-\(forceRefreshToken)")
+                    }
+                }
+            } label: {
+                Label(settings.localizedString(for: "home"), systemImage: "house")
+            }
+
+            SwiftUI.Tab(value: Tab.matchTrip) {
+                MatchTripView(showSideMenu: $showSideMenu)
+                    .id("match-\(forceRefreshToken)")
+            } label: {
+                Label(tr("แมตช์ทริป", "Match Trip"), systemImage: "arrow.triangle.2.circlepath")
+            }
+
+            SwiftUI.Tab(value: Tab.chat) {
+                ChatView().id("chat-\(forceRefreshToken)")
+            } label: {
+                Label(tr("แชท", "Chat"), systemImage: "message")
+            }
+            .badge(badgeCounts[.chat] ?? 0)
+
+            SwiftUI.Tab(value: Tab.profile) {
+                ProfileView().id("profile-\(forceRefreshToken)")
+            } label: {
+                Label(settings.localizedString(for: "profile"), systemImage: "person")
+            }
+
+            // The native detached trailing slot keeps Apple's glass and layout.
+            // Its action is intercepted below, rather than selecting an empty page.
+            if currentScreen == .home || currentScreen == .homeGrid || currentScreen == .profile {
+                SwiftUI.Tab(value: Tab.create, role: .search) {
+                    Color.clear
+                } label: {
+                    Label(currentScreen == .profile
+                          ? settings.localizedString(for: "settings")
+                          : settings.localizedString(for: "create"),
+                          systemImage: currentScreen == .profile ? "gearshape" : "plus")
                 }
             }
-            .tabItem { Label(settings.localizedString(for: "home"), systemImage: "house") }
-            .tag(Tab.home)
-
-            MatchTripView(showSideMenu: $showSideMenu)
-                .id("match-\(forceRefreshToken)")
-                .tabItem { Label(tr("แมตช์ทริป", "Match Trip"), systemImage: "arrow.triangle.2.circlepath") }
-                .tag(Tab.matchTrip)
-
-            Color.clear
-                .tabItem { Label(settings.localizedString(for: "create"), systemImage: "plus.circle") }
-                .tag(Tab.create)
-
-            ChatView()
-                .id("chat-\(forceRefreshToken)")
-                .tabItem { Label(tr("แชท", "Chat"), systemImage: "message") }
-                .badge(badgeCounts[.chat] ?? 0)
-                .tag(Tab.chat)
-
-            ProfileView()
-                .id("profile-\(forceRefreshToken)")
-                .tabItem { Label(settings.localizedString(for: "profile"), systemImage: "person") }
-                .tag(Tab.profile)
         }
         .tint(.appSecondary)
         .background {
             NativeTabIconFeedback(
-                selection: Tab.allCases.firstIndex(of: selectedTabBinding.wrappedValue) ?? 0,
+                selection: Tab.mainTabs.firstIndex(of: selectedTabBinding.wrappedValue) ?? 0,
+                tab: selectedTabBinding.wrappedValue,
                 pulse: nativeIconPulse,
                 active: isMainTabScreen && scenePhase == .active
             )
@@ -268,7 +286,13 @@ struct ContentView: View {
             },
             set: { newTab in
                 if newTab == .create {
-                    showingCreateTrip = true
+                    SettingsManager.shared.triggerSelection()
+                    if currentScreen == .profile {
+                        profileSettingsRequest = UUID()
+                        withAnimation(.smooth(duration: 0.25)) { showSideMenu = true }
+                    } else if currentScreen == .home || currentScreen == .homeGrid {
+                        showingCreateTrip = true
+                    }
                     return
                 }
                 SettingsManager.shared.triggerSelection()

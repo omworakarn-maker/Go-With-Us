@@ -4,12 +4,14 @@ struct SideMenuView: View {
     @Binding var isShowing: Bool
     @Binding var currentScreen: AppScreen
     @Binding var transition: AnyTransition
+    var settingsRequest: UUID? = nil
     @EnvironmentObject var authViewModel: AuthViewModel
     @State private var showDevices = false
 #if DEBUG
     @State private var showLiquidLensLab = false
 #endif
     @State private var showSettings = false
+    @State private var settingsOpenedByShortcut = false
     @State private var showLogoutAlert = false
     @State private var showLanguageAlert = false
     @State private var showResetConfirmation = false
@@ -36,6 +38,17 @@ struct SideMenuView: View {
         .frame(width: min(UIScreen.main.bounds.width * 0.8, 320))
         .background(Color.adaptiveBackground)
         .ignoresSafeArea(.all)
+        .onChange(of: settingsRequest) { _, request in
+            guard request != nil else { return }
+            showSettings = true
+            settingsOpenedByShortcut = true
+        }
+        .onChange(of: isShowing) { _, showing in
+            if !showing && settingsOpenedByShortcut {
+                showSettings = false
+                settingsOpenedByShortcut = false
+            }
+        }
         .sheet(isPresented: $showDevices) { DeviceSessionsView() }
 #if DEBUG
         .sheet(isPresented: $showLiquidLensLab) { LiquidLensExperimentView() }
@@ -195,6 +208,10 @@ struct SideMenuView: View {
                 Button(action: {
                     withAnimation(.easeInOut(duration: 0.3)) {
                         showSettings = false
+                        if settingsOpenedByShortcut {
+                            isShowing = false
+                            settingsOpenedByShortcut = false
+                        }
                     }
                 }) {
                     HStack(spacing: 8) {
