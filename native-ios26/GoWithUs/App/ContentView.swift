@@ -11,7 +11,6 @@ struct ContentView: View {
     @State private var currentScreen: AppScreen = SettingsManager.shared.homeLayoutPreference
     @State private var showSideMenu = false
     @State private var showingCreateTrip = false
-    @State private var profileSettingsRequest: UUID?
     @State private var badgeCounts: [Tab: Int] = [:]
     @State private var nativeIconPulse = UUID()
     @State private var activeTransition: AnyTransition = .identity
@@ -56,8 +55,7 @@ struct ContentView: View {
             }
             .overlay(alignment: .leading) {
                 // Side Menu Panel
-                SideMenuView(isShowing: $showSideMenu, currentScreen: $currentScreen, transition: $activeTransition,
-                             settingsRequest: profileSettingsRequest)
+                SideMenuView(isShowing: $showSideMenu, currentScreen: $currentScreen, transition: $activeTransition)
                     .frame(width: min(UIScreen.main.bounds.width * 0.8, 320))
                     .offset(x: showSideMenu ? 0 : -UIScreen.main.bounds.width)
                     .animation(.easeInOut(duration: 0.3), value: showSideMenu)
@@ -251,10 +249,7 @@ struct ContentView: View {
                 SwiftUI.Tab(value: Tab.create, role: .search) {
                     Color.clear
                 } label: {
-                    Label(currentScreen == .profile
-                          ? settings.localizedString(for: "settings")
-                          : settings.localizedString(for: "create"),
-                          systemImage: currentScreen == .profile ? "gearshape" : "plus")
+                    Label(settings.localizedString(for: "create"), systemImage: "plus")
                 }
             }
         }
@@ -293,12 +288,7 @@ struct ContentView: View {
             set: { newTab in
                 if newTab == .create {
                     SettingsManager.shared.triggerSelection()
-                    if currentScreen == .profile {
-                        profileSettingsRequest = UUID()
-                        withAnimation(.smooth(duration: 0.25)) { showSideMenu = true }
-                    } else if currentScreen == .home || currentScreen == .homeGrid {
-                        showingCreateTrip = true
-                    }
+                    showingCreateTrip = true
                     return
                 }
                 SettingsManager.shared.triggerSelection()
@@ -318,7 +308,7 @@ struct ContentView: View {
     }
 
     private var showsTrailingAction: Bool {
-        currentScreen == .home || currentScreen == .homeGrid || currentScreen == .profile
+        isMainTabScreen
     }
 
     private var isMainTabScreen: Bool {
