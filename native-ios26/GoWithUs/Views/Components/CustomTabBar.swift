@@ -440,7 +440,11 @@ private final class LiquidLensBarUIView: UIView {
         }
     }
     private let report: (String) -> Void
-    private let glass = UIVisualEffectView(effect: UIGlassEffect(style: .regular))
+    private let glass: UIVisualEffectView = {
+        let material = UIGlassEffect(style: .regular)
+        material.isInteractive = true
+        return UIVisualEffectView(effect: material)
+    }()
     private let stage = UIView()
     private let regularItems = UIView()
     private let liftedItems = UIView()
@@ -552,9 +556,9 @@ private final class LiquidLensBarUIView: UIView {
             element.accessibilityLabel = titles[index]
             element.accessibilityValue = index == badgeIndex && badgeCount > 0 ? String(badgeCount) : nil
             element.accessibilityTraits = index == selected ? [.button, .selected] : .button
-            element.accessibilityFrameInContainerSpace = CGRect(
-                x: CGFloat(index) * itemWidth, y: glass.frame.minY,
-                width: itemWidth, height: stage.bounds.height)
+            element.accessibilityFrameInContainerSpace = convert(CGRect(
+                x: CGFloat(index) * itemWidth, y: 0,
+                width: itemWidth, height: stage.bounds.height), from: stage)
         }
     }
 
@@ -720,7 +724,10 @@ private final class LiquidLensBarUIView: UIView {
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        glass.frame = bounds.insetBy(dx: 0, dy: 8)
+        // Keep the resting layout stable while the entire glass surface
+        // responds to the finger; frame is undefined for transformed views.
+        glass.bounds = CGRect(origin: .zero, size: CGSize(width: bounds.width, height: max(1, bounds.height - 16)))
+        glass.center = CGPoint(x: bounds.midX, y: bounds.midY)
         glass.cornerConfiguration = .capsule()
         // The material is rounded, but the lifted lens can extend above it.
         glass.clipsToBounds = false
@@ -819,6 +826,15 @@ private final class LiquidLensBarUIView: UIView {
                                                d: pressZoom / sqrt(stretch), tx: 0, ty: 0)
         CATransaction.begin()
         CATransaction.setDisableActions(true)
+        // The outer glass participates in the same pressure spring as the
+        // lens. A small expansion, lift and tilt give the whole bar weight,
+        // rather than leaving a rigid tray behind the moving selection.
+        let reach = max(-1, min(1, (center.x - stage.bounds.midX) / max(1, stage.bounds.width / 2)))
+        let tilt = pressure * (reach * 0.003 + skew * 0.025)
+        glass.transform = CGAffineTransform(translationX: reach * pressure * 1.8,
+                                           y: -pressure * 1.5 + CGFloat(motion.vertical.position) * 0.15)
+            .rotated(by: tilt)
+            .scaledBy(x: 1 + pressure * 0.012, y: 1 + pressure * 0.04)
         lens.bounds = CGRect(origin: .zero, size: size)
         lens.center = center
         lens.transform = shapeTransform
