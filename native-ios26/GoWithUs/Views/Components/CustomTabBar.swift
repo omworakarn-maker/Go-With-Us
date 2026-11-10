@@ -11,8 +11,6 @@ enum Tab: String, CaseIterable {
     case profile = "Profile"
 }
 
-#if DEBUG
-// Retained for the isolated lab only; ContentView uses the system TabView bar.
 // Use the same native UIKit lens that was validated in Liquid Lens Lab.
 struct LiquidGlassTabBar: View {
     @Binding var selection: Tab
@@ -707,5 +705,3 @@ private final class GlassTabAccessibilityElement: UIAccessibilityElement {
         return activate != nil
     }
 }
-
-#endif
