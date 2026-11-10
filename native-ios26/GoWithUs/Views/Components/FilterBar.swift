@@ -7,6 +7,7 @@ struct FilterBar: View {
     @Binding var selectedDate: Date?
     @Binding var selectedEndDate: Date? // Add binding for End Date
     @Binding var selectedCategory: TripCategory?
+    var horizontalInset: CGFloat = 16
 
     // UI State for Sheets
     @State private var showProvinceSheet = false
@@ -64,7 +65,7 @@ struct FilterBar: View {
                     }
                 }
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, horizontalInset)
             .padding(.vertical, 10)
         }
         .scrollClipDisabled()
@@ -95,5 +96,38 @@ struct FilterBar: View {
         formatter.locale = Locale(identifier: settings.currentLanguage == .thai ? "th_TH" : "en_US")
         formatter.dateFormat = "d MMM"
         return formatter.string(from: date)
+    }
+}
+
+
+// Search and filters share one row without placing a text field inside a scroller.
+struct HomeSearchFilterBar: View {
+    @Binding var searchText: String
+    var focus: FocusState<Bool>.Binding
+    @Binding var selectedProvince: String?
+    @Binding var selectedDate: Date?
+    @Binding var selectedEndDate: Date?
+    @Binding var selectedCategory: TripCategory?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var expanded = false
+
+    var body: some View {
+        HStack(spacing: 8) {
+            ExpandingTripSearch(text: $searchText, focus: focus, expanded: $expanded)
+            if !expanded {
+                FilterBar(
+                    selectedProvince: $selectedProvince,
+                    selectedDate: $selectedDate,
+                    selectedEndDate: $selectedEndDate,
+                    selectedCategory: $selectedCategory,
+                    horizontalInset: 0
+                )
+                .frame(maxWidth: .infinity)
+                .transition(.opacity)
+            }
+        }
+        .frame(minHeight: 64)
+        .padding(.horizontal, 16)
+        .animation(reduceMotion ? .easeOut(duration: 0.15) : .spring(response: 0.36, dampingFraction: 0.88), value: expanded)
     }
 }

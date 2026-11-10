@@ -85,16 +85,14 @@ struct HomeGridView: View {
                         .padding(.top, 8)
 
                         // Filter Bar
-                        FilterBar(
+                        HomeSearchFilterBar(
+                            searchText: $viewModel.searchText,
+                            focus: $isSearchFocused,
                             selectedProvince: $viewModel.selectedProvince,
                             selectedDate: $viewModel.selectedDate,
                             selectedEndDate: $viewModel.selectedEndDate,
                             selectedCategory: $viewModel.selectedCategory
                         )
-
-                        // Compact native glass search expands in place.
-                        ExpandingTripSearch(text: $viewModel.searchText, focus: $isSearchFocused)
-                            .padding(.horizontal)
 
                         // Tabs
                         SegmentedControl(

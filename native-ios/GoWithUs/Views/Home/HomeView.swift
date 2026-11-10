@@ -86,17 +86,15 @@ struct HomeView: View {
                         .padding(.top, 8)
                         
                         // New Filter Bar
-                        FilterBar(
+                        HomeSearchFilterBar(
+                            searchText: $viewModel.searchText,
+                            focus: $isSearchFocused,
                             selectedProvince: $viewModel.selectedProvince,
                             selectedDate: $viewModel.selectedDate,
                             selectedEndDate: $viewModel.selectedEndDate,
                             selectedCategory: $viewModel.selectedCategory
                         )
                         
-                        // Compact native glass search expands in place.
-                        ExpandingTripSearch(text: $viewModel.searchText, focus: $isSearchFocused)
-                            .padding(.horizontal)
-
                         // New Segmented Control (Tabs)
                         SegmentedControl(
                             options: [
@@ -242,13 +240,14 @@ struct ExpandingTripSearch: View {
     @Binding var text: String
     var focus: FocusState<Bool>.Binding
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var expanded = false
+    @Binding var expanded: Bool
 
     var body: some View {
         HStack(spacing: expanded ? 10 : 0) {
             Button {
                 SettingsManager.shared.triggerSelection()
-                expanded = true
+                if expanded { focus.wrappedValue = true }
+                else { expanded = true }
             } label: {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 19, weight: .medium))
@@ -293,7 +292,6 @@ struct ExpandingTripSearch: View {
         .frame(maxWidth: expanded ? .infinity : nil)
         .background(.ultraThinMaterial, in: Capsule())
         .overlay(Capsule().stroke(Color.gray.opacity(0.15), lineWidth: 0.5))
-        .frame(maxWidth: .infinity, alignment: .trailing)
         .animation(reduceMotion ? .easeOut(duration: 0.15) : .spring(response: 0.36, dampingFraction: 0.88), value: expanded)
     }
 }
