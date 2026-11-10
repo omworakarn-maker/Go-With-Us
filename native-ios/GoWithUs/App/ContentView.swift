@@ -108,6 +108,9 @@ struct ContentView: View {
                 SideMenuView(isShowing: $showSideMenu, currentScreen: $currentScreen, transition: $activeTransition)
                     .frame(width: min(UIScreen.main.bounds.width * 0.8, 320))
                     .offset(x: showSideMenu ? 0 : -UIScreen.main.bounds.width)
+                    .opacity(showSideMenu ? 1 : 0)
+                    .allowsHitTesting(showSideMenu)
+                    .accessibilityHidden(!showSideMenu)
                     .animation(.easeInOut(duration: 0.3), value: showSideMenu)
             }
             .sheet(isPresented: $showingCreateTrip) {

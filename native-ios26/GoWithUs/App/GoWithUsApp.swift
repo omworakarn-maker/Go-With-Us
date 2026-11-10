@@ -38,7 +38,6 @@ struct GoWithUsApp: App {
                         ))
                 }
               }
-              .clipped()
             }
             .ignoresSafeArea(edges: .top)
             .tint(.appPrimary)
