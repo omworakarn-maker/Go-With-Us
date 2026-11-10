@@ -1,3 +1,4 @@
+import { BrandLogo } from '../components/BrandLogo';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -219,8 +220,9 @@ const Questionnaire: React.FC = () => {
             <div className="w-full max-w-2xl bg-white/80 backdrop-blur-xl border border-gray-100 rounded-3xl p-6 sm:p-10 shadow-2xl shadow-slate-100 z-10">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-6">
-                    <span className="text-2xl font-black tracking-tight text-black">
-                        GoWithUs<span className="text-gray-400">.</span>
+                    <span className="flex items-center gap-2 text-2xl font-black tracking-tight text-black">
+                        <BrandLogo className="w-12 h-9" />
+                        <span>GoWithUs<span className="text-gray-400">.</span></span>
                     </span>
                     <button
                         onClick={() => navigate('/')}

@@ -20,14 +20,7 @@ struct HomeView: View {
                         ZStack {
                             // Center Title & Logo
                             HStack(spacing: 8) {
-                                Circle()
-                                    .fill(Color.appPrimary) // Ocean Navy logo
-                                    .frame(width: 28, height: 28)
-                                    .overlay(
-                                        Circle()
-                                            .fill(Color.adaptiveBackground)
-                                            .frame(width: 6, height: 6)
-                                    )
+                                AppBrandLogo(size: 36)
                                 Text("GoWithUs")
                                     .font(.system(size: 24, weight: .heavy, design: .rounded))
                                     .foregroundColor(.adaptiveText)

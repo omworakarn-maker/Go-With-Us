@@ -25,9 +25,12 @@ struct HomeGridView: View {
                         // Title & Menu
                         ZStack {
                             // Center Title
-                            Text("GoWithUs")
-                                .font(.system(size: 24, weight: .heavy, design: .rounded))
-                                .foregroundColor(.adaptiveText)
+                            HStack(spacing: 8) {
+                                AppBrandLogo(size: 36)
+                                Text("GoWithUs")
+                                    .font(.system(size: 24, weight: .heavy, design: .rounded))
+                                    .foregroundColor(.adaptiveText)
+                            }
 
                             HStack {
                                 // Left actions

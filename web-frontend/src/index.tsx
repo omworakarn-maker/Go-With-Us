@@ -1,3 +1,4 @@
+import { IntroScreen } from './components/IntroScreen';
 import React from 'react';
 import './index.css'; /* Import Tailwind & Global Styles */
 import ReactDOM from 'react-dom/client';
@@ -13,6 +14,7 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <ErrorBoundary>
+    <IntroScreen />
     <AuthProvider>
       <AppRouter />
     </AuthProvider>

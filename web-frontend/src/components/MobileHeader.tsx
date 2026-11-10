@@ -1,3 +1,4 @@
+import { BrandLogo } from '../components/BrandLogo';
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -14,9 +15,10 @@ const MobileHeader = () => {
         >
             {/* Top row: logo left, icons right */}
             <div className="flex justify-between items-center mb-3">
-                <span className="text-xl font-black tracking-tighter text-black">
-                    GoWithUs<span className="text-gray-300">.</span>
-                </span>
+                <Link to="/" className="flex items-center gap-2">
+                    <BrandLogo className="w-11 h-8" />
+                    <span className="text-xl font-black tracking-tighter text-black">GoWithUs<span className="text-gray-300">.</span></span>
+                </Link>
 
                 <div className="flex items-center gap-2.5">
                     <Link

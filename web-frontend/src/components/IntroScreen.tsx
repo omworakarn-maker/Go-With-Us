@@ -1,55 +1,48 @@
 import React, { useEffect, useState } from 'react';
+import './brand-splash.css';
+
+const artwork = ['SplashCar', 'SplashSmoke', 'SplashEye', 'SplashLeftEye'];
 
 export const IntroScreen: React.FC = () => {
-    const [isVisible, setIsVisible] = useState(true);
-    const [shouldRender, setShouldRender] = useState(true);
+    const [ready, setReady] = useState(false);
+    const [visible, setVisible] = useState(true);
+    const [mounted, setMounted] = useState(true);
+    const [reducedMotion] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
     useEffect(() => {
-        // Step 1: Logo & Text Animation (0ms - 1500ms)
-        // Step 2: Slide Up Exit (1500ms - 2200ms)
-        const timer = setTimeout(() => {
-            setIsVisible(false); // Trigger slide-up animation
-        }, 1800);
-
-        const removeTimer = setTimeout(() => {
-            setShouldRender(false); // Remove from DOM
-        }, 2500); // 1800 + 700ms transition
-
-        return () => {
-            clearTimeout(timer);
-            clearTimeout(removeTimer);
-        };
+        let alive = true;
+        const fallback = window.setTimeout(() => { if (alive) setReady(true); }, 1500);
+        Promise.all(artwork.map(name => new Promise<void>(resolve => {
+            const image = new Image();
+            image.onload = () => resolve();
+            image.onerror = () => resolve();
+            image.src = `/brand/${name}.png`;
+        }))).then(() => {
+            window.clearTimeout(fallback);
+            if (alive) setReady(true);
+        });
+        return () => { alive = false; window.clearTimeout(fallback); };
     }, []);
 
-    if (!shouldRender) return null;
+    useEffect(() => {
+        if (!ready) return;
+        const duration = reducedMotion ? 490 : 1300;
+        const fade = window.setTimeout(() => setVisible(false), duration);
+        const remove = window.setTimeout(() => setMounted(false), duration + 220);
+        return () => { window.clearTimeout(fade); window.clearTimeout(remove); };
+    }, [ready, reducedMotion]);
 
+    if (!mounted) return null;
     return (
-        <div
-            className={`fixed inset-0 z-[100] flex items-center justify-center bg-black transition-transform duration-700 ease-[cubic-bezier(0.76,0,0.24,1)] ${isVisible ? 'translate-y-0' : '-translate-y-full'
-                }`}
-        >
-            <div className={`text-center transition-all duration-1000 ${isVisible ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-90 -translate-y-10'}`}>
-                {/* Logo / Text */}
-                <h1 className="text-6xl md:text-8xl font-black text-white tracking-tighter mb-4 animate-in fade-in zoom-in duration-1000">
-                    GO WITH US.
-                </h1>
-                <p className="text-gray-400 text-sm md:text-lg font-medium tracking-widest uppercase animate-in slide-in-from-bottom-4 fade-in duration-1000 delay-300">
-                    Find your next journey
-                </p>
-
-                {/* Loader Line */}
-                <div className="w-24 h-1 bg-white/20 mx-auto mt-8 rounded-full overflow-hidden">
-                    <div className="h-full bg-white animate-[loading_1.5s_ease-in-out_infinite] w-full origin-left"></div>
+        <div aria-hidden="true" className={`brand-splash ${ready ? 'brand-splash--running' : ''} ${visible ? '' : 'brand-splash--finished'}`}>
+            <div className="brand-splash__artwork">
+                <img className="brand-splash__smoke" src="/brand/SplashSmoke.png" alt="" />
+                <div className="brand-splash__car">
+                    <img className="brand-splash__body" src="/brand/SplashCar.png" alt="" />
+                    <div className="brand-splash__eye brand-splash__eye--left"><img src="/brand/SplashLeftEye.png" alt="" /></div>
+                    <div className="brand-splash__eye brand-splash__eye--right"><img src="/brand/SplashEye.png" alt="" /></div>
                 </div>
             </div>
-
-            <style>{`
-                @keyframes loading {
-                    0% { transform: translateX(-100%); }
-                    50% { transform: translateX(0); }
-                    100% { transform: translateX(100%); }
-                }
-            `}</style>
         </div>
     );
 };

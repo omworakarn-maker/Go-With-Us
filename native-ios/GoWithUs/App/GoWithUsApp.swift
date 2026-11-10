@@ -10,33 +10,25 @@ struct GoWithUsApp: App {
     var body: some Scene {
         WindowGroup {
             ZStack {
+                Color.white.ignoresSafeArea()
                 if showSplash {
-                    // ปรับเปลี่ยน SplashScreen ที่นี่:
-                    // - ModernSplashView(): ตัวปัจจุบัน (โลโก้หมุน พรีเมียม)
-                    // - SplashView(): ตัวเก่า (ไอคอนเครื่องบิน ซูมเข้า)
-                    ModernSplashView()
+                    SplashView(onFinished: { showSplash = false })
                         .zIndex(1)
-                        .transition(.move(edge: .top))
+                        .transition(.opacity)
                 } else {
                     ContentView()
                         .environmentObject(authViewModel)
                         .environmentObject(settings)
                         .environment(\.locale, Locale(identifier: settings.currentLanguage.rawValue))
                         .zIndex(0)
-                        .transition(.asymmetric(
-                            insertion: .move(edge: .bottom),
-                            removal: .identity
-                        ))
+                        .transition(.opacity)
                 }
             }
             .ignoresSafeArea(edges: .top)
             .tint(.appPrimary)
-            .animation(.easeInOut(duration: 0.5), value: showSplash)
+            .animation(.easeOut(duration: 0.22), value: showSplash)
             .onAppear {
                 NotificationPoller.shared.startPolling()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-                    showSplash = false
-                }
             }
             .preferredColorScheme(.light) // Force light mode globally
         }

@@ -1,0 +1,45 @@
+.brand-splash {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    background: #fff;
+    opacity: 1;
+    transition: opacity 220ms ease-out;
+    touch-action: none;
+}
+.brand-splash--finished { opacity: 0; pointer-events: none; }
+.brand-splash__artwork { --artwork-width: min(86vw, 440px); width: var(--artwork-width); aspect-ratio: 778 / 561; position: relative; }
+.brand-splash__car, .brand-splash__smoke, .brand-splash__body { position: absolute; inset: 0; width: 100%; height: 100%; }
+.brand-splash__car { transform-origin: 50% 93%; }
+.brand-splash__smoke { opacity: 0; transform-origin: 95% 75%; }
+.brand-splash__eye { position: absolute; background: #ffe9b2; }
+.brand-splash__eye img { width: 100%; height: 100%; display: block; }
+.brand-splash__eye--left { left: 27.3779%; top: 32.0856%; width: 4.6272%; height: 2.6738%; }
+.brand-splash__eye--right { left: 33.2905%; top: 31.3725%; width: 6.5553%; height: 3.3868%; }
+.brand-splash--running .brand-splash__car { animation: brand-car-drive 1300ms both; }
+.brand-splash--running .brand-splash__smoke { animation: brand-car-smoke 1300ms both; }
+.brand-splash--running .brand-splash__eye img { animation: brand-eye-blink 1300ms both; }
+@keyframes brand-car-drive {
+    0%, 18.46% { transform: translate(0, 0) rotate(0) scaleY(1); }
+    35.38% { transform: translate(calc(1.25vw + 1.25%), calc(var(--artwork-width) * 0.008)) rotate(-1.7deg) scaleY(0.96); animation-timing-function: cubic-bezier(0.45, 0.10, 0.65, 0.44); }
+    50% { transform: translate(calc(-8vw - 8%), calc(var(--artwork-width) * -0.018)) rotate(3.2deg) scaleY(1.02); animation-timing-function: cubic-bezier(0.32, 0.31, 0.61, 0.61); }
+    90%, 100% { transform: translate(calc(-50vw - 50%), 0) rotate(0) scaleY(1); }
+}
+@keyframes brand-car-smoke {
+    0%, 38% { opacity: 0; transform: translate(-9.5%, 0) scale(0.58); }
+    47.31% { opacity: 1; transform: translate(-4%, calc(var(--artwork-width) * -0.035)) scale(1.36); animation-timing-function: ease-out; }
+    100% { opacity: 0; transform: translate(5.5%, calc(var(--artwork-width) * -0.17)) scale(1.70); }
+}
+@keyframes brand-eye-blink {
+    0%, 18.85% { transform: scaleY(1); }
+    23.08%, 27.69% { transform: translateY(10%) scaleY(0.3); }
+    34.23%, 100% { transform: scaleY(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .brand-splash--running .brand-splash__car,
+    .brand-splash--running .brand-splash__eye img { animation: none; }
+    .brand-splash__smoke { display: none; }
+}

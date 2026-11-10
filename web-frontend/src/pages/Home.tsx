@@ -1,3 +1,4 @@
+import { BrandLogo } from '../components/BrandLogo';
 import React, { useState, useEffect } from 'react';
 import FilterBar from '../components/FilterBar';
 import { Trip } from '../types';
@@ -187,7 +188,7 @@ const Home: React.FC = () => {
         <div className="max-w-6xl mx-auto px-6">
           <div className="space-y-6">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center"><div className="w-1.5 h-1.5 bg-black rounded-full"></div></div>
+              <BrandLogo className="w-14 h-10" />
               <span className="font-bold text-2xl tracking-tighter">GoWithUs.</span>
             </div>
             <p className="text-sm text-gray-400 max-w-xs font-medium leading-relaxed">แพลตฟอร์มที่เชื่อมโยงผู้คนมาเป็นเพื่อนกัน</p>

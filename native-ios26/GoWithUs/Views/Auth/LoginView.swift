@@ -15,14 +15,7 @@ struct LoginView: View {
 
                     // Logo - Ocean Blue Circle
                     VStack(spacing: 24) {
-                        Circle()
-                            .fill(Color.appPrimary)
-                            .frame(width: 80, height: 80)
-                            .overlay(
-                                Circle()
-                                    .fill(Color.adaptiveBackground)
-                                    .frame(width: 12, height: 12)
-                            )
+                        AppBrandLogo(size: 96)
 
                         VStack(spacing: 8) {
                             Text("GoWithUs")

@@ -1,3 +1,4 @@
+import { BrandLogo } from '../components/BrandLogo';
 import { startVisiblePolling } from '../services/visiblePolling';
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -70,9 +71,7 @@ const Navbar: React.FC<NavbarProps> = ({ onCreateActivity }) => {
         {/* Content Layer */}
         <nav className="relative w-full max-w-6xl mx-auto flex justify-between items-center">
           <Link to="/" className="flex items-center gap-2 cursor-pointer group">
-            <div className="w-7 h-7 md:w-8 md:h-8 bg-black rounded-full flex items-center justify-center group-hover:scale-105 transition-transform">
-              <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
-            </div>
+            <BrandLogo className="w-11 h-8 md:w-12 md:h-9 group-hover:scale-105 transition-transform" />
             <span className="font-bold text-lg md:text-xl tracking-tighter">GoWithUs.</span>
           </Link>
           <div className="flex items-center gap-2 md:gap-8">
