@@ -279,6 +279,77 @@ struct NativeTabIconFeedback: UIViewRepresentable {
     }
 }
 
+// MARK: - Trip presentation lifecycle
+private struct TripPresentationLifecycle {
+    enum Phase: Equatable {
+        case idle, attaching(UUID), presenting(UUID), visible(UUID), dismissing(UUID)
+    }
+    enum Effect: Equatable { case attach(UUID), dismiss(UUID) }
+    private(set) var phase: Phase = .idle
+    private(set) var wantsVisible = false
+
+    var activeID: UUID? {
+        switch phase {
+        case .idle: return nil
+        case let .attaching(id), let .presenting(id), let .visible(id), let .dismissing(id): return id
+        }
+    }
+
+    mutating func request(_ visible: Bool) -> Effect? {
+        wantsVisible = visible
+        switch phase {
+        case .idle where visible:
+            let id = UUID()
+            phase = .attaching(id)
+            return .attach(id)
+        case .attaching where !visible:
+            phase = .idle
+        case let .visible(id) where !visible:
+            phase = .dismissing(id)
+            return .dismiss(id)
+        default: break
+        }
+        return nil
+    }
+
+    mutating func beginPresentation(_ id: UUID) -> Bool {
+        guard phase == .attaching(id), wantsVisible else { return false }
+        phase = .presenting(id)
+        return true
+    }
+
+    mutating func didPresent(_ id: UUID) -> Effect? {
+        guard phase == .presenting(id) else { return nil }
+        phase = .visible(id)
+        return request(wantsVisible)
+    }
+
+    mutating func didDismiss(_ id: UUID) -> Effect? {
+        guard phase == .dismissing(id) else { return nil }
+        phase = .idle
+        return request(wantsVisible)
+    }
+
+    mutating func beginInteractiveDismissal(_ id: UUID) {
+        guard phase == .visible(id) else { return }
+        wantsVisible = false
+        phase = .dismissing(id)
+    }
+
+    mutating func cancelInteractiveDismissal(_ id: UUID) {
+        guard phase == .dismissing(id) else { return }
+        phase = .visible(id)
+        wantsVisible = true
+    }
+
+    mutating func attachmentFailed(_ id: UUID) {
+        guard phase == .attaching(id) else { return }
+        phase = .idle
+        wantsVisible = false
+    }
+}
+// MARK: - End trip presentation lifecycle
+
 // A native, full-screen zoom whose source is the actual detached + control.
 struct NativeTripCreationPresenter: UIViewControllerRepresentable {
     @Binding var isPresented: Bool
@@ -302,105 +373,202 @@ struct NativeTripCreationPresenter: UIViewControllerRepresentable {
 
     final class Coordinator: NSObject, UIAdaptivePresentationControllerDelegate {
         private var binding: Binding<Bool>?
+        private weak var anchor: UIViewController?
+        private weak var hostWindow: UIWindow?
+        private var auth: AuthViewModel?
         private var pending: Task<Void, Never>?
-        private var generation = UUID()
+        private var pendingID: UUID?
+        private var lifecycle = TripPresentationLifecycle()
+        private var controllerID: UUID?
+        private var interactiveID: UUID?
         private var presented: UIHostingController<AnyView>?
         private weak var sourceBar: UITabBar?
         private weak var sourceControl: UIView?
         private var reduceMotion = false
 
         func update(anchor: UIViewController, binding: Binding<Bool>, auth: AuthViewModel, reduceMotion: Bool) {
+            self.anchor = anchor
             self.binding = binding
+            self.auth = auth
             self.reduceMotion = reduceMotion
-            guard binding.wrappedValue else {
-                pending?.cancel()
-                pending = nil
-                close()
-                return
+            if let window = anchor.viewIfLoaded?.window { hostWindow = window }
+            let effect = lifecycle.request(binding.wrappedValue)
+            if lifecycle.phase == .idle { cancelPending() }
+            perform(effect)
+        }
+
+        private func perform(_ effect: TripPresentationLifecycle.Effect?) {
+            guard let effect else { return }
+            switch effect {
+            case let .attach(id): attach(id)
+            case let .dismiss(id): close(id)
             }
-            guard pending == nil, presented == nil else { return }
-            let request = UUID()
-            generation = request
-            pending = Task { @MainActor [weak self, weak anchor] in
+        }
+
+        private func cancelPending() {
+            pending?.cancel()
+            pending = nil
+            pendingID = nil
+        }
+
+        private func window() -> UIWindow? {
+            if let window = anchor?.viewIfLoaded?.window ?? anchor?.parent?.viewIfLoaded?.window {
+                hostWindow = window
+                return window
+            }
+            // A full-screen presentation temporarily detaches the small
+            // SwiftUI background anchor. Its window is still the same window.
+            return hostWindow
+        }
+
+        private func attach(_ id: UUID) {
+            cancelPending()
+            pendingID = id
+            sourceBar = nil
+            sourceControl = nil
+            pending = Task { @MainActor [weak self] in
                 guard let self else { return }
-                defer { if self.generation == request { self.pending = nil } }
+                defer { if self.pendingID == id { self.pending = nil; self.pendingID = nil } }
                 do {
-                    // SwiftUI may update the binding before its background
-                    // controller has completed attachment to the window.
-                    for _ in 0..<8 {
-                        if anchor?.viewIfLoaded?.window != nil { break }
+                    var presenter: UIViewController?
+                    for _ in 0..<40 {
+                        guard !Task.isCancelled, self.lifecycle.activeID == id else { return }
+                        if let root = self.window()?.rootViewController {
+                            var top = root
+                            while let next = top.presentedViewController, !top.isBeingDismissed { top = next }
+                            if !top.isBeingDismissed, !top.isBeingPresented, top.viewIfLoaded?.window != nil {
+                                presenter = top
+                                break
+                            }
+                        }
                         try await Task.sleep(for: .milliseconds(16))
                     }
-                    guard !Task.isCancelled, self.generation == request, binding.wrappedValue else { return }
-                    guard let anchor, let root = anchor.view.window?.rootViewController else {
-                        binding.wrappedValue = false
+                    guard !Task.isCancelled, let presenter, let auth = self.auth else {
+                        self.lifecycle.attachmentFailed(id)
+                        self.synchronizeBinding()
                         return
                     }
-                    var presenter = root
-                    while let next = presenter.presentedViewController { presenter = next }
-                    let content = CreateTripView(onClose: { [weak self] in
-                        self?.binding?.wrappedValue = false
-                        self?.close()
-                    })
-                    .environmentObject(auth)
-                    .tint(Color.appPrimary)
-                    .preferredColorScheme(.light)
+                    guard self.lifecycle.beginPresentation(id) else { return }
+                    let content = CreateTripView(onClose: { [weak self] in self?.requestClose(id) })
+                        .environmentObject(auth)
+                        .tint(Color.appPrimary)
+                        .preferredColorScheme(.light)
                     let controller = NativeTripHostingController(rootView: AnyView(content))
-                    controller.didClose = { [weak self] controller in self?.finished(controller) }
+                    controller.didClose = { [weak self] controller in self?.verifyDismissal(controller, id: id) }
                     controller.modalPresentationStyle = .fullScreen
-                    self.sourceControl = self.findSource(anchor: anchor)
+                    self.sourceControl = self.findSource(anchor: self.anchor)
                     if self.reduceMotion {
                         controller.preferredTransition = .crossDissolve
                     } else {
-                        controller.preferredTransition = .zoom(sourceViewProvider: { [weak self, weak anchor] _ in
+                        controller.preferredTransition = .zoom(sourceViewProvider: { [weak self] _ in
                             guard let self else { return nil }
-                            return self.findSource(anchor: anchor) ?? self.sourceControl
+                            return self.findSource(anchor: self.anchor) ?? self.sourceControl
                         })
                     }
                     self.presented = controller
+                    self.controllerID = id
                     controller.presentationController?.delegate = self
                     presenter.present(controller, animated: !self.reduceMotion) { [weak self, weak controller] in
                         guard let controller else { return }
-                        guard let self, self.presented === controller else {
-                            controller.dismiss(animated: false)
+                        guard let self, self.controllerID == id, self.presented === controller else {
+                            if let owner = controller.presentingViewController, owner.presentedViewController === controller {
+                                owner.dismiss(animated: false)
+                            }
                             return
                         }
                         controller.presentationController?.delegate = self
-                        if self.binding?.wrappedValue != true { self.close() }
+                        self.perform(self.lifecycle.didPresent(id))
                     }
-                } catch { /* Closing or replacing the root cancels attachment. */ }
+                } catch { /* A newer request cancels attachment without touching its state. */ }
             }
         }
 
-        private func close() {
-            guard let controller = presented, !controller.isBeingPresented, !controller.isBeingDismissed else { return }
-            controller.dismiss(animated: !reduceMotion) { [weak self, weak controller] in
+        private func requestClose(_ id: UUID) {
+            guard lifecycle.activeID == id else { return }
+            let effect = lifecycle.request(false)
+            synchronizeBinding()
+            perform(effect)
+        }
+
+        private func close(_ id: UUID) {
+            guard controllerID == id, let controller = presented,
+                  !controller.isBeingPresented, !controller.isBeingDismissed else { return }
+            guard let presenter = controller.presentingViewController else {
+                finished(controller, id: id)
+                return
+            }
+            // Dismiss from the presenter so any child picker closes with the
+            // creation page. Keep ownership until UIKit's completion callback.
+            presenter.dismiss(animated: !reduceMotion) { [weak self, weak controller] in
                 guard let self, let controller else { return }
-                self.finished(controller)
+                self.finished(controller, id: id)
             }
         }
 
-        private func finished(_ controller: UIViewController) {
-            guard presented === controller else { return }
+        private func synchronizeBinding() {
+            if binding?.wrappedValue != lifecycle.wantsVisible { binding?.wrappedValue = lifecycle.wantsVisible }
+        }
+
+        private func finished(_ controller: UIViewController, id: UUID) {
+            guard controllerID == id, presented === controller, lifecycle.phase == .dismissing(id) else { return }
             presented = nil
-            binding?.wrappedValue = false
+            controllerID = nil
+            interactiveID = nil
+            let next = lifecycle.didDismiss(id)
+            synchronizeBinding()
+            perform(next)
+        }
+
+        private func verifyDismissal(_ controller: UIViewController, id: UUID) {
+            // A disappearance is only a hint. Wait for actual detachment;
+            // programmatic dismissal stays owned by its UIKit completion.
+            guard lifecycle.phase == .visible(id) || interactiveID == id else { return }
+            Task { @MainActor [weak self, weak controller] in
+                for _ in 0..<12 {
+                    guard let self, let controller, self.controllerID == id,
+                          self.presented === controller else { return }
+                    if controller.presentingViewController == nil,
+                       !controller.isBeingPresented, !controller.isBeingDismissed {
+                        self.lifecycle.beginInteractiveDismissal(id)
+                        self.finished(controller, id: id)
+                        return
+                    }
+                    do { try await Task.sleep(for: .milliseconds(16)) } catch { return }
+                }
+            }
+        }
+
+        func presentationControllerWillDismiss(_ presentationController: UIPresentationController) {
+            guard let id = controllerID, presented === presentationController.presentedViewController else { return }
+            if lifecycle.phase == .visible(id) { interactiveID = id }
+            lifecycle.beginInteractiveDismissal(id)
+            synchronizeBinding()
+            presentationController.presentedViewController.transitionCoordinator?.animate(alongsideTransition: nil) { [weak self] context in
+                guard let self, context.isCancelled, self.controllerID == id else { return }
+                self.lifecycle.cancelInteractiveDismissal(id)
+                self.interactiveID = nil
+                self.synchronizeBinding()
+            }
         }
 
         func presentationControllerDidDismiss(_ presentationController: UIPresentationController) {
-            finished(presentationController.presentedViewController)
+            guard let id = controllerID, presented === presentationController.presentedViewController else { return }
+            lifecycle.beginInteractiveDismissal(id)
+            finished(presentationController.presentedViewController, id: id)
         }
 
         func stop() {
-            generation = UUID()
-            pending?.cancel()
-            pending = nil
+            cancelPending()
+            lifecycle = TripPresentationLifecycle()
             binding = nil
-            presented?.dismiss(animated: false)
+            controllerID = nil
+            interactiveID = nil
+            presented?.presentingViewController?.dismiss(animated: false)
             presented = nil
         }
 
         private func findSource(anchor: UIViewController?) -> UIView? {
-            if sourceBar == nil, let root = anchor?.viewIfLoaded?.window?.rootViewController {
+            if sourceBar == nil, let root = (anchor?.viewIfLoaded?.window ?? hostWindow)?.rootViewController {
                 func search(_ controller: UIViewController, depth: Int) -> UITabBar? {
                     guard depth < 16 else { return nil }
                     if let tabs = controller as? UITabBarController { return tabs.tabBar }
