@@ -13,7 +13,6 @@ struct ContentView: View {
     @State private var tripCreation = TripCreationState()
     @State private var creationCanvas = CGSize(width: 390, height: 800)
     @State private var plusButtonFrame: CGRect?
-    @State private var creationBottomInset: CGFloat = 0
     @State private var badgeCounts: [Tab: Int] = [:]
     @State private var nativeIconPulse = UUID()
     @State private var activeTransition: AnyTransition = .identity
@@ -47,37 +46,30 @@ struct ContentView: View {
                         .id(currentScreen)
                     }
 
-                    if let session = tripCreation.id {
-                        CreateTripView(onClose: { closeTripCreation(session) })
-                            .background(Color.adaptiveBackground.ignoresSafeArea())
-                            .id(session)
-                            .transition(creationTransition)
-                            .zIndex(10)
-                    }
                 }
             .onGeometryChange(for: CGSize.self) { $0.size } action: { size in
                 if size.width > 0 && size.height > 0 { creationCanvas = size }
-            }
-            .onGeometryChange(for: CGFloat.self) { $0.safeAreaInsets.bottom } action: { inset in
-                creationBottomInset = max(0, inset)
-            }
-            // The expanding page is masked to its content canvas. Cover the
-            // home-indicator inset separately so that mask cannot expose tabs.
-            .overlay(alignment: .bottom) {
-                if tripCreation.id != nil {
-                    Color.adaptiveBackground
-                        .frame(height: creationBottomInset)
-                        .offset(y: creationBottomInset)
-                        .allowsHitTesting(false)
-                        .accessibilityHidden(true)
-                        .transition(.opacity)
-                }
             }
             .overlay {
                 NativePlusButtonFrameReader { plusButtonFrame = $0 }
                     .frame(width: creationCanvas.width, height: creationCanvas.height)
                     .allowsHitTesting(false)
                     .accessibilityHidden(true)
+            }
+            .overlay(alignment: .topLeading) {
+                GeometryReader { viewport in
+                    if let session = tripCreation.id {
+                        CreateTripView(onClose: { closeTripCreation(session) })
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .background(Color.adaptiveBackground.ignoresSafeArea(.container))
+                            .id(session)
+                            .transition(creationTransition(canvas: viewport.size))
+                    }
+                }
+                // One viewport owns both the page and the home-indicator
+                // background. Keyboard avoidance remains enabled for the form.
+                .ignoresSafeArea(.container, edges: .bottom)
+                .allowsHitTesting(tripCreation.id != nil)
             }
             .overlay {
                 // Side Menu Backdrop
@@ -344,12 +336,12 @@ struct ContentView: View {
         )
     }
 
-    private var creationTransition: AnyTransition {
+    private func creationTransition(canvas: CGSize) -> AnyTransition {
         guard !reduceMotion else { return .opacity }
-        let origin = TripCreationGeometry.source(in: creationCanvas, measured: plusButtonFrame)
+        let origin = TripCreationGeometry.source(in: canvas, measured: plusButtonFrame)
         return .modifier(
-            active: TripCreationExpansion(progress: 0, canvas: creationCanvas, origin: origin),
-            identity: TripCreationExpansion(progress: 1, canvas: creationCanvas, origin: origin)
+            active: TripCreationExpansion(progress: 0, canvas: canvas, origin: origin),
+            identity: TripCreationExpansion(progress: 1, canvas: canvas, origin: origin)
         )
     }
 

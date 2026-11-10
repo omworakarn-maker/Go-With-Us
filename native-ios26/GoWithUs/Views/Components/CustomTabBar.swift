@@ -336,7 +336,9 @@ struct TripCreationExpansion: AnimatableModifier {
         let x = rect.midX - canvas.width / 2
         let y = rect.midY - canvas.height / 2
         content
-            .frame(width: max(1, canvas.width), height: max(1, canvas.height))
+            // Preserve the parent's live proposal so NavigationStack and its
+            // scroll view handle keyboard insets once, without a fixed canvas.
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .scaleEffect(x: rect.width / max(1, canvas.width), y: rect.height / max(1, canvas.height))
             .offset(x: x, y: y)
             .mask {

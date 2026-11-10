@@ -750,7 +750,7 @@ struct CreateTripView: View {
     #endif
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack(spacing: 0) {
                 wizardHeader
                 ScrollViewReader { proxy in
@@ -762,14 +762,20 @@ struct CreateTripView: View {
                         currentStepView
                             .padding(24)
                     }
+                    .scrollDismissesKeyboard(.interactively)
+                    .safeAreaInset(edge: .bottom, spacing: 0) {
+                        VStack(spacing: 0) {
+                            Divider()
+                            wizardNavigation
+                        }
+                        .background(Color.adaptiveBackground)
+                    }
                     .onChange(of: creationStep) { _ in
                         withAnimation(.easeOut(duration: 0.25)) {
                             proxy.scrollTo("createTripStepTop", anchor: .top)
                         }
                     }
                 }
-                Divider()
-                wizardNavigation
             }
             .background(Color.adaptiveBackground.ignoresSafeArea())
             .navigationBarTitleDisplayMode(.inline)
