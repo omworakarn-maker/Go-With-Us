@@ -6,13 +6,13 @@ import tempfile
 
 root = Path(__file__).resolve().parents[1]
 source = (root / "GoWithUs/Views/Components/CustomTabBar.swift").read_text()
-model = source.split("// MARK: - Trip presentation lifecycle\n", 1)[1]
-model = model.split("// MARK: - End trip presentation lifecycle", 1)[0]
+model = source.split("// MARK: - Trip creation page state and geometry\n", 1)[1]
+model = model.split("// MARK: - End trip creation page state and geometry", 1)[0]
 tests = (root / "Tests/TripPresentationLifecycleRegression.swift").read_text()
 with tempfile.TemporaryDirectory(prefix="gowithus-presentation-tests-") as directory:
     temporary = Path(directory)
     combined = temporary / "PresentationCheck.swift"
-    combined.write_text("import Foundation\n" + model + "\n" + tests)
+    combined.write_text("import Foundation\nimport CoreGraphics\n" + model + "\n" + tests)
     executable = temporary / "presentation-check"
     subprocess.run([
         "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",

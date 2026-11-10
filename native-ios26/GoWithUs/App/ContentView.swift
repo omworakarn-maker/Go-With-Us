@@ -10,7 +10,9 @@ struct ContentView: View {
     // State for navigation
     @State private var currentScreen: AppScreen = SettingsManager.shared.homeLayoutPreference
     @State private var showSideMenu = false
-    @State private var showingCreateTrip = false
+    @State private var tripCreation = TripCreationState()
+    @State private var creationCanvas = CGSize(width: 390, height: 800)
+    @State private var plusButtonFrame: CGRect?
     @State private var badgeCounts: [Tab: Int] = [:]
     @State private var nativeIconPulse = UUID()
     @State private var activeTransition: AnyTransition = .identity
@@ -24,6 +26,8 @@ struct ContentView: View {
             if authViewModel.isAuthenticated {
                 ZStack {
                     nativeTabs
+                        .allowsHitTesting(tripCreation.id == nil)
+                        .accessibilityHidden(tripCreation.id != nil)
 
                     if !isMainTabScreen {
                         Group {
@@ -41,7 +45,24 @@ struct ContentView: View {
                         .transition(activeTransition)
                         .id(currentScreen)
                     }
+
+                    if let session = tripCreation.id {
+                        CreateTripView(onClose: { closeTripCreation(session) })
+                            .background(Color.adaptiveBackground.ignoresSafeArea())
+                            .id(session)
+                            .transition(creationTransition)
+                            .zIndex(10)
+                    }
                 }
+            .onGeometryChange(for: CGSize.self) { $0.size } action: { size in
+                if size.width > 0 && size.height > 0 { creationCanvas = size }
+            }
+            .overlay {
+                NativePlusButtonFrameReader { plusButtonFrame = $0 }
+                    .frame(width: creationCanvas.width, height: creationCanvas.height)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
             .overlay {
                 // Side Menu Backdrop
                 if showSideMenu {
@@ -59,12 +80,6 @@ struct ContentView: View {
                     .frame(width: min(UIScreen.main.bounds.width * 0.8, 320))
                     .offset(x: showSideMenu ? 0 : -UIScreen.main.bounds.width)
                     .animation(.easeInOut(duration: 0.3), value: showSideMenu)
-            }
-            .background {
-                NativeTripCreationPresenter(isPresented: $showingCreateTrip, authViewModel: authViewModel)
-                    .frame(width: 0, height: 0)
-                    .allowsHitTesting(false)
-                    .accessibilityHidden(true)
             }
 
             .task {
@@ -123,6 +138,9 @@ struct ContentView: View {
         } else {
             LoginView()
         }
+        }
+        .onChange(of: authViewModel.isAuthenticated) { _, authenticated in
+            if !authenticated { tripCreation.reset() }
         }
         .onReceive(NotificationCenter.default.publisher(for: .init("SessionRevoked"))) { _ in
             authViewModel.logout()
@@ -267,7 +285,7 @@ struct ContentView: View {
                 tab: selectedTabBinding.wrappedValue,
                 separatedAction: showsTrailingAction,
                 pulse: nativeIconPulse,
-                active: isMainTabScreen && scenePhase == .active
+                active: isMainTabScreen && scenePhase == .active && tripCreation.id == nil
             )
             .allowsHitTesting(false)
             .accessibilityHidden(true)
@@ -291,7 +309,7 @@ struct ContentView: View {
             set: { newTab in
                 if newTab == .create {
                     SettingsManager.shared.triggerSelection()
-                    showingCreateTrip = true
+                    openTripCreation()
                     return
                 }
                 SettingsManager.shared.triggerSelection()
@@ -308,6 +326,32 @@ struct ContentView: View {
                 nativeIconPulse = UUID()
             }
         )
+    }
+
+    private var creationTransition: AnyTransition {
+        guard !reduceMotion else { return .opacity }
+        let origin = TripCreationGeometry.source(in: creationCanvas, measured: plusButtonFrame)
+        return .modifier(
+            active: TripCreationExpansion(progress: 0, canvas: creationCanvas, origin: origin),
+            identity: TripCreationExpansion(progress: 1, canvas: creationCanvas, origin: origin)
+        )
+    }
+
+    private func openTripCreation() {
+        guard tripCreation.id == nil else { return }
+        hideKeyboard()
+        showSideMenu = false
+        withAnimation(reduceMotion ? .easeOut(duration: 0.15) : .smooth(duration: 0.38)) {
+            tripCreation.open()
+        }
+    }
+
+    private func closeTripCreation(_ session: UUID) {
+        guard tripCreation.id == session else { return }
+        hideKeyboard()
+        withAnimation(reduceMotion ? .easeOut(duration: 0.15) : .smooth(duration: 0.3)) {
+            tripCreation.close(session)
+        }
     }
 
     private var showsTrailingAction: Bool {
