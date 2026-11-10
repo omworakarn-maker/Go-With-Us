@@ -161,24 +161,37 @@ struct NativeTabIconFeedback: UIViewRepresentable {
             case .chat:
                 let hasBadge = bar.items?[index].badgeValue != nil
                 let origin = CGPoint(x: frame.maxX - (hasBadge ? 8 : 2), y: frame.minY + (hasBadge ? -2 : 2))
-                let rays: [(CGPoint, CGPoint)] = [
-                    (CGPoint(x: 0, y: -2), CGPoint(x: 0.5, y: -5)),
-                    (CGPoint(x: 2, y: -1), CGPoint(x: 4.5, y: -3)),
-                    (CGPoint(x: 3, y: 1), CGPoint(x: 6, y: 1))
-                ]
-                for (number, points) in rays.enumerated() {
-                    let ray = CAShapeLayer()
+                // Three upright strokes rise in sequence, rather than
+                // radiating outwards from a circular notification burst.
+                let heights: [CGFloat] = [3, 5, 4]
+                for (number, height) in heights.enumerated() {
+                    let line = CAShapeLayer()
+                    let x = origin.x + CGFloat(number - 1) * 3.5
                     let path = UIBezierPath()
-                    path.move(to: CGPoint(x: origin.x + points.0.x, y: origin.y + points.0.y))
-                    path.addLine(to: CGPoint(x: origin.x + points.1.x, y: origin.y + points.1.y))
-                    ray.path = path.cgPath
-                    ray.strokeColor = color
-                    ray.lineWidth = 1.4
-                    ray.lineCap = .round
-                    accent(ray, in: bar)
-                    let flash = keyframes("opacity", values: [0, 1, 1, 0], times: [0, 0.2, 0.45, 1], duration: 0.4)
-                    flash.beginTime = ray.convertTime(CACurrentMediaTime(), from: nil) + Double(number) * 0.035
-                    ray.add(flash, forKey: "chat.signal")
+                    path.move(to: CGPoint(x: x, y: origin.y))
+                    path.addLine(to: CGPoint(x: x, y: origin.y - height))
+                    line.path = path.cgPath
+                    line.strokeColor = color
+                    line.lineWidth = 1.4
+                    line.lineCap = .round
+                    accent(line, in: bar)
+                    let flash = keyframes("opacity", values: [0, 1, 1, 0], times: [0, 0.15, 0.55, 1], duration: 0.46)
+                    flash.beginTime = line.convertTime(CACurrentMediaTime(), from: nil) + Double(number) * 0.05
+                    let draw = CABasicAnimation(keyPath: "strokeEnd")
+                    draw.fromValue = 0
+                    draw.toValue = 1
+                    draw.duration = 0.14
+                    draw.beginTime = flash.beginTime
+                    draw.fillMode = .backwards
+                    let rise = CABasicAnimation(keyPath: "transform.translation.y")
+                    rise.fromValue = 1
+                    rise.toValue = -2
+                    rise.duration = flash.duration
+                    rise.beginTime = flash.beginTime
+                    rise.timingFunction = CAMediaTimingFunction(name: .easeOut)
+                    line.add(flash, forKey: "chat.signal")
+                    line.add(draw, forKey: "chat.draw")
+                    line.add(rise, forKey: "chat.rise")
                 }
             case .profile:
                 let portrait = CALayer()
