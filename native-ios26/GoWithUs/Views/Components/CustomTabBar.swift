@@ -48,6 +48,7 @@ struct NativeTabIconFeedback: UIViewRepresentable {
         private let rotationKey = "GoWithUs.nativeTabIcon.rotation"
         private let opacityKey = "GoWithUs.nativeTabIcon.opacity"
         private var accents: [CALayer] = []
+        private var transientIcons: [UIImageView] = []
 
         func cancel() {
             pending?.cancel()
@@ -60,6 +61,8 @@ struct NativeTabIconFeedback: UIViewRepresentable {
             }
             accents.forEach { $0.removeFromSuperlayer() }
             accents = []
+            transientIcons.forEach { $0.removeFromSuperview() }
+            transientIcons = []
             animatedImages = []
         }
 
@@ -92,6 +95,8 @@ struct NativeTabIconFeedback: UIViewRepresentable {
                     guard !Task.isCancelled else { return }
                     self.accents.forEach { $0.removeFromSuperlayer() }
                     self.accents = []
+                    self.transientIcons.forEach { $0.removeFromSuperview() }
+                    self.transientIcons = []
                     self.animatedImages = []
                 } catch { /* A newer selection or disappearing bar cancels the pulse. */ }
             }
@@ -187,18 +192,43 @@ struct NativeTabIconFeedback: UIViewRepresentable {
                     wave.add(draw, forKey: "chat.draw")
                 }
             case .profile:
-                // Move the real native glyph instead of a raster snapshot,
-                // which can capture an opaque backdrop from the system bar.
+                // Overlap two transparent native glyphs for a continuous
+                // right-to-left handoff. Never rasterize the glass backdrop.
                 for image in images {
-                    let times: [Double] = [0, 0.3, 0.49, 0.5, 0.72, 1]
-                    let slide = keyframes("transform.translation.x", values: [0, -6, -8, 8, 3, 0], times: times, duration: 0.48)
-                    slide.isAdditive = true
+                    guard let parent = image.superview else { continue }
+                    let incoming = UIImageView(image: image.image)
+                    incoming.preferredSymbolConfiguration = image.preferredSymbolConfiguration
+                    incoming.tintColor = image.tintColor
+                    incoming.contentMode = image.contentMode
+                    incoming.backgroundColor = .clear
+                    incoming.isOpaque = false
+                    incoming.isUserInteractionEnabled = false
+                    incoming.isAccessibilityElement = false
+                    incoming.bounds = image.bounds
+                    incoming.center = image.center
+                    incoming.transform = image.transform
+                    incoming.layer.opacity = 0
+                    parent.insertSubview(incoming, aboveSubview: image)
+                    transientIcons.append(incoming)
+
+                    let duration = 0.54
+                    let travelTimes: [Double] = [0, 0.2, 0.48, 0.8, 0.81, 1]
+                    let outgoing = keyframes("transform.translation.x", values: [0, -4, -9, -9, 0, 0], times: travelTimes, duration: duration)
+                    outgoing.isAdditive = true
                     let opacity = Double(image.layer.opacity)
-                    let fade = keyframes("opacity", values: [opacity, 0, 0, 0, opacity * 0.85, opacity], times: times, duration: 0.48)
-                    let zoom = keyframes("transform.scale", values: [1, 0.95, 0.95, 0.95, 1.035, 1], times: times, duration: 0.48)
-                    image.layer.add(slide, forKey: translationKey)
-                    image.layer.add(fade, forKey: opacityKey)
-                    image.layer.add(zoom, forKey: scaleKey)
+                    let depart = keyframes("opacity", values: [opacity, opacity * 0.7, 0, 0, opacity], times: [0, 0.18, 0.42, 0.84, 1], duration: duration)
+                    let shrink = keyframes("transform.scale", values: [1, 0.98, 0.96, 0.96, 1, 1], times: travelTimes, duration: duration)
+                    image.layer.add(outgoing, forKey: translationKey)
+                    image.layer.add(depart, forKey: opacityKey)
+                    image.layer.add(shrink, forKey: scaleKey)
+
+                    let arrival = keyframes("transform.translation.x", values: [9, 6, 1, 0, 0], times: [0, 0.18, 0.5, 0.78, 1], duration: duration)
+                    arrival.isAdditive = true
+                    let appear = keyframes("opacity", values: [0, 0, opacity, opacity, 0], times: [0, 0.05, 0.45, 0.84, 1], duration: duration)
+                    let zoom = keyframes("transform.scale", values: [0.96, 0.99, 1, 1], times: [0, 0.25, 0.68, 1], duration: duration)
+                    incoming.layer.add(arrival, forKey: translationKey)
+                    incoming.layer.add(appear, forKey: opacityKey)
+                    incoming.layer.add(zoom, forKey: scaleKey)
                 }
             case .create:
                 break
@@ -246,6 +276,177 @@ struct NativeTabIconFeedback: UIViewRepresentable {
             visit(bar)
             return matches
         }
+    }
+}
+
+// A native, full-screen zoom whose source is the actual detached + control.
+struct NativeTripCreationPresenter: UIViewControllerRepresentable {
+    @Binding var isPresented: Bool
+    let authViewModel: AuthViewModel
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func makeUIViewController(context: Context) -> UIViewController {
+        let anchor = UIViewController()
+        anchor.view.backgroundColor = .clear
+        anchor.view.isUserInteractionEnabled = false
+        return anchor
+    }
+
+    func updateUIViewController(_ anchor: UIViewController, context: Context) {
+        context.coordinator.update(anchor: anchor, binding: $isPresented,
+                                   auth: authViewModel, reduceMotion: reduceMotion)
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+    static func dismantleUIViewController(_ controller: UIViewController, coordinator: Coordinator) { coordinator.stop() }
+
+    final class Coordinator: NSObject, UIAdaptivePresentationControllerDelegate {
+        private var binding: Binding<Bool>?
+        private var pending: Task<Void, Never>?
+        private var generation = UUID()
+        private var presented: UIHostingController<AnyView>?
+        private weak var sourceBar: UITabBar?
+        private weak var sourceControl: UIView?
+        private var reduceMotion = false
+
+        func update(anchor: UIViewController, binding: Binding<Bool>, auth: AuthViewModel, reduceMotion: Bool) {
+            self.binding = binding
+            self.reduceMotion = reduceMotion
+            guard binding.wrappedValue else {
+                pending?.cancel()
+                pending = nil
+                close()
+                return
+            }
+            guard pending == nil, presented == nil else { return }
+            let request = UUID()
+            generation = request
+            pending = Task { @MainActor [weak self, weak anchor] in
+                guard let self else { return }
+                defer { if self.generation == request { self.pending = nil } }
+                do {
+                    // SwiftUI may update the binding before its background
+                    // controller has completed attachment to the window.
+                    for _ in 0..<8 {
+                        if anchor?.viewIfLoaded?.window != nil { break }
+                        try await Task.sleep(for: .milliseconds(16))
+                    }
+                    guard !Task.isCancelled, self.generation == request, binding.wrappedValue else { return }
+                    guard let anchor, let root = anchor.view.window?.rootViewController else {
+                        binding.wrappedValue = false
+                        return
+                    }
+                    var presenter = root
+                    while let next = presenter.presentedViewController { presenter = next }
+                    let content = CreateTripView(onClose: { [weak self] in
+                        self?.binding?.wrappedValue = false
+                        self?.close()
+                    })
+                    .environmentObject(auth)
+                    .tint(Color.appPrimary)
+                    .preferredColorScheme(.light)
+                    let controller = NativeTripHostingController(rootView: AnyView(content))
+                    controller.didClose = { [weak self] controller in self?.finished(controller) }
+                    controller.modalPresentationStyle = .fullScreen
+                    self.sourceControl = self.findSource(anchor: anchor)
+                    if self.reduceMotion {
+                        controller.preferredTransition = .crossDissolve
+                    } else {
+                        controller.preferredTransition = .zoom(sourceViewProvider: { [weak self, weak anchor] _ in
+                            guard let self else { return nil }
+                            return self.findSource(anchor: anchor) ?? self.sourceControl
+                        })
+                    }
+                    self.presented = controller
+                    controller.presentationController?.delegate = self
+                    presenter.present(controller, animated: !self.reduceMotion) { [weak self, weak controller] in
+                        guard let controller else { return }
+                        guard let self, self.presented === controller else {
+                            controller.dismiss(animated: false)
+                            return
+                        }
+                        controller.presentationController?.delegate = self
+                        if self.binding?.wrappedValue != true { self.close() }
+                    }
+                } catch { /* Closing or replacing the root cancels attachment. */ }
+            }
+        }
+
+        private func close() {
+            guard let controller = presented, !controller.isBeingPresented, !controller.isBeingDismissed else { return }
+            controller.dismiss(animated: !reduceMotion) { [weak self, weak controller] in
+                guard let self, let controller else { return }
+                self.finished(controller)
+            }
+        }
+
+        private func finished(_ controller: UIViewController) {
+            guard presented === controller else { return }
+            presented = nil
+            binding?.wrappedValue = false
+        }
+
+        func presentationControllerDidDismiss(_ presentationController: UIPresentationController) {
+            finished(presentationController.presentedViewController)
+        }
+
+        func stop() {
+            generation = UUID()
+            pending?.cancel()
+            pending = nil
+            binding = nil
+            presented?.dismiss(animated: false)
+            presented = nil
+        }
+
+        private func findSource(anchor: UIViewController?) -> UIView? {
+            if sourceBar == nil, let root = anchor?.viewIfLoaded?.window?.rootViewController {
+                func search(_ controller: UIViewController, depth: Int) -> UITabBar? {
+                    guard depth < 16 else { return nil }
+                    if let tabs = controller as? UITabBarController { return tabs.tabBar }
+                    for child in controller.children {
+                        if let bar = search(child, depth: depth + 1) { return bar }
+                    }
+                    return nil
+                }
+                sourceBar = search(root, depth: 0)
+            }
+            guard let bar = sourceBar else { return sourceControl }
+            let rightToLeft = bar.effectiveUserInterfaceLayoutDirection == .rightToLeft
+            let target = rightToLeft ? bar.bounds.minX + 32 : bar.bounds.maxX - 32
+            var controls: [(UIView, CGFloat)] = []
+            var images: [(UIView, CGFloat)] = []
+            func visit(_ view: UIView) {
+                guard !view.isHidden, view.alpha > 0.01 else { return }
+                let frame = view.convert(view.bounds, to: bar)
+                let distance = abs(frame.midX - target)
+                if distance < bar.bounds.width * 0.17 {
+                    if view is UIControl, frame.width >= 40, frame.width <= 96,
+                       frame.height >= 40, frame.height <= 96 {
+                        controls.append((view, distance))
+                    } else if view is UIImageView, frame.width >= 14, frame.width <= 48,
+                              frame.height >= 14, frame.height <= 48 {
+                        images.append((view, distance))
+                    }
+                }
+                for child in view.subviews { visit(child) }
+            }
+            visit(bar)
+            let source = controls.min(by: { $0.1 < $1.1 })?.0 ?? images.min(by: { $0.1 < $1.1 })?.0
+            if let source { sourceControl = source }
+            return source ?? sourceControl
+        }
+    }
+}
+
+private final class NativeTripHostingController: UIHostingController<AnyView> {
+    var didClose: ((UIViewController) -> Void)?
+
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        // Covers interactive zoom dismissal as well as the explicit buttons,
+        // but not a photo picker or another child presentation above this page.
+        if isBeingDismissed || presentingViewController == nil { didClose?(self) }
     }
 }
 

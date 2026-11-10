@@ -77,7 +77,15 @@ struct CreateTripView: View {
     // Edit Injection
     var editingTrip: Trip?
 
-    init(draft: TripDraft? = nil) {
+    private var onClose: (() -> Void)? = nil
+
+    private func closeCreation() {
+        if let onClose { onClose() }
+        else { dismiss() }
+    }
+
+    init(draft: TripDraft? = nil, onClose: (() -> Void)? = nil) {
+        self.onClose = onClose
         self.draft = draft
         self.editingTrip = nil
 
@@ -647,7 +655,7 @@ struct CreateTripView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button(tr("ยกเลิก", "Cancel")) {
-                        dismiss()
+                        closeCreation()
                     }
                     .foregroundColor(.adaptiveText)
                 }
@@ -767,7 +775,7 @@ struct CreateTripView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button(tr("ยกเลิก", "Cancel")) { dismiss() }
+                    Button(tr("ยกเลิก", "Cancel")) { closeCreation() }
                         .foregroundColor(.adaptiveText)
                 }
                 if editingTrip != nil {
@@ -1285,7 +1293,7 @@ struct CreateTripView: View {
 
                 NotificationCenter.default.post(name: NSNotification.Name("TripCreated"), object: nil)
                 isLoading = false
-                dismiss()
+                closeCreation()
             } catch {
                 isLoading = false
                 errorMessage = error.localizedDescription
@@ -1302,7 +1310,7 @@ struct CreateTripView: View {
                 try await TripService.shared.deleteTrip(id: tripId)
                 await MainActor.run {
                     isLoading = false
-                    dismiss()
+                    closeCreation()
                 }
             } catch {
                 await MainActor.run {

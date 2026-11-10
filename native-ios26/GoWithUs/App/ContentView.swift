@@ -60,8 +60,11 @@ struct ContentView: View {
                     .offset(x: showSideMenu ? 0 : -UIScreen.main.bounds.width)
                     .animation(.easeInOut(duration: 0.3), value: showSideMenu)
             }
-            .sheet(isPresented: $showingCreateTrip) {
-                CreateTripView()
+            .background {
+                NativeTripCreationPresenter(isPresented: $showingCreateTrip, authViewModel: authViewModel)
+                    .frame(width: 0, height: 0)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
             }
 
             .task {
