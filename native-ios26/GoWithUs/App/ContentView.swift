@@ -10,7 +10,6 @@ struct ContentView: View {
     @State private var currentScreen: AppScreen = SettingsManager.shared.homeLayoutPreference
     @State private var showSideMenu = false
     @State private var showingCreateTrip = false
-    @State private var tabBarHideRequests: Set<UUID> = []
     @State private var badgeCounts: [Tab: Int] = [:]
     @State private var activeTransition: AnyTransition = .identity
     /// Timestamp when the app moved to background — used to decide whether to force-refresh
@@ -205,7 +204,7 @@ struct ContentView: View {
     }
 
 
-    // Keep tab contents alive; animate the Apple glass surface independently.
+    // iOS owns the tab bar material, selection effects, and layout.
     private var nativeTabs: some View {
         TabView(selection: selectedTabBinding) {
             Group {
@@ -241,16 +240,7 @@ struct ContentView: View {
                 .tag(Tab.profile)
         }
         .tint(.appSecondary)
-        .toolbar(.hidden, for: .tabBar)
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            if isMainTabScreen && tabBarHideRequests.isEmpty {
-                LiquidGlassTabBar(selection: selectedTabBinding, chatBadge: badgeCounts[.chat] ?? 0)
-            }
-        }
-        .environment(\.tabBarVisibilityAction) { id, hidden in
-            if hidden { tabBarHideRequests.insert(id) }
-            else { tabBarHideRequests.remove(id) }
-        }
+        .toolbar(isMainTabScreen ? .automatic : .hidden, for: .tabBar)
     }
 
     // Bridge AppScreen <-> Tab
@@ -271,8 +261,8 @@ struct ContentView: View {
                     showingCreateTrip = true
                     return
                 }
-                // The bar owns its touch animation; changing destinations must
-                // not start a second spring across the whole tab hierarchy.
+                SettingsManager.shared.triggerSelection()
+                // Let the native tab bar own its selection animation.
                 currentScreen = {
                     switch newTab {
                     case .home: return settings.homeLayoutPreference
