@@ -92,30 +92,9 @@ struct HomeGridView: View {
                             selectedCategory: $viewModel.selectedCategory
                         )
 
-                        // Search Bar
-                        HStack(spacing: 12) {
-                            Image(systemName: "magnifyingglass")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundColor(isSearchFocused ? .appAccent : .gray.opacity(0.8))
-                                .padding(8)
-                                .background(isSearchFocused ? Color.appAccent.opacity(0.15) : Color.gray.opacity(0.1))
-                                .clipShape(Circle())
-
-                            TextField(SettingsManager.shared.localizedString(for: "search_placeholder"), text: $viewModel.searchText)
-                                .foregroundColor(.adaptiveText)
-                                .accentColor(.appAccent)
-                                .focused($isSearchFocused)
-
-                            if !viewModel.searchText.isEmpty {
-                                Button(action: { viewModel.searchText = "" }) {
-                                    Image(systemName: "xmark.circle.fill")
-                                        .foregroundColor(.gray.opacity(0.6))
-                                }
-                            }
-                        }
-                        .padding()
-                        .appGlass(in: RoundedRectangle(cornerRadius: 24), tint: isSearchFocused ? Color.appAccent.opacity(0.15) : nil, interactive: true)
-                        .padding(.horizontal)
+                        // Compact native glass search expands in place.
+                        ExpandingTripSearch(text: $viewModel.searchText, focus: $isSearchFocused)
+                            .padding(.horizontal)
 
                         // Tabs
                         SegmentedControl(

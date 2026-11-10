@@ -93,39 +93,10 @@ struct HomeView: View {
                             selectedCategory: $viewModel.selectedCategory
                         )
                         
-                        // Search Bar
-                        HStack(spacing: 12) {
-                            Image(systemName: "magnifyingglass")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundColor(isSearchFocused ? .appAccent : .gray.opacity(0.8))
-                                .padding(8)
-                                .background(isSearchFocused ? Color.appAccent.opacity(0.15) : Color.gray.opacity(0.1))
-                                .clipShape(Circle())
-                            
-                            TextField(SettingsManager.shared.localizedString(for: "search_placeholder"), text: $viewModel.searchText)
-                                .foregroundColor(.adaptiveText)
-                                .accentColor(.appAccent)
-                                .focused($isSearchFocused)
-                            
-                            if !viewModel.searchText.isEmpty {
-                                Button(action: {
-                                    viewModel.searchText = ""
-                                    isSearchFocused = false
-                                }) {
-                                    Image(systemName: "xmark.circle.fill")
-                                        .foregroundColor(.gray.opacity(0.6))
-                                }
-                            }
-                        }
-                        .padding()
-                        .background(isSearchFocused ? Color.appAccent.opacity(0.05) : Color.gray.opacity(0.05))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(isSearchFocused ? Color.appAccent : Color.gray.opacity(0.2), lineWidth: 1)
-                        )
-                        .cornerRadius(12)
-                        .padding(.horizontal)
-                        
+                        // Compact native glass search expands in place.
+                        ExpandingTripSearch(text: $viewModel.searchText, focus: $isSearchFocused)
+                            .padding(.horizontal)
+
                         // New Segmented Control (Tabs)
                         SegmentedControl(
                             options: [
@@ -264,4 +235,65 @@ extension HomeView {
 
 #Preview {
     HomeView(showSideMenu: .constant(false), currentScreen: .constant(.home))
+}
+
+// One glass surface changes size; the search field keeps the existing query binding.
+struct ExpandingTripSearch: View {
+    @Binding var text: String
+    var focus: FocusState<Bool>.Binding
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var expanded = false
+
+    var body: some View {
+        HStack(spacing: expanded ? 10 : 0) {
+            Button {
+                SettingsManager.shared.triggerSelection()
+                expanded = true
+            } label: {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 19, weight: .medium))
+                    .foregroundStyle(Color.adaptiveText)
+                    .frame(width: 48, height: 48)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(SettingsManager.shared.text(thai: "ค้นหาทริป", english: "Search trips"))
+
+            if expanded {
+                TextField(SettingsManager.shared.localizedString(for: "search_placeholder"), text: $text)
+                    .foregroundStyle(Color.adaptiveText)
+                    .tint(.appAccent)
+                    .focused(focus)
+                    .submitLabel(.search)
+                    .onSubmit { focus.wrappedValue = false }
+                    .transition(.opacity)
+                    .task {
+                        do { try await Task.sleep(nanoseconds: 180_000_000) }
+                        catch { return }
+                        guard !Task.isCancelled else { return }
+                        focus.wrappedValue = true
+                    }
+
+                Button {
+                    focus.wrappedValue = false
+                    text = ""
+                    expanded = false
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Color.secondary)
+                        .frame(width: 44, height: 48)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(SettingsManager.shared.text(thai: "ปิดการค้นหา", english: "Close search"))
+                .transition(.opacity)
+            }
+        }
+        .frame(width: expanded ? nil : 48, height: 48)
+        .frame(maxWidth: expanded ? .infinity : nil)
+        .background(.ultraThinMaterial, in: Capsule())
+        .overlay(Capsule().stroke(Color.gray.opacity(0.15), lineWidth: 0.5))
+        .frame(maxWidth: .infinity, alignment: .trailing)
+        .animation(reduceMotion ? .easeOut(duration: 0.15) : .spring(response: 0.36, dampingFraction: 0.88), value: expanded)
+    }
 }
