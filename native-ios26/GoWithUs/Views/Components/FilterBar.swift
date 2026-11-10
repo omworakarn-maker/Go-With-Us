@@ -8,6 +8,7 @@ struct FilterBar: View {
     @Binding var selectedEndDate: Date? // Add binding for End Date
     @Binding var selectedCategory: TripCategory?
     var horizontalInset: CGFloat = 16
+    var embedded = false
 
     // UI State for Sheets
     @State private var showProvinceSheet = false
@@ -25,7 +26,8 @@ struct FilterBar: View {
                         title: selectedProvince != nil && selectedProvince != "ทุกจังหวัด" ? localizedPlaceName(selectedProvince!) : settings.text(thai: "ทุกจังหวัด", english: "All provinces"),
                         isSelected: selectedProvince != nil && selectedProvince != "ทุกจังหวัด",
                         icon: "mappin.and.ellipse",
-                        action: { showProvinceSheet = true }
+                        action: { showProvinceSheet = true },
+                        embedded: embedded
                     )
 
                     // Date Filter
@@ -33,7 +35,8 @@ struct FilterBar: View {
                         title: formatDateButtonTitle(),
                         isSelected: selectedDate != nil,
                         icon: "calendar",
-                        action: { showDateSheet = true }
+                        action: { showDateSheet = true },
+                        embedded: embedded
                     )
 
                     // Category Filter
@@ -41,7 +44,8 @@ struct FilterBar: View {
                         title: selectedCategory?.displayName ?? settings.text(thai: "สไตล์", english: "Style"),
                         isSelected: selectedCategory != nil,
                         icon: "slider.horizontal.3",
-                        action: { showCategorySheet = true }
+                        action: { showCategorySheet = true },
+                        embedded: embedded
                     )
 
                     // Clear Filters (Only show if any filter is active)
@@ -59,14 +63,14 @@ struct FilterBar: View {
                                 .font(.system(size: 16, weight: .medium))
                                 .frame(width: 20, height: 20)
                         }
-                        .buttonStyle(.glass)
+                        .buttonStyle(.plain)
                         .buttonBorderShape(.circle)
                         .accessibilityLabel(tr("ล้างตัวกรอง", "Clear filters"))
                     }
                 }
             }
             .padding(.horizontal, horizontalInset)
-            .padding(.vertical, 10)
+            .padding(.vertical, embedded ? 0 : 10)
         }
         .scrollClipDisabled()
         .zIndex(2)
@@ -112,7 +116,7 @@ struct HomeSearchFilterBar: View {
     @State private var expanded = false
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 0) {
             ExpandingTripSearch(text: $searchText, focus: focus, expanded: $expanded)
                 .zIndex(3)
             if !expanded {
@@ -121,7 +125,8 @@ struct HomeSearchFilterBar: View {
                     selectedDate: $selectedDate,
                     selectedEndDate: $selectedEndDate,
                     selectedCategory: $selectedCategory,
-                    horizontalInset: 8
+                    horizontalInset: 0,
+                    embedded: true
                 )
                 .frame(maxWidth: .infinity)
                 // Keep scrolling chips inside their own horizontal viewport;
@@ -131,7 +136,9 @@ struct HomeSearchFilterBar: View {
                 .transition(.opacity)
             }
         }
-        .frame(minHeight: 64)
+        .frame(height: 48)
+        .clipShape(Capsule())
+        .appGlass(in: Capsule(), interactive: true)
         .padding(.horizontal, 16)
         .animation(reduceMotion ? .easeOut(duration: 0.15) : .spring(response: 0.36, dampingFraction: 0.88), value: expanded)
     }

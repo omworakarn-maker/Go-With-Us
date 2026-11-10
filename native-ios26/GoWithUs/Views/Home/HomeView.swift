@@ -293,7 +293,6 @@ struct ExpandingTripSearch: View {
         .frame(width: expanded ? nil : 48, height: 48)
         .frame(maxWidth: expanded ? .infinity : nil)
         .clipShape(Capsule())
-        .appGlass(in: Capsule(), interactive: true)
         .animation(reduceMotion ? .easeOut(duration: 0.15) : .spring(response: 0.36, dampingFraction: 0.88), value: expanded)
     }
 }

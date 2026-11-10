@@ -6,8 +6,33 @@ struct FilterButton: View {
     let isSelected: Bool
     let icon: String
     let action: () -> Void
+    var embedded = false
     
     var body: some View {
+        if embedded {
+            Button {
+                SettingsManager.shared.triggerSelection()
+                action()
+            } label: {
+                HStack(spacing: 6) {
+                    Text(icon).font(.system(size: 14))
+                    Text(title).font(.system(size: 13, weight: .semibold))
+                }
+                .foregroundStyle(isSelected ? Color.appSecondary : Color.adaptiveText)
+                .padding(.horizontal, 12)
+                .frame(minHeight: 44)
+                .background(isSelected ? Color.appAccent.opacity(0.12) : Color.clear, in: Capsule())
+                .contentShape(Capsule())
+                .fixedSize(horizontal: true, vertical: false)
+            }
+            .buttonStyle(.plain)
+            .accessibilityAddTraits(isSelected ? .isSelected : [])
+        } else {
+            styledButton
+        }
+    }
+
+    private var styledButton: some View {
         Button(action: {
             SettingsManager.shared.triggerSelection()
             action()
