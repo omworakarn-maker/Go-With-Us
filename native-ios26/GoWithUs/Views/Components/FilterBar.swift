@@ -116,7 +116,7 @@ struct HomeSearchFilterBar: View {
     @State private var expanded = false
 
     var body: some View {
-        HStack(spacing: 0) {
+        HStack(spacing: 8) {
             ExpandingTripSearch(text: $searchText, focus: focus, expanded: $expanded)
                 .zIndex(3)
             if !expanded {
@@ -125,7 +125,7 @@ struct HomeSearchFilterBar: View {
                     selectedDate: $selectedDate,
                     selectedEndDate: $selectedEndDate,
                     selectedCategory: $selectedCategory,
-                    horizontalInset: 0,
+                    horizontalInset: 4,
                     embedded: true
                 )
                 .frame(maxWidth: .infinity)
@@ -157,9 +157,7 @@ struct HomeSearchFilterBar: View {
                 }
             }
         }
-        .frame(height: 48)
-        .clipShape(Capsule())
-        .appGlass(in: Capsule(), interactive: true)
+        .frame(height: 56)
         .padding(.horizontal, 16)
         .animation(reduceMotion ? .easeOut(duration: 0.15) : .spring(response: 0.36, dampingFraction: 0.88), value: expanded)
     }

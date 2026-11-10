@@ -20,10 +20,12 @@ struct FilterButton: View {
                 }
                 .foregroundStyle(isSelected ? Color.appSecondary : Color.adaptiveText)
                 .padding(.horizontal, 12)
-                .frame(minHeight: 44)
+                .frame(height: 48)
                 .background(isSelected ? Color.appAccent.opacity(0.12) : Color.clear, in: Capsule())
                 .contentShape(Capsule())
                 .fixedSize(horizontal: true, vertical: false)
+                .background(.ultraThinMaterial, in: Capsule())
+                .overlay(Capsule().stroke(Color.gray.opacity(0.15), lineWidth: 0.5))
             }
             .buttonStyle(.plain)
             .accessibilityAddTraits(isSelected ? .isSelected : [])
