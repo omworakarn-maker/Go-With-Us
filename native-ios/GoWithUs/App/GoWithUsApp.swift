@@ -6,6 +6,7 @@ struct GoWithUsApp: App {
     @StateObject private var authViewModel = AuthViewModel()
     @StateObject private var settings = SettingsManager.shared
     @State private var showSplash = true
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     
     var body: some Scene {
         WindowGroup {
@@ -21,12 +22,15 @@ struct GoWithUsApp: App {
                         .environmentObject(settings)
                         .environment(\.locale, Locale(identifier: settings.currentLanguage.rawValue))
                         .zIndex(0)
-                        .transition(.opacity)
+                        .transition(.asymmetric(
+                            insertion: reduceMotion ? .opacity : .scale(scale: 0.94).combined(with: .opacity),
+                            removal: .opacity
+                        ))
                 }
             }
             .ignoresSafeArea(edges: .top)
             .tint(.appPrimary)
-            .animation(.easeOut(duration: 0.22), value: showSplash)
+            .animation(reduceMotion ? .easeOut(duration: 0.22) : .spring(duration: 0.58, bounce: 0), value: showSplash)
             .onAppear {
                 NotificationPoller.shared.startPolling()
             }
