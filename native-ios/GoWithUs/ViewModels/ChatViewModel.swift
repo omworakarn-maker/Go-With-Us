@@ -76,7 +76,7 @@ class ChatViewModel: ObservableObject {
         }
     }
 
-    private var observersSet = false
+    private var conversationUpdates: AnyCancellable?
 
     init() {
         // Load from static cache instantly
@@ -84,14 +84,14 @@ class ChatViewModel: ObservableObject {
         self.mutualMatches = Self.cachedMutualMatches
         
         // Subscribe once to conversation new-message events
-        guard !observersSet else { return }
-        observersSet = true
-        NotificationCenter.default.addObserver(forName: NSNotification.Name("ConversationNewMessage"), object: nil, queue: .main) { [weak self] note in
-            guard let self = self else { return }
-            if let info = note.userInfo, let partnerId = info["partnerId"] as? String {
-                Task { await self.incrementUnread(for: partnerId) }
+        conversationUpdates = NotificationCenter.default.publisher(for: NSNotification.Name("ConversationNewMessage"))
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] note in
+                guard let self else { return }
+                if let info = note.userInfo, let partnerId = info["partnerId"] as? String {
+                    Task { await self.incrementUnread(for: partnerId) }
+                }
             }
-        }
     }
     
     // MARK: - Load Conversations

@@ -42,6 +42,10 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         return true
     }
 
+    func applicationDidReceiveMemoryWarning(_ application: UIApplication) {
+        ImageLoader.clearCache()
+    }
+
     // MARK: - Lock Portrait Orientation
     func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
         return .portrait
