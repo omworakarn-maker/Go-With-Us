@@ -174,7 +174,8 @@ struct AppBrandLogo: View {
             .clipped()
             .accessibilityHidden(true)
             .onTapGesture { if animates && !reduceMotion { replay += 1 } }
-            .task(id: replay) {
+            .onChange(of: replay) { _, _ in
+                Task { @MainActor in
                 guard animates, !reduceMotion, replay > 0 else { return }
                 travel = 0
                 visibility = 1
@@ -195,6 +196,7 @@ struct AppBrandLogo: View {
                 } catch {
                     travel = 0
                     visibility = 1
+                }
                 }
             }
     }
