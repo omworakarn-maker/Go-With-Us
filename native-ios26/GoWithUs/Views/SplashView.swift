@@ -175,11 +175,10 @@ struct AppBrandLogo: View {
             .accessibilityHidden(true)
             .onTapGesture { if animates && !reduceMotion { replay += 1 } }
             .task(id: replay) {
-                guard animates, !reduceMotion else { return }
+                guard animates, !reduceMotion, replay > 0 else { return }
                 travel = 0
                 visibility = 1
                 do {
-                    if replay == 0 { try await Task.sleep(for: .milliseconds(1450)) }
                     withAnimation(.easeIn(duration: 0.22)) {
                         travel = -1.1
                         visibility = 0

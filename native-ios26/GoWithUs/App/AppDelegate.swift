@@ -42,6 +42,26 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         return true
     }
 
+    func applicationDidBecomeActive(_ application: UIApplication) {
+        // Install once per window. The recognizer does not cancel the tapped
+        // control; it only dismisses editing when the user taps empty space.
+        for window in application.connectedScenes
+            .compactMap({ $0 as? UIWindowScene })
+            .flatMap(\.windows) where window.gestureRecognizers?.contains(where: { $0.name == "GoWithUs.keyboardDismiss" }) != true {
+            let tap = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
+            tap.name = "GoWithUs.keyboardDismiss"
+            tap.cancelsTouchesInView = false
+            tap.delegate = keyboardDismissDelegate
+            window.addGestureRecognizer(tap)
+        }
+    }
+
+    private let keyboardDismissDelegate = KeyboardDismissGestureDelegate()
+
+    @objc private func dismissKeyboard() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    }
+
     func applicationDidReceiveMemoryWarning(_ application: UIApplication) {
         ImageLoader.clearCache()
     }
@@ -150,5 +170,16 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         NotificationCenter.default.post(name: NSNotification.Name("OpenChatDetail"), object: nil, userInfo: info)
 
         completionHandler()
+    }
+}
+
+private final class KeyboardDismissGestureDelegate: NSObject, UIGestureRecognizerDelegate {
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+        var view: UIView? = touch.view
+        while let current = view {
+            if current is UITextField || current is UITextView || current is UIControl { return false }
+            view = current.superview
+        }
+        return true
     }
 }

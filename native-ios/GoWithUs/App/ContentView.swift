@@ -1,8 +1,6 @@
 import SwiftUI
 
 struct ContentView: View {
-    @State private var showingNewMessage = false
-    @State private var createAfterComposer = false
     @EnvironmentObject var authViewModel: AuthViewModel
     @ObservedObject private var settings = SettingsManager.shared
     @Environment(\.scenePhase) private var scenePhase
@@ -11,6 +9,7 @@ struct ContentView: View {
     @State private var currentScreen: AppScreen = SettingsManager.shared.homeLayoutPreference
     @State private var showSideMenu = false
     @State private var showingCreateTrip = false
+    @State private var createdTripToOpen: Trip?
     @State private var badgeCounts: [Tab: Int] = [:]
     @State private var activeTransition: AnyTransition = .identity
     @State private var showTabBarWithAnimation = false
@@ -80,7 +79,7 @@ struct ContentView: View {
                 if shouldShowTabBar && showTabBarWithAnimation {
                     CustomTabBar(
                         selectedTab: selectedTabBinding,
-                        onCreateTap: { showingNewMessage = true },
+                        onCreateTap: { showingCreateTrip = true },
                         badgeCounts: badgeCounts
                     )
                     .offset(y: 12)
@@ -118,6 +117,20 @@ struct ContentView: View {
             .sheet(isPresented: $showingCreateTrip) {
                 CreateTripView()
             }
+            .onReceive(NotificationCenter.default.publisher(for: .init("TripCreated"))) { note in
+                guard showingCreateTrip, let trip = note.object as? Trip else { return }
+                showingCreateTrip = false
+                Task {
+                    try? await Task.sleep(for: .milliseconds(280))
+                    guard !Task.isCancelled else { return }
+                    createdTripToOpen = trip
+                }
+            }
+            .sheet(item: $createdTripToOpen) { trip in
+                NavigationStack {
+                    TripDetailView(tripId: trip.id)
+                }
+            }
 
             .onPreferenceChange(TabBarHiddenKey.self) { hidden in
                 withAnimation(.easeInOut(duration: 0.3)) {
@@ -146,8 +159,9 @@ struct ContentView: View {
                         TripListViewModel.invalidateCache()
                         ChatViewModel.invalidateCache()
                         MatchTripViewModel.invalidateCache()
-                        // Swap token to force view recreation
-                        forceRefreshToken = UUID()
+                        // Refresh data in place so the visible home hierarchy does
+                        // not flash after a long background session.
+                        NotificationCenter.default.post(name: .init("AppDataRefreshRequested"), object: nil)
                     }
                     backgroundedAt = nil
                 default:
@@ -180,17 +194,6 @@ struct ContentView: View {
         } else {
             LoginView()
         }
-        }
-        .sheet(isPresented: $showingNewMessage, onDismiss: {
-            if createAfterComposer {
-                createAfterComposer = false
-                showingCreateTrip = true
-            }
-        }) {
-            NewMessageView(onCreateTrip: {
-                createAfterComposer = true
-                showingNewMessage = false
-            })
         }
         .onReceive(NotificationCenter.default.publisher(for: .init("SessionRevoked"))) { _ in
             authViewModel.logout()

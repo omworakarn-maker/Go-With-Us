@@ -194,6 +194,10 @@ struct ChatDetailView: View {
             }
         }
         .hideTabBar(true)
+        .onChange(of: selectedItem) { _, item in
+            guard let item else { return }
+            Task { await prepareImage(from: item) }
+        }
         .onAppear {
             // Initial load
             if let tripId = tripId {
@@ -239,6 +243,28 @@ struct ChatDetailView: View {
         } else if let partnerId = partnerId {
             await viewModel.sendPrivateMessage(userId: partnerId, content: content, imageUrl: imageUrl)
         }
+    }
+
+    @MainActor
+    private func prepareImage(from item: PhotosPickerItem) async {
+        isSendingImage = true
+        defer { isSendingImage = false }
+        guard let data = try? await item.loadTransferable(type: Data.self),
+              let source = UIImage(data: data) else {
+            selectedItem = nil
+            return
+        }
+
+        let longestSide = max(source.size.width, source.size.height)
+        let scale = min(1, 1400 / max(longestSide, 1))
+        let size = CGSize(width: source.size.width * scale, height: source.size.height * scale)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let resized = UIGraphicsImageRenderer(size: size, format: format).image { _ in
+            source.draw(in: CGRect(origin: .zero, size: size))
+        }
+        selectedImageData = resized.jpegData(compressionQuality: 0.78)
+        if selectedImageData == nil { selectedItem = nil }
     }
 }
 

@@ -201,10 +201,15 @@ struct HomeView: View {
                     await viewModel.loadTrips()
                 }
             }
-            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("TripCreated"))) { _ in
-                Task {
-                    await viewModel.loadTrips()
-                }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("TripCreated"))) { note in
+                if let trip = note.object as? Trip { viewModel.includeCreatedTrip(trip) }
+                else { Task { await viewModel.refresh() } }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("TripDeleted"))) { note in
+                if let id = note.object as? String { viewModel.removeTrip(id: id) }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("AppDataRefreshRequested"))) { _ in
+                Task { await viewModel.refresh() }
             }
         }
     }

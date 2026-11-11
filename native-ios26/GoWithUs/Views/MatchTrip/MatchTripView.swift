@@ -154,6 +154,16 @@ struct MatchTripView: View {
         .task {
             await viewModel.fetchMatches()
         }
+        .onReceive(NotificationCenter.default.publisher(for: .init("TripJoined"))) { note in
+            if let trip = note.object as? Trip {
+                viewModel.remove(id: trip.id)
+            } else if let id = note.object as? String {
+                viewModel.remove(id: id)
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .init("TripDeleted"))) { note in
+            if let id = note.object as? String { viewModel.remove(id: id) }
+        }
     }
 }
 
@@ -228,6 +238,16 @@ class MatchTripViewModel: ObservableObject {
     static func invalidateCache() {
         lastLoaded = nil
         cachedMatches = []
+    }
+
+    static func removeCached(id: String) {
+        cachedMatches.removeAll { $0.id == id }
+    }
+
+    func remove(id: String) {
+        Self.removeCached(id: id)
+        matches.removeAll { $0.id == id }
+        if selectedTripForJoin?.id == id { selectedTripForJoin = nil }
     }
 
     init() {

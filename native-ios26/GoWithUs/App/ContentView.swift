@@ -2,8 +2,6 @@ import Combine
 import SwiftUI
 
 struct ContentView: View {
-    @State private var showingNewMessage = false
-    @State private var createAfterComposer = false
     @EnvironmentObject var authViewModel: AuthViewModel
     @ObservedObject private var settings = SettingsManager.shared
     @Environment(\.scenePhase) private var scenePhase
@@ -13,6 +11,7 @@ struct ContentView: View {
     @State private var currentScreen: AppScreen = SettingsManager.shared.homeLayoutPreference
     @State private var showSideMenu = false
     @State private var tripCreation = TripCreationState()
+    @State private var createdTripToOpen: Trip?
     @State private var creationCanvas = CGSize(width: 390, height: 800)
     @State private var plusButtonFrame: CGRect?
     @State private var badgeCounts: [Tab: Int] = [:]
@@ -117,8 +116,9 @@ struct ContentView: View {
                         TripListViewModel.invalidateCache()
                         ChatViewModel.invalidateCache()
                         MatchTripViewModel.invalidateCache()
-                        // Swap token to force view recreation
-                        forceRefreshToken = UUID()
+                        // Refresh data in place. Recreating every tab here caused
+                        // the home screen to flash after returning to the app.
+                        NotificationCenter.default.post(name: .init("AppDataRefreshRequested"), object: nil)
                     }
                     backgroundedAt = nil
                 default:
@@ -155,19 +155,22 @@ struct ContentView: View {
         .onChange(of: authViewModel.isAuthenticated) { _, authenticated in
             if !authenticated { tripCreation.reset() }
         }
-        .sheet(isPresented: $showingNewMessage, onDismiss: {
-            if createAfterComposer {
-                createAfterComposer = false
-                openTripCreation()
-            }
-        }) {
-            NewMessageView(onCreateTrip: {
-                createAfterComposer = true
-                showingNewMessage = false
-            })
-        }
         .onReceive(NotificationCenter.default.publisher(for: .init("SessionRevoked"))) { _ in
             authViewModel.logout()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .init("TripCreated"))) { note in
+            guard tripCreation.id != nil, let trip = note.object as? Trip else { return }
+            tripCreation.reset()
+            Task {
+                try? await Task.sleep(for: .milliseconds(320))
+                guard !Task.isCancelled else { return }
+                createdTripToOpen = trip
+            }
+        }
+        .sheet(item: $createdTripToOpen) { trip in
+            NavigationStack {
+                TripDetailView(tripId: trip.id)
+            }
         }
         .fullScreenCover(isPresented: $authViewModel.needsOnboarding) {
             NavigationStack {
@@ -294,7 +297,7 @@ struct ContentView: View {
                 SwiftUI.Tab(value: Tab.create, role: .search) {
                     Color.clear
                 } label: {
-                    Label(tr("ข้อความใหม่", "New message"), systemImage: "square.and.pencil")
+                    Label(settings.localizedString(for: "create"), systemImage: "plus")
                 }
             }
         }
@@ -333,7 +336,7 @@ struct ContentView: View {
             set: { newTab in
                 if newTab == .create {
                     SettingsManager.shared.triggerSelection()
-                    showingNewMessage = true
+                    openTripCreation()
                     return
                 }
                 SettingsManager.shared.triggerSelection()

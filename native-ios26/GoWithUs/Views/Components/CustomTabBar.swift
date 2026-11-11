@@ -216,7 +216,7 @@ struct NativeTabIconFeedback: UIViewRepresentable {
                     let outgoing = keyframes("transform.translation.x", values: [0, -4, -9, -9, 0, 0], times: travelTimes, duration: duration)
                     outgoing.isAdditive = true
                     let opacity = Double(image.layer.opacity)
-                    let depart = keyframes("opacity", values: [opacity, opacity * 0.7, 0, 0, opacity], times: [0, 0.18, 0.42, 0.84, 1], duration: duration)
+                    let depart = keyframes("opacity", values: [opacity, opacity, opacity * 0.45, 0, 0, opacity], times: travelTimes, duration: duration)
                     let shrink = keyframes("transform.scale", values: [1, 0.98, 0.96, 0.96, 1, 1], times: travelTimes, duration: duration)
                     image.layer.add(outgoing, forKey: translationKey)
                     image.layer.add(depart, forKey: opacityKey)
@@ -224,7 +224,7 @@ struct NativeTabIconFeedback: UIViewRepresentable {
 
                     let arrival = keyframes("transform.translation.x", values: [9, 6, 1, 0, 0], times: [0, 0.18, 0.5, 0.78, 1], duration: duration)
                     arrival.isAdditive = true
-                    let appear = keyframes("opacity", values: [0, 0, opacity, opacity, 0], times: [0, 0.05, 0.45, 0.84, 1], duration: duration)
+                    let appear = keyframes("opacity", values: [0, opacity * 0.55, opacity, opacity, opacity, 0], times: travelTimes, duration: duration)
                     let zoom = keyframes("transform.scale", values: [0.96, 0.99, 1, 1], times: [0, 0.25, 0.68, 1], duration: duration)
                     incoming.layer.add(arrival, forKey: translationKey)
                     incoming.layer.add(appear, forKey: opacityKey)

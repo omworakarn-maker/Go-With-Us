@@ -6,6 +6,7 @@ import SwiftUI
 class ChatViewModel: ObservableObject {
     // List of conversations
     @Published var conversations: [Conversation] = []
+    @Published var joinedTripChats: [Trip] = []
 
     // Active chat messages
     @Published var messages: [Message] = []
@@ -20,11 +21,13 @@ class ChatViewModel: ObservableObject {
     private static var lastLoaded: Date? = nil
     private static var cachedConversations: [Conversation] = []
     private static var cachedMutualMatches: [MatchUser] = []
+    private static var cachedJoinedTripChats: [Trip] = []
 
     static func invalidateCache() {
         lastLoaded = nil
         cachedConversations = []
         cachedMutualMatches = []
+        cachedJoinedTripChats = []
     }
 
     // Local overrides to keep unread badges visible until user reads
@@ -52,8 +55,9 @@ class ChatViewModel: ObservableObject {
 
         async let fetchConversations: () = loadConversationsInternal()
         async let fetchMutualMatches: () = loadMutualMatchesInternal()
+        async let fetchTripChats: () = loadJoinedTripChatsInternal()
 
-        _ = await (fetchConversations, fetchMutualMatches)
+        _ = await (fetchConversations, fetchMutualMatches, fetchTripChats)
 
         Self.lastLoaded = Date()
         isLoading = false
@@ -83,6 +87,7 @@ class ChatViewModel: ObservableObject {
         // Load from static cache instantly
         self.conversations = Self.cachedConversations
         self.mutualMatches = Self.cachedMutualMatches
+        self.joinedTripChats = Self.cachedJoinedTripChats
 
         // Subscribe once to conversation new-message events
         conversationUpdates = NotificationCenter.default.publisher(for: NSNotification.Name("ConversationNewMessage"))
@@ -93,6 +98,34 @@ class ChatViewModel: ObservableObject {
                     Task { await self.incrementUnread(for: partnerId) }
                 }
             }
+    }
+
+    private func loadJoinedTripChatsInternal() async {
+        guard let userId = currentUserId else { return }
+
+        do {
+            let trips = try await TripService.shared.getAllTrips(participantId: userId)
+            let joined = trips.filter { trip in
+                trip.participants?.contains {
+                    $0.userId == userId && $0.status == "going"
+                } == true
+            }
+            joinedTripChats = joined
+            Self.cachedJoinedTripChats = joined
+        } catch {
+            print("Failed to fetch joined trip chats: \(error)")
+        }
+    }
+
+    func includeJoinedTrip(_ trip: Trip) {
+        joinedTripChats.removeAll { $0.id == trip.id }
+        joinedTripChats.insert(trip, at: 0)
+        Self.cachedJoinedTripChats = joinedTripChats
+    }
+
+    func removeTripChat(id: String) {
+        joinedTripChats.removeAll { $0.id == id }
+        Self.cachedJoinedTripChats = joinedTripChats
     }
 
     // MARK: - Load Conversations

@@ -1240,9 +1240,10 @@ struct CreateTripView: View {
 
         Task {
             do {
+                let savedTrip: Trip
                 if let trip = editingTrip {
                     // Update
-                    _ = try await TripService.shared.updateTrip(
+                    savedTrip = try await TripService.shared.updateTrip(
                         id: trip.id,
                         title: title,
                         destination: fullDestination,
@@ -1263,7 +1264,7 @@ struct CreateTripView: View {
                     )
                 } else {
                     // Create
-                    _ = try await TripService.shared.createTrip(
+                    savedTrip = try await TripService.shared.createTrip(
                         title: title,
                         destination: fullDestination,
                         description: fullDescription,
@@ -1283,7 +1284,7 @@ struct CreateTripView: View {
                     )
                 }
                 
-                NotificationCenter.default.post(name: NSNotification.Name("TripCreated"), object: nil)
+                NotificationCenter.default.post(name: NSNotification.Name("TripCreated"), object: savedTrip)
                 isLoading = false
                 dismiss()
             } catch {
@@ -1301,6 +1302,9 @@ struct CreateTripView: View {
             do {
                 try await TripService.shared.deleteTrip(id: tripId)
                 await MainActor.run {
+                    NotificationCenter.default.post(name: .init("TripDeleted"), object: tripId)
+                    TripListViewModel.invalidateCache()
+                    MatchTripViewModel.removeCached(id: tripId)
                     isLoading = false
                     dismiss()
                 }

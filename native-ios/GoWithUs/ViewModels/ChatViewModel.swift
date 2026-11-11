@@ -1,39 +1,43 @@
 import Foundation
 import Combine
+import SwiftUI
 
 @MainActor
 class ChatViewModel: ObservableObject {
     // List of conversations
     @Published var conversations: [Conversation] = []
-    
+    @Published var joinedTripChats: [Trip] = []
+
     // Active chat messages
     @Published var messages: [Message] = []
-    
+
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var mutualMatches: [MatchUser] = []
-    
+
     // Track last message count for detecting new messages
     private var lastMessageCount = 0
     // Static cache so it survives view destruction on tab switch
     private static var lastLoaded: Date? = nil
     private static var cachedConversations: [Conversation] = []
     private static var cachedMutualMatches: [MatchUser] = []
-    
+    private static var cachedJoinedTripChats: [Trip] = []
+
     static func invalidateCache() {
         lastLoaded = nil
         cachedConversations = []
         cachedMutualMatches = []
+        cachedJoinedTripChats = []
     }
-    
+
     // Local overrides to keep unread badges visible until user reads
     private var localUnreadOverrides: [String: Int] = [:]
-    
+
     // Current User ID
     private var currentUserId: String? {
         return AuthService.shared.getCurrentUserId()
     }
-    
+
     // MARK: - Load Initial Data (Concurrent)
     func loadInitialData(force: Bool = false) async {
         guard !AppRuntime.isRunningForPreview else {
@@ -45,25 +49,26 @@ class ChatViewModel: ObservableObject {
         if !force, let lastLoaded = Self.lastLoaded, Date().timeIntervalSince(lastLoaded) < 180, !conversations.isEmpty {
             return // Skip reloading if recently loaded
         }
-        
+
         isLoading = true
         errorMessage = nil
-        
+
         async let fetchConversations: () = loadConversationsInternal()
         async let fetchMutualMatches: () = loadMutualMatchesInternal()
-        
-        _ = await (fetchConversations, fetchMutualMatches)
-        
+        async let fetchTripChats: () = loadJoinedTripChatsInternal()
+
+        _ = await (fetchConversations, fetchMutualMatches, fetchTripChats)
+
         Self.lastLoaded = Date()
         isLoading = false
     }
-    
+
     // MARK: - Load Mutual Matches
     func loadMutualMatches() async {
         guard !AppRuntime.isRunningForPreview else { return }
         await loadMutualMatchesInternal()
     }
-    
+
     private func loadMutualMatchesInternal() async {
         do {
             let response = try await MatchService.shared.getMutualMatches()
@@ -82,7 +87,8 @@ class ChatViewModel: ObservableObject {
         // Load from static cache instantly
         self.conversations = Self.cachedConversations
         self.mutualMatches = Self.cachedMutualMatches
-        
+        self.joinedTripChats = Self.cachedJoinedTripChats
+
         // Subscribe once to conversation new-message events
         conversationUpdates = NotificationCenter.default.publisher(for: NSNotification.Name("ConversationNewMessage"))
             .receive(on: DispatchQueue.main)
@@ -93,7 +99,35 @@ class ChatViewModel: ObservableObject {
                 }
             }
     }
-    
+
+    private func loadJoinedTripChatsInternal() async {
+        guard let userId = currentUserId else { return }
+
+        do {
+            let trips = try await TripService.shared.getAllTrips(participantId: userId)
+            let joined = trips.filter { trip in
+                trip.participants?.contains {
+                    $0.userId == userId && $0.status == "going"
+                } == true
+            }
+            joinedTripChats = joined
+            Self.cachedJoinedTripChats = joined
+        } catch {
+            print("Failed to fetch joined trip chats: \(error)")
+        }
+    }
+
+    func includeJoinedTrip(_ trip: Trip) {
+        joinedTripChats.removeAll { $0.id == trip.id }
+        joinedTripChats.insert(trip, at: 0)
+        Self.cachedJoinedTripChats = joinedTripChats
+    }
+
+    func removeTripChat(id: String) {
+        joinedTripChats.removeAll { $0.id == id }
+        Self.cachedJoinedTripChats = joinedTripChats
+    }
+
     // MARK: - Load Conversations
     func loadConversations() async {
         guard !AppRuntime.isRunningForPreview else {
@@ -106,7 +140,7 @@ class ChatViewModel: ObservableObject {
         await loadConversationsInternal()
         isLoading = false
     }
-    
+
     private func loadConversationsInternal() async {
         do {
             let convs = try await MessageService.shared.getConversations()
@@ -132,13 +166,13 @@ class ChatViewModel: ObservableObject {
             }
         }
     }
-    
+
     // MARK: - Load Private Messages
     func loadPrivateMessages(userId: String) async {
         isLoading = true
         errorMessage = nil
         messages = [] // Clear previous messages
-        
+
         do {
             messages = try await MessageService.shared.getPrivateMessages(userId: userId)
             lastMessageCount = messages.count
@@ -151,14 +185,14 @@ class ChatViewModel: ObservableObject {
             }
             // Clear local unread override for this partner since user opened the chat
             localUnreadOverrides.removeValue(forKey: userId)
-            
+
             // Optimistically clear unread count for this conversation so badge disappears immediately
             if let idx = conversations.firstIndex(where: { $0.user.id == userId }) {
                 var conv = conversations[idx]
                 conv = Conversation(user: conv.user, lastMessage: conv.lastMessage, unreadCount: 0)
                 conversations[idx] = conv
             }
-            
+
             postLocalTotal()
             // Reload conversations to sync with server and remove badge
             Task { await loadConversations() }
@@ -166,14 +200,14 @@ class ChatViewModel: ObservableObject {
         } catch {
             errorMessage = error.localizedDescription
         }
-        
+
         isLoading = false
     }
-    
+
     // MARK: - Send Private Message
     func sendPrivateMessage(userId: String, content: String, imageUrl: String? = nil) async {
         guard !content.isEmpty || imageUrl != nil else { return }
-        
+
         do {
             let message = try await MessageService.shared.sendPrivateMessage(userId: userId, content: content, imageUrl: imageUrl)
             messages.append(message)
@@ -182,13 +216,13 @@ class ChatViewModel: ObservableObject {
             errorMessage = error.localizedDescription
         }
     }
-    
+
     // MARK: - Load Trip Messages (Group Chat)
     func loadTripMessages(tripId: String) async {
         isLoading = true
         errorMessage = nil
         messages = []
-        
+
         do {
             messages = try await MessageService.shared.getTripMessages(tripId: tripId)
             lastMessageCount = messages.count
@@ -198,14 +232,14 @@ class ChatViewModel: ObservableObject {
         } catch {
             errorMessage = error.localizedDescription
         }
-        
+
         isLoading = false
     }
-    
+
     // MARK: - Send Trip Message
     func sendTripMessage(tripId: String, content: String, imageUrl: String? = nil) async {
         guard !content.isEmpty || imageUrl != nil else { return }
-        
+
         do {
             let message = try await MessageService.shared.sendTripMessage(tripId: tripId, content: content, imageUrl: imageUrl)
             messages.append(message)
@@ -214,7 +248,7 @@ class ChatViewModel: ObservableObject {
             errorMessage = error.localizedDescription
         }
     }
-    
+
     func deleteMessage(_ message: Message) async {
         do {
             try await MessageService.shared.deleteMessage(messageId: message.id)
@@ -225,13 +259,13 @@ class ChatViewModel: ObservableObject {
             errorMessage = error.localizedDescription
         }
     }
-    
+
     // MARK: - Delete Conversation
     func deleteConversation(at offsets: IndexSet) {
         // Optimistic update
         let idsToDelete = offsets.map { conversations[$0].user.id }
         conversations.remove(atOffsets: offsets)
-        
+
         Task {
             for id in idsToDelete {
                 do {
@@ -269,7 +303,7 @@ class ChatViewModel: ObservableObject {
         print("🔔 ChatViewModel: localOverrideTotal=\(total) overrides=\(localUnreadOverrides)")
         NotificationCenter.default.post(name: NSNotification.Name("LocalUnreadTotalChanged"), object: nil, userInfo: ["localTotal": total])
     }
-    
+
     // MARK: - Refresh Messages (Silent, for polling)
     func refreshPrivateMessages(userId: String) async {
         // Silent refresh without showing loading state
@@ -283,7 +317,7 @@ class ChatViewModel: ObservableObject {
             // Silently fail for polling
         }
     }
-    
+
     func refreshTripMessages(tripId: String) async {
         // Silent refresh without showing loading state
         do {
@@ -296,7 +330,7 @@ class ChatViewModel: ObservableObject {
             // Silently fail for polling
         }
     }
-    
+
     // MARK: - Helper
     func isFromCurrentUser(message: Message) -> Bool {
         return message.senderId == currentUserId
