@@ -206,3 +206,90 @@ struct ConversationRow: View {
 #Preview {
     ChatView()
 }
+
+/// Native recipient picker backed by the existing user search endpoint.
+struct NewMessageView: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var query = ""
+    @State private var users: [MessageRecipient] = []
+    @State private var isLoading = false
+    @State private var errorMessage: String?
+    var onCreateTrip: (() -> Void)? = nil
+
+    var body: some View {
+        NavigationStack {
+            List {
+                if isLoading && users.isEmpty {
+                    ProgressView().frame(maxWidth: .infinity)
+                } else if let errorMessage {
+                    Text(errorMessage).foregroundStyle(.secondary)
+                } else if users.isEmpty {
+                    Text(SettingsManager.shared.text(thai: "ไม่พบผู้ใช้", english: "No people found"))
+                        .foregroundStyle(.secondary)
+                }
+                ForEach(users) { recipient in
+                    let user = recipient.user
+                    NavigationLink(value: user) {
+                        HStack(spacing: 12) {
+                            UserAvatarView(user: user, size: 44)
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(user.name).foregroundStyle(Color.adaptiveText)
+                                if let username = user.username, !username.isEmpty {
+                                    Text("@\(username)").font(.caption).foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle(SettingsManager.shared.text(thai: "ข้อความใหม่", english: "New message"))
+            .navigationBarTitleDisplayMode(.inline)
+            .searchable(text: $query, prompt: SettingsManager.shared.text(thai: "ค้นหาคนด้วยชื่อ", english: "Search people by name"))
+            .navigationDestination(for: User.self) { user in
+                ChatDetailView(chatTitle: user.name, tripId: nil, partnerId: user.id, initialPartnerUser: user)
+            }
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(SettingsManager.shared.text(thai: "ปิด", english: "Close")) { dismiss() }
+                }
+                if let onCreateTrip {
+                    ToolbarItem(placement: .bottomBar) {
+                        Button(action: onCreateTrip) {
+                            Label(SettingsManager.shared.text(thai: "สร้างทริป", english: "Create trip"), systemImage: "plus")
+                        }
+                    }
+                }
+            }
+            .task(id: query) {
+                do {
+                    try await Task.sleep(for: .milliseconds(250))
+                    isLoading = true
+                    errorMessage = nil
+                    let result: [MessageRecipient] = try await APIService.shared.request(
+                        endpoint: "/users", queryItems: [URLQueryItem(name: "search", value: query)]
+                    )
+                    try Task.checkCancellation()
+                    users = result
+                    isLoading = false
+                } catch is CancellationError {
+                } catch let error as URLError where error.code == .cancelled {
+                } catch {
+                    guard !Task.isCancelled else { return }
+                    errorMessage = SettingsManager.shared.text(thai: "โหลดรายชื่อไม่สำเร็จ กรุณาลองอีกครั้ง", english: "Unable to load people. Please try again.")
+                    isLoading = false
+                }
+            }
+        }
+    }
+}
+
+// Search responses contain public fields only, rather than a full account.
+private struct MessageRecipient: Decodable, Identifiable {
+    let id: String
+    let name: String
+    let username: String?
+    let profileImage: String?
+    var user: User {
+        User(id: id, name: name, username: username, profileImage: profileImage)
+    }
+}

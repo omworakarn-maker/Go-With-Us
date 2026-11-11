@@ -946,6 +946,11 @@ private final class LivenessCameraViewController: UIViewController, AVCaptureVid
     }
 
     private func configureCamera() {
+        guard let purpose = Bundle.main.object(forInfoDictionaryKey: "NSCameraUsageDescription") as? String,
+              !purpose.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            reportError(tr("แอปรุ่นนี้ตั้งค่าสิทธิ์กล้องไม่ครบ กรุณาอัปเดตแอป", "Camera permission configuration is missing. Please update the app."))
+            return
+        }
         #if targetEnvironment(simulator)
         reportError(tr("การตรวจใบหน้าต้องทดสอบบน iPhone ที่มีกล้องหน้า", "Face verification requires an iPhone with a front camera"))
         return

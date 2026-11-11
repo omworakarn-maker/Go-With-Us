@@ -79,7 +79,7 @@ struct NativeTabIconFeedback: UIViewRepresentable {
                 do {
                     // Do not place smoke/rays over a slot that is still moving
                     // while the detached button and main group separate/join.
-                    try await Task.sleep(for: .milliseconds(regrouping ? 420 : 240))
+                    try await Task.sleep(for: .milliseconds(regrouping ? 420 : (tab == .profile ? 60 : 240)))
                     guard let self, let host, !Task.isCancelled,
                           let bar = self.findBar(from: host),
                           !bar.isHidden, bar.alpha > 0.01,
@@ -211,7 +211,7 @@ struct NativeTabIconFeedback: UIViewRepresentable {
                     parent.insertSubview(incoming, aboveSubview: image)
                     transientIcons.append(incoming)
 
-                    let duration = 0.54
+                    let duration = 0.32
                     let travelTimes: [Double] = [0, 0.2, 0.48, 0.8, 0.81, 1]
                     let outgoing = keyframes("transform.translation.x", values: [0, -4, -9, -9, 0, 0], times: travelTimes, duration: duration)
                     outgoing.isAdditive = true

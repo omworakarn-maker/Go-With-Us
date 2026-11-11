@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct ContentView: View {
+    @State private var showingNewMessage = false
+    @State private var createAfterComposer = false
     @EnvironmentObject var authViewModel: AuthViewModel
     @ObservedObject private var settings = SettingsManager.shared
     @Environment(\.scenePhase) private var scenePhase
@@ -78,7 +80,7 @@ struct ContentView: View {
                 if shouldShowTabBar && showTabBarWithAnimation {
                     CustomTabBar(
                         selectedTab: selectedTabBinding,
-                        onCreateTap: { showingCreateTrip = true },
+                        onCreateTap: { showingNewMessage = true },
                         badgeCounts: badgeCounts
                     )
                     .offset(y: 12)
@@ -178,6 +180,17 @@ struct ContentView: View {
         } else {
             LoginView()
         }
+        }
+        .sheet(isPresented: $showingNewMessage, onDismiss: {
+            if createAfterComposer {
+                createAfterComposer = false
+                showingCreateTrip = true
+            }
+        }) {
+            NewMessageView(onCreateTrip: {
+                createAfterComposer = true
+                showingNewMessage = false
+            })
         }
         .onReceive(NotificationCenter.default.publisher(for: .init("SessionRevoked"))) { _ in
             authViewModel.logout()

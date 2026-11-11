@@ -2,6 +2,8 @@ import Combine
 import SwiftUI
 
 struct ContentView: View {
+    @State private var showingNewMessage = false
+    @State private var createAfterComposer = false
     @EnvironmentObject var authViewModel: AuthViewModel
     @ObservedObject private var settings = SettingsManager.shared
     @Environment(\.scenePhase) private var scenePhase
@@ -153,6 +155,17 @@ struct ContentView: View {
         .onChange(of: authViewModel.isAuthenticated) { _, authenticated in
             if !authenticated { tripCreation.reset() }
         }
+        .sheet(isPresented: $showingNewMessage, onDismiss: {
+            if createAfterComposer {
+                createAfterComposer = false
+                openTripCreation()
+            }
+        }) {
+            NewMessageView(onCreateTrip: {
+                createAfterComposer = true
+                showingNewMessage = false
+            })
+        }
         .onReceive(NotificationCenter.default.publisher(for: .init("SessionRevoked"))) { _ in
             authViewModel.logout()
         }
@@ -281,7 +294,7 @@ struct ContentView: View {
                 SwiftUI.Tab(value: Tab.create, role: .search) {
                     Color.clear
                 } label: {
-                    Label(settings.localizedString(for: "create"), systemImage: "plus")
+                    Label(tr("ข้อความใหม่", "New message"), systemImage: "square.and.pencil")
                 }
             }
         }
@@ -320,7 +333,7 @@ struct ContentView: View {
             set: { newTab in
                 if newTab == .create {
                     SettingsManager.shared.triggerSelection()
-                    openTripCreation()
+                    showingNewMessage = true
                     return
                 }
                 SettingsManager.shared.triggerSelection()

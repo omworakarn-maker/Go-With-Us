@@ -158,11 +158,45 @@ struct SplashView: View {
 // Shared brand artwork for navigation and authentication; preserve its full silhouette.
 struct AppBrandLogo: View {
     var size: CGFloat = 36
+    var animates = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var replay = 0
+    @State private var travel: CGFloat = 0
+    @State private var visibility: Double = 1
+
     var body: some View {
         Image("AppLogo")
             .resizable()
             .scaledToFit()
+            .offset(x: travel * size)
+            .opacity(visibility)
             .frame(width: size, height: size)
+            .clipped()
             .accessibilityHidden(true)
+            .onTapGesture { if animates && !reduceMotion { replay += 1 } }
+            .task(id: replay) {
+                guard animates, !reduceMotion else { return }
+                travel = 0
+                visibility = 1
+                do {
+                    if replay == 0 { try await Task.sleep(for: .milliseconds(1450)) }
+                    withAnimation(.easeIn(duration: 0.22)) {
+                        travel = -1.1
+                        visibility = 0
+                    }
+                    try await Task.sleep(for: .milliseconds(240))
+                    var reset = Transaction()
+                    reset.disablesAnimations = true
+                    withTransaction(reset) { travel = 1.1 }
+                    try await Task.sleep(for: .milliseconds(20))
+                    withAnimation(.easeOut(duration: 0.30)) {
+                        travel = 0
+                        visibility = 1
+                    }
+                } catch {
+                    travel = 0
+                    visibility = 1
+                }
+            }
     }
 }

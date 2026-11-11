@@ -26,7 +26,7 @@ struct HomeGridView: View {
                         ZStack {
                             // Center Title
                             HStack(spacing: 8) {
-                                AppBrandLogo(size: 36)
+                                AppBrandLogo(size: 36, animates: true)
                                 Text("GoWithUs")
                                     .font(.system(size: 24, weight: .heavy, design: .rounded))
                                     .foregroundColor(.adaptiveText)

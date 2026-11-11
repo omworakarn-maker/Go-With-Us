@@ -34,7 +34,7 @@ struct CustomTabBar: View {
                         Circle()
                             .fill(Color.appAccent)
                             .frame(width: 44, height: 44)
-                        Image(systemName: "plus")
+                        Image(systemName: "square.and.pencil")
                             .font(.system(size: 20, weight: .bold))
                             .foregroundColor(.white)
                     }
@@ -177,7 +177,7 @@ struct CustomTabBar: View {
         case .matchTrip: return "arrow.triangle.2.circlepath.circle.fill"
         case .chat: return "message.fill"
         case .profile: return "person.fill"
-        case .create: return "plus"
+        case .create: return "square.and.pencil"
         }
     }
 
@@ -187,7 +187,7 @@ struct CustomTabBar: View {
         case .matchTrip: return "arrow.triangle.2.circlepath.circle"
         case .chat: return "message"
         case .profile: return "person"
-        case .create: return "plus"
+        case .create: return "square.and.pencil"
         }
     }
 
@@ -195,7 +195,7 @@ struct CustomTabBar: View {
         switch tab {
         case .home: return SettingsManager.shared.localizedString(for: "home")
         case .matchTrip: return SettingsManager.shared.currentLanguage == .thai ? "แมตช์ทริป" : "Match Trip"
-        case .create: return SettingsManager.shared.localizedString(for: "create")
+        case .create: return SettingsManager.shared.text(thai: "ข้อความใหม่", english: "New message")
         case .chat: return SettingsManager.shared.currentLanguage == .thai ? "แชท" : "Chat"
         case .profile: return SettingsManager.shared.localizedString(for: "profile")
         }
