@@ -29,6 +29,10 @@ struct GoWithUsApp: App {
                 if showSplash {
                     SplashView(onFinished: {
                         withAnimation(reduceMotion ? .easeOut(duration: 0.18) : .timingCurve(0.2, 0.8, 0.2, 1, duration: 0.28)) { showSplash = false }
+                    }, isReady: {
+                        authViewModel.startupAuthResolved &&
+                        (!authViewModel.isAuthenticated || authViewModel.showOTPVerification ||
+                         TripListViewModel.startupHomeResolved)
                     })
                         .background(Color.white.ignoresSafeArea())
                         .zIndex(0)
@@ -41,6 +45,11 @@ struct GoWithUsApp: App {
             }
             .ignoresSafeArea(edges: .top)
             .tint(.appPrimary)
+            .overlay {
+                PromotionStartupOverlay(ready: !showSplash)
+                    .environmentObject(authViewModel)
+                    .environment(\.locale, Locale(identifier: settings.currentLanguage.rawValue))
+            }
             .onAppear {
                 NotificationPoller.shared.startPolling()
             }

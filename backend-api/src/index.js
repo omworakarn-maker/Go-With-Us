@@ -8,6 +8,7 @@ import userRoutes from './routes/userRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import matchRoutes from './routes/matchRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
+import promotionRoutes from './routes/promotionRoutes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
 // Load environment variables from the local .env file.
@@ -63,6 +64,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/match', matchRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/promotions', promotionRoutes);
 
 // Error handler (must be last)
 app.use(errorHandler);
@@ -73,10 +75,10 @@ import { initWebSocketServer } from './utils/websocket.js';
 // Start server if not running on Vercel
 if (!process.env.VERCEL) {
   const server = createServer(app);
-  
+
   // Initialize WebSocket server
   initWebSocketServer(server);
-  
+
   server.listen(port, '0.0.0.0', () => {
     console.log(`🚀 Server is running on port ${port}`);
     console.log(`📍 http://localhost:${port}`);

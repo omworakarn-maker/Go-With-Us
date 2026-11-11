@@ -4,6 +4,7 @@ import Combine
 // MARK: - Trip List ViewModel
 @MainActor
 class TripListViewModel: ObservableObject {
+    static var startupHomeResolved = false
     @Published var trips: [Trip] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
@@ -84,6 +85,7 @@ class TripListViewModel: ObservableObject {
             }
 
             self.trips = filtered
+            Self.startupHomeResolved = true
             return
         }
 
@@ -154,6 +156,7 @@ class TripListViewModel: ObservableObject {
 
             if !Task.isCancelled {
                 isLoading = false
+                Self.startupHomeResolved = true
             }
         }
 

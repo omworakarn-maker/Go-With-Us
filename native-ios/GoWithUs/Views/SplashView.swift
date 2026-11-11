@@ -26,6 +26,7 @@ struct SplashView: View {
     @State private var eyeIsClosed = false
 
     var onFinished: () -> Void = {}
+    var isReady: () -> Bool = { true }
 
     var body: some View {
         GeometryReader { geometry in
@@ -105,6 +106,13 @@ struct SplashView: View {
         eyeIsClosed = false
 
         do {
+            // Keep the artwork still while startup requests finish. Network
+            // failure must not trap the user behind the splash forever.
+            let deadline = Date().addingTimeInterval(12)
+            while !isReady() && Date() < deadline {
+                try await Task.sleep(nanoseconds: 100_000_000)
+            }
+            try Task.checkCancellation()
             try await Task.sleep(nanoseconds: 240_000_000)
             if reduceMotion {
                 withAnimation(.easeOut(duration: 0.25)) {

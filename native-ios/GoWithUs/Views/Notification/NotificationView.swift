@@ -1,5 +1,3 @@
-2026-11-11 19:49:07.299 xcodebuild[938:9930]  DVTFilePathFSEvents: Failed to start fs event stream.
-2026-11-11 19:49:07.664 xcodebuild[938:9929] [MT] DVTDeveloperPaths: Failed to get length of DARWIN_USER_CACHE_DIR from confstr(3), error = Error Domain=NSPOSIXErrorDomain Code=5 "Input/output error". Using NSCachesDirectory instead.
 import SwiftUI
 
 struct NotificationView: View {
