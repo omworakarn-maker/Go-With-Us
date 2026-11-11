@@ -1,12 +1,13 @@
+2026-11-11 19:49:07.299 xcodebuild[938:9930]  DVTFilePathFSEvents: Failed to start fs event stream.
+2026-11-11 19:49:07.664 xcodebuild[938:9929] [MT] DVTDeveloperPaths: Failed to get length of DARWIN_USER_CACHE_DIR from confstr(3), error = Error Domain=NSPOSIXErrorDomain Code=5 "Input/output error". Using NSCachesDirectory instead.
 import SwiftUI
 
 struct NotificationView: View {
     @StateObject private var viewModel = NotificationViewModel()
     @Environment(\.dismiss) private var dismiss
-    @State private var navigationPath: [String] = []
     
     var body: some View {
-        NavigationStack(path: $navigationPath) {
+        NavigationView {
             ZStack {
                 Color.white.ignoresSafeArea()
                 
@@ -24,21 +25,23 @@ struct NotificationView: View {
                 } else {
                     List {
                         ForEach(viewModel.notifications) { notification in
-                            NotificationRow(
-                                notification: notification,
-                                onTap: {
-                                    if notification.type == "trip", let tripId = notification.targetId {
-                                        navigationPath.append(tripId)
-                                    }
-                                    Task { await viewModel.markAsRead(id: notification.id) }
-                                },
-                                onDelete: {
-                                    Task { await viewModel.deleteNotification(id: notification.id) }
+                            NotificationRow(notification: notification) {
+                                Task {
+                                    await viewModel.markAsRead(id: notification.id)
                                 }
-                            )
+                            }
                             .listRowInsets(EdgeInsets())
                             .listRowSeparator(.hidden)
-                            .listRowBackground(Color.clear)
+                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                Button(role: .destructive) {
+                                    Task {
+                                        await viewModel.deleteNotification(id: notification.id)
+                                    }
+                                } label: {
+                                    Label(tr("ลบ", "Delete"), systemImage: "trash.fill")
+                                }
+                            }
+                            .tint(.red)
                         }
                     }
                     .listStyle(PlainListStyle())
@@ -49,9 +52,6 @@ struct NotificationView: View {
             }
             .navigationTitle(tr("การแจ้งเตือน", "Notifications"))
             .navigationBarTitleDisplayMode(.inline)
-            .navigationDestination(for: String.self) { tripId in
-                TripDetailView(tripId: tripId)
-            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     if !viewModel.notifications.isEmpty {
@@ -78,22 +78,9 @@ struct NotificationView: View {
 struct NotificationRow: View {
     let notification: AppNotification
     let onTap: () -> Void
-    let onDelete: () -> Void
-    @State private var swipeOffset: CGFloat = 0
     
     var body: some View {
-        ZStack(alignment: .trailing) {
-            Button(action: onDelete) {
-                Image(systemName: "trash.fill")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(.red)
-                    .frame(width: 44, height: 44)
-                    .background(Circle().fill(Color.red.opacity(0.12)))
-            }
-            .buttonStyle(.plain)
-            .padding(.trailing, 14)
-            .accessibilityLabel(Text(tr("ลบการแจ้งเตือน", "Delete notification")))
-
+        Button(action: onTap) {
             HStack(alignment: .top, spacing: 12) {
                 // Icon
                 Circle()
@@ -131,35 +118,9 @@ struct NotificationRow: View {
                 }
             }
             .padding()
-            .background {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(notification.isRead ? Color.white : Color.appSecondary.opacity(0.05))
-            }
-            .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .offset(x: swipeOffset)
-            .onTapGesture {
-                if swipeOffset < 0 {
-                    withAnimation(.easeInOut(duration: 0.22)) { swipeOffset = 0 }
-                } else {
-                    onTap()
-                }
-            }
-            .simultaneousGesture(
-                DragGesture(minimumDistance: 12)
-                    .onChanged { value in
-                        guard abs(value.translation.width) > abs(value.translation.height) else { return }
-                        swipeOffset = min(0, max(-74, value.translation.width))
-                    }
-                    .onEnded { value in
-                        guard abs(value.translation.width) > abs(value.translation.height) else { return }
-                        let shouldReveal = value.predictedEndTranslation.width < -36
-                        withAnimation(.easeInOut(duration: 0.24)) {
-                            swipeOffset = shouldReveal ? -68 : 0
-                        }
-                    }
-            )
+            .background(notification.isRead ? Color.clear : Color.appSecondary.opacity(0.05))
         }
-        .clipped()
+        .buttonStyle(PlainButtonStyle())
     }
     
     private var iconName: String {
@@ -188,6 +149,7 @@ struct NotificationRow: View {
 class NotificationViewModel: ObservableObject {
     @Published var notifications: [AppNotification] = []
     @Published var isLoading = false
+    private var deletedIDs = Set(UserDefaults.standard.stringArray(forKey: "notification_deleted_ids") ?? [])
     
     init() {
         NotificationCenter.default.addObserver(self, selector: #selector(handleNewNotification), name: NSNotification.Name("NewNotificationReceived"), object: nil)
@@ -205,29 +167,52 @@ class NotificationViewModel: ObservableObject {
     
     func loadNotifications() async {
         isLoading = true
-        var serverNotifications: [AppNotification] = []
         do {
-            serverNotifications = try await NotificationService.shared.getNotifications()
+            var serverNotifications: [AppNotification] = []
+            do {
+                serverNotifications = try await NotificationService.shared.getNotifications()
+            } catch {
+                print("Warning: failed to load server notifications: \(error)")
+            }
+
+            // Merge local persisted notifications (newer or offline) with server list
+            let local = LocalNotificationStore.shared.notifications
+
+            var map: [String: AppNotification] = [:]
+            for n in serverNotifications { map[n.id] = n }
+            for n in local { if map[n.id] == nil || n.isRead { map[n.id] = n } }
+
+            let readIDs = Set(UserDefaults.standard.stringArray(forKey: readStorageKey) ?? [])
+            for (id, notification) in map where readIDs.contains(id) && !notification.isRead {
+                map[id] = AppNotification(
+                    id: notification.id, title: notification.title,
+                    message: notification.message, type: notification.type,
+                    targetId: notification.targetId, createdAt: notification.createdAt,
+                    isRead: true
+                )
+            }
+
+            notifications = Array(map.values).filter { !deletedIDs.contains($0.id) }
+            // Sort by createdAt desc
+            notifications.sort { lhs, rhs in
+                let f = ISO8601DateFormatter(); f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+                return (f.date(from: lhs.createdAt) ?? Date()) > (f.date(from: rhs.createdAt) ?? Date())
+            }
         } catch {
-            print("Warning: failed to load server notifications: \(error)")
-        }
-
-        // Merge local persisted notifications (newer or offline) with server list
-        let local = LocalNotificationStore.shared.notifications
-
-        var map: [String: AppNotification] = [:]
-        for n in serverNotifications { map[n.id] = n }
-        for n in local { if map[n.id] == nil { map[n.id] = n } }
-
-        notifications = Array(map.values)
-        notifications.sort { lhs, rhs in
-            let f = ISO8601DateFormatter(); f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-            return (f.date(from: lhs.createdAt) ?? Date()) > (f.date(from: rhs.createdAt) ?? Date())
+            print("Error loading notifications: \(error)")
         }
         isLoading = false
     }
     
+    private var readStorageKey: String {
+        "notification_read_ids." + (AuthService.shared.getCurrentUserId() ?? "anonymous")
+    }
+
     func markAsRead(id: String) async {
+        var readIDs = Set(UserDefaults.standard.stringArray(forKey: readStorageKey) ?? [])
+        readIDs.insert(id)
+        UserDefaults.standard.set(Array(readIDs), forKey: readStorageKey)
+        LocalNotificationStore.shared.markAsRead(id: id)
         // Optimistic UI update
         if let index = notifications.firstIndex(where: { $0.id == id }) {
             notifications[index] = AppNotification(
@@ -251,6 +236,8 @@ class NotificationViewModel: ObservableObject {
     }
     
     func deleteNotification(id: String) async {
+        deletedIDs.insert(id)
+        UserDefaults.standard.set(Array(deletedIDs), forKey: "notification_deleted_ids")
         // 1. ลบจาก UI ทันที (Optimistic Delete) เพื่อป้องกันแอปเด้งตอน Swipe
         await MainActor.run {
             withAnimation {
@@ -282,3 +269,4 @@ class NotificationViewModel: ObservableObject {
         }
     }
 }
+

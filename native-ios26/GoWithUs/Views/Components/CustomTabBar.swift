@@ -218,7 +218,7 @@ struct NativeTabIconFeedback: UIViewRepresentable {
                     let travelTimes: [Double] = [0, 0.12, 0.34, 0.58, 0.82, 0.94, 1]
                     let outgoing = keyframes(
                         "transform.translation.x",
-                        values: [0, -1, -4, -8, -12, -12, 0],
+                        values: [0, -2, -8, -14, -18, -18, 0],
                         times: travelTimes,
                         duration: duration
                     )
@@ -242,7 +242,7 @@ struct NativeTabIconFeedback: UIViewRepresentable {
 
                     let arrival = keyframes(
                         "transform.translation.x",
-                        values: [13, 12, 9, 5, 1, 0, 0],
+                        values: [20, 18, 13, 7, 1, 0, 0],
                         times: travelTimes,
                         duration: duration
                     )
