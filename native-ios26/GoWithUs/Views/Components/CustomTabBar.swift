@@ -198,23 +198,25 @@ struct NativeTabIconFeedback: UIViewRepresentable {
                 // Animate only the primary glyph so UIKit's internal duplicate
                 // image views cannot make the profile icon look stacked.
                 let image = source
-                if let parent = image.superview {
+                if image.superview != nil {
                     let incoming = UIImageView(image: image.image)
                     incoming.preferredSymbolConfiguration = image.preferredSymbolConfiguration
-                    incoming.tintColor = image.tintColor
+                    incoming.tintColor = bar.tintColor
                     incoming.contentMode = image.contentMode
                     incoming.backgroundColor = .clear
                     incoming.isOpaque = false
                     incoming.isUserInteractionEnabled = false
                     incoming.isAccessibilityElement = false
-                    incoming.bounds = image.bounds
-                    incoming.center = image.center
-                    incoming.transform = image.transform
+                    // The native icon container clips translated siblings.
+                    // Use bar coordinates so the second person is visible
+                    // beside the first throughout the handoff.
+                    incoming.frame = image.convert(image.bounds, to: bar)
+                    incoming.layer.zPosition = 101
                     incoming.layer.opacity = 0
-                    parent.insertSubview(incoming, aboveSubview: image)
+                    bar.addSubview(incoming)
                     transientIcons.append(incoming)
 
-                    let duration = 0.48
+                    let duration = 0.62
                     let travelTimes: [Double] = [0, 0.12, 0.34, 0.58, 0.82, 0.94, 1]
                     let outgoing = keyframes(
                         "transform.translation.x",
@@ -223,7 +225,7 @@ struct NativeTabIconFeedback: UIViewRepresentable {
                         duration: duration
                     )
                     outgoing.isAdditive = true
-                    let opacity = Double(image.layer.opacity)
+                    let opacity = 1.0
                     let depart = keyframes(
                         "opacity",
                         values: [opacity, opacity, opacity, opacity * 0.72, opacity * 0.25, 0, opacity],
@@ -249,7 +251,7 @@ struct NativeTabIconFeedback: UIViewRepresentable {
                     arrival.isAdditive = true
                     let appear = keyframes(
                         "opacity",
-                        values: [0, opacity * 0.15, opacity * 0.72, opacity, opacity, opacity, 0],
+                        values: [0, opacity * 0.8, opacity, opacity, opacity, opacity, 0],
                         times: travelTimes,
                         duration: duration
                     )
