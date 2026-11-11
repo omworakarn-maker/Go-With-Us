@@ -10,8 +10,11 @@ class TripListViewModel: ObservableObject {
     @Published var searchText = ""
     
     // Filters
-    @Published var activeTab: String = "แนะนำ" {
-        didSet { Task { await switchTabWithoutClearing() } }
+    @Published var activeTab: String {
+        didSet {
+            UserDefaults.standard.set(activeTab, forKey: Self.activeTabStorageKey)
+            Task { await switchTabWithoutClearing() }
+        }
     }
     @Published var selectedProvince: String? {
         didSet { Task { await loadTrips(showLoading: false, force: true) } }
@@ -30,6 +33,7 @@ class TripListViewModel: ObservableObject {
     
     private static var lastLoadedByQuery: [String: Date] = [:]
     private static var cachedTripsByQuery: [String: [Trip]] = [:]
+    private static let activeTabStorageKey = "GoWithUs.home.activeTripTab"
 
     private var queryKey: String {
         [activeTab, selectedProvince ?? "*", selectedDate.map(String.init(describing:)) ?? "*",
@@ -43,6 +47,10 @@ class TripListViewModel: ObservableObject {
     }
     
     init() {
+        let savedTab = UserDefaults.standard.string(forKey: Self.activeTabStorageKey)
+        activeTab = savedTab.flatMap {
+            ["แนะนำ", "มาใหม่", "ยอดนิยม", "มาแรง"].contains($0) ? $0 : nil
+        } ?? "แนะนำ"
         setupSearch()
     }
     

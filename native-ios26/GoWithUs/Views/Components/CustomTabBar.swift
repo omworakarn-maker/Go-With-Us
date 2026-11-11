@@ -192,10 +192,13 @@ struct NativeTabIconFeedback: UIViewRepresentable {
                     wave.add(draw, forKey: "chat.draw")
                 }
             case .profile:
-                // Overlap two transparent native glyphs for a continuous
-                // right-to-left handoff. Never rasterize the glass backdrop.
-                for image in images {
-                    guard let parent = image.superview else { continue }
+                // Keep both people visible during the middle of the handoff:
+                // the current person exits left while a second person comes
+                // in from the right and settles into the native icon's place.
+                // Animate only the primary glyph so UIKit's internal duplicate
+                // image views cannot make the profile icon look stacked.
+                let image = source
+                if let parent = image.superview {
                     let incoming = UIImageView(image: image.image)
                     incoming.preferredSymbolConfiguration = image.preferredSymbolConfiguration
                     incoming.tintColor = image.tintColor
@@ -211,21 +214,51 @@ struct NativeTabIconFeedback: UIViewRepresentable {
                     parent.insertSubview(incoming, aboveSubview: image)
                     transientIcons.append(incoming)
 
-                    let duration = 0.32
-                    let travelTimes: [Double] = [0, 0.2, 0.48, 0.8, 0.81, 1]
-                    let outgoing = keyframes("transform.translation.x", values: [0, -4, -9, -9, 0, 0], times: travelTimes, duration: duration)
+                    let duration = 0.48
+                    let travelTimes: [Double] = [0, 0.12, 0.34, 0.58, 0.82, 0.94, 1]
+                    let outgoing = keyframes(
+                        "transform.translation.x",
+                        values: [0, -1, -4, -8, -12, -12, 0],
+                        times: travelTimes,
+                        duration: duration
+                    )
                     outgoing.isAdditive = true
                     let opacity = Double(image.layer.opacity)
-                    let depart = keyframes("opacity", values: [opacity, opacity, opacity * 0.45, 0, 0, opacity], times: travelTimes, duration: duration)
-                    let shrink = keyframes("transform.scale", values: [1, 0.98, 0.96, 0.96, 1, 1], times: travelTimes, duration: duration)
+                    let depart = keyframes(
+                        "opacity",
+                        values: [opacity, opacity, opacity, opacity * 0.72, opacity * 0.25, 0, opacity],
+                        times: travelTimes,
+                        duration: duration
+                    )
+                    let shrink = keyframes(
+                        "transform.scale",
+                        values: [1, 1, 0.98, 0.94, 0.9, 0.9, 1],
+                        times: travelTimes,
+                        duration: duration
+                    )
                     image.layer.add(outgoing, forKey: translationKey)
                     image.layer.add(depart, forKey: opacityKey)
                     image.layer.add(shrink, forKey: scaleKey)
 
-                    let arrival = keyframes("transform.translation.x", values: [9, 6, 1, 0, 0], times: [0, 0.18, 0.5, 0.78, 1], duration: duration)
+                    let arrival = keyframes(
+                        "transform.translation.x",
+                        values: [13, 12, 9, 5, 1, 0, 0],
+                        times: travelTimes,
+                        duration: duration
+                    )
                     arrival.isAdditive = true
-                    let appear = keyframes("opacity", values: [0, opacity * 0.55, opacity, opacity, opacity, 0], times: travelTimes, duration: duration)
-                    let zoom = keyframes("transform.scale", values: [0.96, 0.99, 1, 1], times: [0, 0.25, 0.68, 1], duration: duration)
+                    let appear = keyframes(
+                        "opacity",
+                        values: [0, opacity * 0.15, opacity * 0.72, opacity, opacity, opacity, 0],
+                        times: travelTimes,
+                        duration: duration
+                    )
+                    let zoom = keyframes(
+                        "transform.scale",
+                        values: [0.88, 0.9, 0.94, 0.98, 1.02, 1, 1],
+                        times: travelTimes,
+                        duration: duration
+                    )
                     incoming.layer.add(arrival, forKey: translationKey)
                     incoming.layer.add(appear, forKey: opacityKey)
                     incoming.layer.add(zoom, forKey: scaleKey)

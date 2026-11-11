@@ -45,6 +45,13 @@ const normalizeTravelStyle = (style) => {
 
 const MATCH_CATEGORIES = ['ทะเล', 'ภูเขา', 'แคมป์ปิ้ง', 'เที่ยวเมือง', 'คาเฟ่', 'อาหาร', 'แฮงเอาต์', 'ถ่ายรูป', 'ช้อปปิ้ง', 'คอนเสิร์ต', 'ผจญภัย', 'ไหว้พระ', 'อื่นๆ'];
 const MATCH_TIMES = ['morning', 'noon', 'evening', 'night'];
+const MAX_MATCH_TRIP_DURATION_MS = 366 * 24 * 60 * 60 * 1000;
+
+const sanitizeMatchedUser = user => {
+    const { showEmail, ...safeUser } = user;
+    if (!showEmail) delete safeUser.email;
+    return safeUser;
+};
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
@@ -395,6 +402,7 @@ export const findBuddy = async (req, res) => {
                 name: true,
                 username: true,
                 email: true,
+                showEmail: true,
                 role: true,
                 profileImage: true,
                 gallery: true,
@@ -410,7 +418,7 @@ export const findBuddy = async (req, res) => {
         const matches = users.map(user => {
             const similarityScore = calculateDetailedCompatibility(currentUser, user);
             return {
-                ...user,
+                ...sanitizeMatchedUser(user),
                 matchScore: similarityScore
             };
         })
@@ -443,14 +451,17 @@ export const matchTrips = async (req, res) => {
         // 2. Get Active Trips
         const trips = await prisma.trip.findMany({
             where: {
-                endDate: { gte: new Date() } // Only future/ongoing trips
+                isPublic: true,
+                OR: [
+                    { endDate: { gte: new Date() } },
+                    { endDate: null, startDate: { gte: new Date() } }
+                ]
             },
             include: {
                 creator: {
                     select: {
                         id: true,
                         name: true,
-                        email: true,
                         role: true,
                         profileImage: true,
                         interests: true,
@@ -471,7 +482,14 @@ export const matchTrips = async (req, res) => {
         });
 
         // 3. Calculate compatibility using exact 4-step logic
-        const matches = trips.map(trip => {
+        const plausibleTrips = trips.filter(trip => {
+            const start = new Date(trip.startDate).getTime();
+            const end = new Date(trip.endDate || trip.startDate).getTime();
+            return Number.isFinite(start) && Number.isFinite(end) &&
+                end >= start && end - start <= MAX_MATCH_TRIP_DURATION_MS;
+        });
+
+        const matches = plausibleTrips.map(trip => {
             const result = calculateTripCompatibilityDetailed(currentUser, trip);
             return {
                 ...trip,
@@ -613,6 +631,7 @@ export const getMutualMatches = async (req, res) => {
                 name: true,
                 username: true,
                 email: true,
+                showEmail: true,
                 role: true,
                 profileImage: true,
                 gallery: true,
@@ -621,7 +640,7 @@ export const getMutualMatches = async (req, res) => {
             }
         });
 
-        res.json({ matches: users });
+        res.json({ matches: users.map(sanitizeMatchedUser) });
 
     } catch (error) {
         console.error('Get Mutual Matches Error:', error);

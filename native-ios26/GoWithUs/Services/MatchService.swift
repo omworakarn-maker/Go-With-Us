@@ -4,7 +4,7 @@ struct MatchUser: Codable, Identifiable {
     let id: String
     let name: String
     let username: String?
-    let email: String
+    let email: String?
     let role: String
     let interests: [String]?
     let matchScore: Int?

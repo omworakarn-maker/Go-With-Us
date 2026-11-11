@@ -14,6 +14,54 @@ const normalizeTripInterestTags = (interestTags, category) => (
         .slice(0, 2)
 );
 
+const tripAccessClause = (userId) => userId ? {
+    OR: [
+        { isPublic: true },
+        { creatorId: userId },
+        { participants: { some: { userId } } }
+    ]
+} : { isPublic: true };
+
+const sanitizeTripUser = (user, viewerId, viewerRole) => {
+    if (!user) return user;
+    const { showEmail, ...safeUser } = user;
+    if (!showEmail && user.id !== viewerId && viewerRole !== 'admin') {
+        delete safeUser.email;
+    }
+    return safeUser;
+};
+
+const sanitizeTripForViewer = (trip, viewerId, viewerRole) => ({
+    ...trip,
+    creator: sanitizeTripUser(trip.creator, viewerId, viewerRole),
+    participants: trip.participants?.map(participant => ({
+        ...participant,
+        ...(participant.user && {
+            user: sanitizeTripUser(participant.user, viewerId, viewerRole)
+        })
+    }))
+});
+
+const MAX_TRIP_DURATION_MS = 366 * 24 * 60 * 60 * 1000;
+
+const validatedTripDates = (startValue, endValue, requireFutureStart = false) => {
+    const start = new Date(startValue);
+    const end = endValue ? new Date(endValue) : null;
+    if (!Number.isFinite(start.getTime()) || (end && !Number.isFinite(end.getTime()))) {
+        return { error: 'Invalid trip date.' };
+    }
+    if (requireFutureStart && start.getTime() < Date.now() - (24 * 60 * 60 * 1000)) {
+        return { error: 'Start date must not be in the past.' };
+    }
+    if (end && end < start) {
+        return { error: 'End date must be on or after start date.' };
+    }
+    if (end && end.getTime() - start.getTime() > MAX_TRIP_DURATION_MS) {
+        return { error: 'Trip duration cannot exceed 366 days.' };
+    }
+    return { start, end };
+};
+
 // Get all trips with filters
 export const getAllTrips = async (req, res, next) => {
     try {
@@ -23,7 +71,7 @@ export const getAllTrips = async (req, res, next) => {
         const { destination, category, startDate, endDate, type, limit } = req.query;
         const userId = req.user?.userId; // Optional, might be available if using verifyToken optionally or passed
 
-        const where = {};
+        const where = { AND: [tripAccessClause(userId)] };
 
         if (destination) {
             where.destination = { contains: destination, mode: 'insensitive' };
@@ -66,11 +114,13 @@ export const getAllTrips = async (req, res, next) => {
                 });
 
                 if (user?.interests?.length > 0) {
-                    where.OR = [
-                        { category: { in: user.interests } },
-                        { interestTags: { hasSome: user.interests } },
-                        { creatorId: userId }
-                    ];
+                    where.AND.push({
+                        OR: [
+                            { category: { in: user.interests } },
+                            { interestTags: { hasSome: user.interests } },
+                            { creatorId: userId }
+                        ]
+                    });
                 }
             } catch (err) {
                 console.log('Error fetching user for recommendation:', err);
@@ -86,6 +136,7 @@ export const getAllTrips = async (req, res, next) => {
                         name: true,
                         username: true,
                         email: true,
+                        showEmail: true,
                         role: true,
                         profileImage: true,
                         travelStyle: true
@@ -99,6 +150,7 @@ export const getAllTrips = async (req, res, next) => {
                                 name: true,
                                 username: true,
                                 email: true,
+                                showEmail: true,
                                 role: true,
                                 profileImage: true,
                                 travelStyle: true,
@@ -150,7 +202,10 @@ export const getAllTrips = async (req, res, next) => {
             console.log("No userId found in getAllTrips. Auth header might be missing.");
         }
 
-        res.json({ trips: responseTrips, count: responseTrips.length });
+        const safeTrips = responseTrips.map(trip =>
+            sanitizeTripForViewer(trip, userId, req.user?.role)
+        );
+        res.json({ trips: safeTrips, count: safeTrips.length });
     } catch (error) {
         next(error);
     }
@@ -165,7 +220,7 @@ export const getMyCreatedTrips = async (req, res, next) => {
             include: {
                 creator: {
                     select: {
-                        id: true, name: true, username: true, email: true, role: true,
+                        id: true, name: true, username: true, email: true, showEmail: true, role: true,
                         profileImage: true, travelStyle: true
                     }
                 },
@@ -173,7 +228,7 @@ export const getMyCreatedTrips = async (req, res, next) => {
                     include: {
                         user: {
                             select: {
-                                id: true, name: true, username: true, email: true, role: true,
+                                id: true, name: true, username: true, email: true, showEmail: true, role: true,
                                 profileImage: true, travelStyle: true, interests: true
                             }
                         }
@@ -182,7 +237,10 @@ export const getMyCreatedTrips = async (req, res, next) => {
             },
             orderBy: { createdAt: 'desc' }
         });
-        res.json({ trips, count: trips.length });
+        const safeTrips = trips.map(trip =>
+            sanitizeTripForViewer(trip, req.user.userId, req.user.role)
+        );
+        res.json({ trips: safeTrips, count: safeTrips.length });
     } catch (error) {
         next(error);
     }
@@ -202,6 +260,7 @@ export const getTripById = async (req, res, next) => {
                         name: true,
                         username: true,
                         email: true,
+                        showEmail: true,
                         role: true,
                         profileImage: true,
                         travelStyle: true
@@ -215,6 +274,7 @@ export const getTripById = async (req, res, next) => {
                                 name: true,
                                 username: true,
                                 email: true,
+                                showEmail: true,
                                 role: true,
                                 profileImage: true,
                                 travelStyle: true,
@@ -230,9 +290,21 @@ export const getTripById = async (req, res, next) => {
             return res.status(404).json({ error: 'Trip not found.' });
         }
 
+        const userId = req.user?.userId;
+        const canReadPrivateTrip = trip.isPublic || (
+            userId && (
+                trip.creatorId === userId ||
+                req.user?.role === 'admin' ||
+                trip.participants?.some(participant => participant.userId === userId)
+            )
+        );
+        if (!canReadPrivateTrip) {
+            // Do not reveal whether a private trip exists.
+            return res.status(404).json({ error: 'Trip not found.' });
+        }
+
         // Calculate matchScore if user is logged in
         let responseTrip = trip;
-        const userId = req.user?.userId;
         if (userId) {
             try {
                 const currentUser = await prisma.user.findUnique({
@@ -252,7 +324,9 @@ export const getTripById = async (req, res, next) => {
             }
         }
 
-        res.json({ trip: responseTrip });
+        res.json({
+            trip: sanitizeTripForViewer(responseTrip, userId, req.user?.role)
+        });
     } catch (error) {
         next(error);
     }
@@ -287,6 +361,8 @@ export const createTrip = async (req, res, next) => {
                 error: 'Title, destination, and start date are required.',
             });
         }
+        const dates = validatedTripDates(startDate, endDate, true);
+        if (dates.error) return res.status(400).json({ error: dates.error });
 
         // Fetch user to get name for participant record
         const creator = await prisma.user.findUnique({
@@ -311,8 +387,8 @@ export const createTrip = async (req, res, next) => {
                 title,
                 destination,
                 description: description || null,
-                startDate: new Date(startDate),
-                endDate: endDate ? new Date(endDate) : null,
+                startDate: dates.start,
+                endDate: dates.end,
                 budget: (budget !== undefined && budget !== null) ? Number(budget) : 1000,
                 budgetType: budgetType || 'per_person',
                 maxParticipants: maxParticipants ? Number(maxParticipants) : 10,
@@ -406,6 +482,8 @@ export const updateTrip = async (req, res, next) => {
         const nextItinerary = itinerary !== undefined ? itinerary : existingTrip.itinerary;
         const nextStartDate = startDate || existingTrip.startDate;
         const nextEndDate = endDate !== undefined ? endDate : existingTrip.endDate;
+        const dates = validatedTripDates(nextStartDate, nextEndDate);
+        if (dates.error) return res.status(400).json({ error: dates.error });
         const shouldRecalculateActivityStyle = itinerary !== undefined || startDate !== undefined || endDate !== undefined;
         const nextCategory = category !== undefined ? category : existingTrip.category;
         const nextInterestTags = interestTags !== undefined
@@ -426,8 +504,8 @@ export const updateTrip = async (req, res, next) => {
                 ...(title && { title }),
                 ...(destination && { destination }),
                 ...(description !== undefined && { description }),
-                ...(startDate && { startDate: new Date(startDate) }),
-                ...(endDate !== undefined && { endDate: endDate ? new Date(endDate) : null }),
+                ...(startDate && { startDate: dates.start }),
+                ...(endDate !== undefined && { endDate: dates.end }),
                 ...(budget !== undefined && { budget }),
                 ...(budgetType !== undefined && { budgetType }),
                 ...(maxParticipants && { maxParticipants }),
@@ -524,6 +602,9 @@ export const joinTrip = async (req, res, next) => {
         });
 
         if (!trip) {
+            return res.status(404).json({ error: 'Trip not found.' });
+        }
+        if (!trip.isPublic && trip.creatorId !== req.user.userId && req.user.role !== 'admin') {
             return res.status(404).json({ error: 'Trip not found.' });
         }
         // Check if already joined

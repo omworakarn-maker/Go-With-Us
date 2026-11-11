@@ -171,11 +171,18 @@ struct CreateTripView: View {
 
         // Parse province and specific location from destination
         let dest = trip.destination
-        if let range = dest.range(of: " (") {
-            _destination = State(initialValue: String(dest[..<range.lowerBound]))
-            var spec = String(dest[range.lowerBound...])
-            spec = spec.replacingOccurrences(of: " (", with: "").replacingOccurrences(of: ")", with: "")
-            _specificLocation = State(initialValue: spec)
+        let destinationParts = dest.components(separatedBy: " (")
+        if destinationParts.count > 1 {
+            _destination = State(initialValue: destinationParts[0])
+            let locations = destinationParts.dropFirst().map {
+                $0.hasSuffix(")") ? String($0.dropLast()) : $0
+            }
+            // Older builds could append the same suffix every time a trip was
+            // edited. Collapse exact duplicates as the form is loaded.
+            let uniqueLocations = locations.reduce(into: [String]()) { result, location in
+                if !location.isEmpty && !result.contains(location) { result.append(location) }
+            }
+            _specificLocation = State(initialValue: uniqueLocations.joined(separator: " / "))
         } else {
             _destination = State(initialValue: dest)
             _specificLocation = State(initialValue: "")
