@@ -8,6 +8,7 @@ struct ProfileView: View {
     @ObservedObject private var settings = SettingsManager.shared
     @State private var showEditProfile = false
     @State private var showAdminAlert = false
+    @State private var showAdminPromotion = false
     @State private var showImagePicker = false
     @State private var selectedItem: PhotosPickerItem?
     @State private var localProfileImage: UIImage?
@@ -38,6 +39,11 @@ struct ProfileView: View {
 
                             if user.role == .admin {
                                 AdminAlertButton(showAdminAlert: $showAdminAlert)
+                                Button {
+                                    showAdminPromotion = true
+                                } label: {
+                                    Label(tr("จัดการป๊อปอัปโปรโมชัน", "Manage promotion popup"), systemImage: "photo.badge.plus")
+                                }
                             }
 
                             UserTripsSectionView(user: user)
@@ -67,6 +73,9 @@ struct ProfileView: View {
             }
             .sheet(isPresented: $showAdminAlert) {
                 AdminAlertView()
+            }
+            .sheet(isPresented: $showAdminPromotion) {
+                AdminPromotionView()
             }
             .sheet(isPresented: $showQuestionnaire) {
                 QuestionnaireView(onComplete: {

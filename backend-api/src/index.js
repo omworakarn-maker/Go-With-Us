@@ -8,6 +8,7 @@ import userRoutes from './routes/userRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import matchRoutes from './routes/matchRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
+import promotionRoutes from './routes/promotionRoutes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { createServerDiagnostics } from './utils/serverDiagnostics.js';
 
@@ -67,6 +68,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/match', matchRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/promotions', promotionRoutes);
 
 // Error handler (must be last)
 app.use(errorHandler);

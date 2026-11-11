@@ -95,7 +95,15 @@ struct NativeTabIconFeedback: UIViewRepresentable {
                     guard !Task.isCancelled else { return }
                     self.accents.forEach { $0.removeFromSuperlayer() }
                     self.accents = []
+                    CATransaction.begin()
+                    CATransaction.setDisableActions(true)
+                    for image in self.animatedImages {
+                        image.layer.removeAnimation(forKey: self.translationKey)
+                        image.layer.removeAnimation(forKey: self.opacityKey)
+                        image.layer.removeAnimation(forKey: self.scaleKey)
+                    }
                     self.transientIcons.forEach { $0.removeFromSuperview() }
+                    CATransaction.commit()
                     self.transientIcons = []
                     self.animatedImages = []
                 } catch { /* A newer selection or disappearing bar cancels the pulse. */ }
@@ -198,67 +206,79 @@ struct NativeTabIconFeedback: UIViewRepresentable {
                 // Animate only the primary glyph so UIKit's internal duplicate
                 // image views cannot make the profile icon look stacked.
                 let image = source
-                if let parent = image.superview {
+                if image.superview != nil {
                     let incoming = UIImageView(image: image.image)
                     incoming.preferredSymbolConfiguration = image.preferredSymbolConfiguration
-                    incoming.tintColor = image.tintColor
+                    incoming.tintColor = bar.tintColor
                     incoming.contentMode = image.contentMode
                     incoming.backgroundColor = .clear
                     incoming.isOpaque = false
                     incoming.isUserInteractionEnabled = false
                     incoming.isAccessibilityElement = false
-                    incoming.bounds = image.bounds
-                    incoming.center = image.center
-                    incoming.transform = image.transform
+                    // The native icon container clips translated siblings.
+                    // Use bar coordinates so the second person is visible
+                    // beside the first throughout the handoff.
+                    incoming.frame = image.convert(image.bounds, to: bar)
+                    incoming.layer.zPosition = 101
                     incoming.layer.opacity = 0
-                    parent.insertSubview(incoming, aboveSubview: image)
+                    bar.addSubview(incoming)
                     transientIcons.append(incoming)
 
-                    let duration = 0.48
+                    let duration = 0.38
                     let travelTimes: [Double] = [0, 0.12, 0.34, 0.58, 0.82, 0.94, 1]
                     let outgoing = keyframes(
                         "transform.translation.x",
-                        values: [0, -2, -8, -14, -18, -18, 0],
+                        values: [0, -2, -8, -14, -18, -18, -18],
                         times: travelTimes,
                         duration: duration
                     )
                     outgoing.isAdditive = true
-                    let opacity = Double(image.layer.opacity)
+                    let opacity = 1.0
                     let depart = keyframes(
                         "opacity",
-                        values: [opacity, opacity, opacity, opacity * 0.72, opacity * 0.25, 0, opacity],
+                        values: [opacity, opacity, opacity, opacity * 0.72, opacity * 0.25, 0, 0],
                         times: travelTimes,
                         duration: duration
                     )
                     let shrink = keyframes(
                         "transform.scale",
-                        values: [1, 1, 0.98, 0.94, 0.9, 0.9, 1],
+                        values: [1, 1, 0.98, 0.94, 0.9, 0.9, 0.9],
                         times: travelTimes,
                         duration: duration
                     )
+                    for animation in [outgoing, depart, shrink] {
+                        animation.fillMode = .forwards
+                        animation.isRemovedOnCompletion = false
+                    }
                     image.layer.add(outgoing, forKey: translationKey)
                     image.layer.add(depart, forKey: opacityKey)
                     image.layer.add(shrink, forKey: scaleKey)
 
                     let arrival = keyframes(
                         "transform.translation.x",
-                        values: [20, 18, 13, 7, 1, 0, 0],
+                        values: [20, 18, 13, 6, 0, 0, 0],
                         times: travelTimes,
                         duration: duration
                     )
                     arrival.isAdditive = true
                     let appear = keyframes(
                         "opacity",
-                        values: [0, opacity * 0.15, opacity * 0.72, opacity, opacity, opacity, 0],
+                        values: [0, opacity * 0.8, opacity, opacity, opacity, opacity, opacity],
                         times: travelTimes,
                         duration: duration
                     )
                     let zoom = keyframes(
                         "transform.scale",
-                        values: [0.88, 0.9, 0.94, 0.98, 1.02, 1, 1],
+                        values: [0.88, 0.9, 0.94, 0.98, 1, 1, 1],
                         times: travelTimes,
                         duration: duration
                     )
+                    // Hold the replacement at its final pose until all native
+                    // animations finish, then reveal the original atomically.
+                    for animation in [arrival, appear, zoom] {
+                        animation.fillMode = .forwards
+                        animation.isRemovedOnCompletion = false
+                    }
                     incoming.layer.add(arrival, forKey: translationKey)
                     incoming.layer.add(appear, forKey: opacityKey)
                     incoming.layer.add(zoom, forKey: scaleKey)

@@ -254,15 +254,17 @@ class NotificationViewModel: ObservableObject {
     }
 
     func clearAllNotifications() async {
+        // Global announcements remain on the server for other users. Hide all
+        // currently displayed IDs locally, just like deleting a single row.
+        deletedIDs.formUnion(notifications.map(\.id))
+        deletedIDs.formUnion(LocalNotificationStore.shared.notifications.map(\.id))
+        UserDefaults.standard.set(Array(deletedIDs), forKey: "notification_deleted_ids")
+        LocalNotificationStore.shared.clearAll()
+        withAnimation {
+            notifications.removeAll()
+        }
         do {
             try await NotificationService.shared.clearAllNotifications()
-            LocalNotificationStore.shared.clearAll()
-            await MainActor.run {
-                withAnimation {
-                    notifications.removeAll()
-                }
-            }
-            await loadNotifications() // Reload to see what remains (private ones cleared)
         } catch {
             print("Error clearing notifications: \(error)")
         }

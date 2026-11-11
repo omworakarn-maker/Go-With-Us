@@ -1,5 +1,3 @@
-2026-11-11 19:49:07.299 xcodebuild[938:9930]  DVTFilePathFSEvents: Failed to start fs event stream.
-2026-11-11 19:49:07.664 xcodebuild[938:9929] [MT] DVTDeveloperPaths: Failed to get length of DARWIN_USER_CACHE_DIR from confstr(3), error = Error Domain=NSPOSIXErrorDomain Code=5 "Input/output error". Using NSCachesDirectory instead.
 import SwiftUI
 
 struct NotificationView: View {
@@ -255,15 +253,17 @@ class NotificationViewModel: ObservableObject {
     }
     
     func clearAllNotifications() async {
+        // Global announcements remain on the server for other users. Hide all
+        // currently displayed IDs locally, just like deleting a single row.
+        deletedIDs.formUnion(notifications.map(\.id))
+        deletedIDs.formUnion(LocalNotificationStore.shared.notifications.map(\.id))
+        UserDefaults.standard.set(Array(deletedIDs), forKey: "notification_deleted_ids")
+        LocalNotificationStore.shared.clearAll()
+        withAnimation {
+            notifications.removeAll()
+        }
         do {
             try await NotificationService.shared.clearAllNotifications()
-            LocalNotificationStore.shared.clearAll()
-            await MainActor.run {
-                withAnimation {
-                    notifications.removeAll()
-                }
-            }
-            await loadNotifications() // Reload to see what remains (private ones cleared)
         } catch {
             print("Error clearing notifications: \(error)")
         }

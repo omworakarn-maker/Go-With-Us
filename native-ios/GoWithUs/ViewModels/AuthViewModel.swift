@@ -11,6 +11,7 @@ class AuthViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var isAuthenticated = false
+    @Published var startupAuthResolved = false
     @Published var currentUser: User?
     @Published var needsOnboarding = false
     @Published var showOTPVerification = false
@@ -22,6 +23,7 @@ class AuthViewModel: ObservableObject {
     
     // MARK: - Check Auth Status
     func checkAuthStatus() {
+        startupAuthResolved = false
         guard !AppRuntime.isRunningForPreview else {
             isAuthenticated = false
             return
@@ -33,11 +35,14 @@ class AuthViewModel: ObservableObject {
             Task {
                 await loadCurrentUser()
             }
+        } else {
+            startupAuthResolved = true
         }
     }
     
     // MARK: - Load Current User
     func loadCurrentUser() async {
+        defer { startupAuthResolved = true }
         do {
             currentUser = try await AuthService.shared.getCurrentUser()
             
