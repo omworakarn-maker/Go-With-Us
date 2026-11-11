@@ -246,6 +246,10 @@ struct NativeTabIconFeedback: UIViewRepresentable {
                         times: travelTimes,
                         duration: duration
                     )
+                    for animation in [outgoing, depart, shrink] {
+                        animation.fillMode = .forwards
+                        animation.isRemovedOnCompletion = false
+                    }
                     image.layer.add(outgoing, forKey: translationKey)
                     image.layer.add(depart, forKey: opacityKey)
                     image.layer.add(shrink, forKey: scaleKey)
@@ -269,23 +273,15 @@ struct NativeTabIconFeedback: UIViewRepresentable {
                         times: travelTimes,
                         duration: duration
                     )
+                    // Hold the replacement at its final pose until all native
+                    // animations finish, then reveal the original atomically.
+                    for animation in [arrival, appear, zoom] {
+                        animation.fillMode = .forwards
+                        animation.isRemovedOnCompletion = false
+                    }
                     incoming.layer.add(arrival, forKey: translationKey)
                     incoming.layer.add(appear, forKey: opacityKey)
                     incoming.layer.add(zoom, forKey: scaleKey)
-                    // Hold the replacement at its final pose until all native
-                    // animations finish, then reveal the original atomically.
-                    for animationKey in [translationKey, opacityKey, scaleKey] {
-                        if let animation = image.layer.animation(forKey: animationKey) {
-                            animation.fillMode = .forwards
-                            animation.isRemovedOnCompletion = false
-                            image.layer.add(animation, forKey: animationKey)
-                        }
-                        if let animation = incoming.layer.animation(forKey: animationKey) {
-                            animation.fillMode = .forwards
-                            animation.isRemovedOnCompletion = false
-                            incoming.layer.add(animation, forKey: animationKey)
-                        }
-                    }
                 }
             case .create:
                 break
