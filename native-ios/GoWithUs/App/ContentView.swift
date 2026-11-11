@@ -9,6 +9,7 @@ struct ContentView: View {
     @State private var currentScreen: AppScreen = SettingsManager.shared.homeLayoutPreference
     @State private var showSideMenu = false
     @State private var showingCreateTrip = false
+    @State private var createdTripToOpen: Trip?
     @State private var badgeCounts: [Tab: Int] = [:]
     @State private var activeTransition: AnyTransition = .identity
     @State private var showTabBarWithAnimation = false
@@ -108,10 +109,27 @@ struct ContentView: View {
                 SideMenuView(isShowing: $showSideMenu, currentScreen: $currentScreen, transition: $activeTransition)
                     .frame(width: min(UIScreen.main.bounds.width * 0.8, 320))
                     .offset(x: showSideMenu ? 0 : -UIScreen.main.bounds.width)
+                    .opacity(showSideMenu ? 1 : 0)
+                    .allowsHitTesting(showSideMenu)
+                    .accessibilityHidden(!showSideMenu)
                     .animation(.easeInOut(duration: 0.3), value: showSideMenu)
             }
             .sheet(isPresented: $showingCreateTrip) {
                 CreateTripView()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .init("TripCreated"))) { note in
+                guard showingCreateTrip, let trip = note.object as? Trip else { return }
+                showingCreateTrip = false
+                Task {
+                    try? await Task.sleep(for: .milliseconds(280))
+                    guard !Task.isCancelled else { return }
+                    createdTripToOpen = trip
+                }
+            }
+            .sheet(item: $createdTripToOpen) { trip in
+                NavigationStack {
+                    TripDetailView(tripId: trip.id)
+                }
             }
 
             .onPreferenceChange(TabBarHiddenKey.self) { hidden in
@@ -141,8 +159,9 @@ struct ContentView: View {
                         TripListViewModel.invalidateCache()
                         ChatViewModel.invalidateCache()
                         MatchTripViewModel.invalidateCache()
-                        // Swap token to force view recreation
-                        forceRefreshToken = UUID()
+                        // Refresh data in place so the visible home hierarchy does
+                        // not flash after a long background session.
+                        NotificationCenter.default.post(name: .init("AppDataRefreshRequested"), object: nil)
                     }
                     backgroundedAt = nil
                 default:

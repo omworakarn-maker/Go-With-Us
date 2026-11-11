@@ -4,16 +4,17 @@ struct ChatView: View {
     @StateObject private var viewModel = ChatViewModel()
     @State private var selectedConversation: Conversation? = nil
     @State private var selectedPartnerId: String? = nil
-    
+    @State private var selectedTrip: Trip? = nil
+
     var body: some View {
         NavigationStack {
             ZStack {
                 Color.adaptiveBackground.ignoresSafeArea()
-                
+
                 if viewModel.isLoading && viewModel.conversations.isEmpty {
                     ProgressView()
                         .tint(.appPrimary)
-                } else if viewModel.conversations.isEmpty && viewModel.mutualMatches.isEmpty {
+                } else if viewModel.conversations.isEmpty && viewModel.mutualMatches.isEmpty && viewModel.joinedTripChats.isEmpty {
                     VStack(spacing: 16) {
                         Image(systemName: "message")
                             .font(.system(size: 48))
@@ -24,6 +25,22 @@ struct ChatView: View {
                     }
                 } else {
                     List {
+                        if !viewModel.joinedTripChats.isEmpty {
+                            Section {
+                                ForEach(viewModel.joinedTripChats) { trip in
+                                    Button {
+                                        selectedTrip = trip
+                                    } label: {
+                                        TripChatRow(trip: trip)
+                                    }
+                                }
+                            } header: {
+                                Text(SettingsManager.shared.text(thai: "แชททริป", english: "Trip chats"))
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundColor(.adaptiveSecondaryText)
+                            }
+                        }
+
                         // NEW MATCHES SECTION
                         if !viewModel.mutualMatches.isEmpty {
                             VStack(alignment: .leading, spacing: 12) {
@@ -31,7 +48,7 @@ struct ChatView: View {
                                     .font(.system(size: 14, weight: .bold))
                                     .foregroundColor(.adaptiveSecondaryText)
                                     .padding(.horizontal, 16)
-                                
+
                                 ScrollView(.horizontal, showsIndicators: false) {
                                     HStack(spacing: 20) {
                                         ForEach(viewModel.mutualMatches) { match in
@@ -93,18 +110,22 @@ struct ChatView: View {
                     ChatDetailView(chatTitle: conv.user.name, tripId: nil, partnerId: conv.user.id, initialPartnerUser: partnerUser)
                 } else if let pid = selectedPartnerId {
                     ChatDetailView(chatTitle: "", tripId: nil, partnerId: pid)
+                } else if let trip = selectedTrip {
+                    ChatDetailView(chatTitle: trip.title, tripId: trip.id, partnerId: nil)
                 } else {
                     EmptyView()
                 }
-            }, isActive: Binding(get: { selectedConversation != nil || selectedPartnerId != nil }, set: { active in
+            }, isActive: Binding(get: { selectedConversation != nil || selectedPartnerId != nil || selectedTrip != nil }, set: { active in
                 if !active {
                     selectedConversation = nil
                     selectedPartnerId = nil
+                    selectedTrip = nil
                 }
             })) {
                 EmptyView()
             }
-            .padding(.bottom, 80) // Space for TabBar
+            .padding(.bottom, 80)
+
             .navigationTitle(SettingsManager.shared.text(thai: "ข้อความ", english: "Messages"))
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
@@ -116,6 +137,19 @@ struct ChatView: View {
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("NewMessageReceived"))) { _ in
                 Task { await viewModel.loadConversations() }
             }
+            .onReceive(NotificationCenter.default.publisher(for: .init("TripJoined"))) { note in
+                if let trip = note.object as? Trip {
+                    viewModel.includeJoinedTrip(trip)
+                } else {
+                    Task { await viewModel.loadInitialData(force: true) }
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .init("TripLeft"))) { note in
+                if let id = note.object as? String { viewModel.removeTripChat(id: id) }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .init("TripDeleted"))) { note in
+                if let id = note.object as? String { viewModel.removeTripChat(id: id) }
+            }
             .onAppear {
                 print("👀 ChatView appeared - subscribing to message updates")
             }
@@ -125,9 +159,7 @@ struct ChatView: View {
                         // open partner chat
                         selectedPartnerId = partnerId
                     } else if let tripId = info["tripId"] as? String {
-                        // If notification refers to a trip chat, attempt to map to a conversation partner later
-                        // For now open chat tab and let user select
-                        // Could be improved by resolving trip->conversation on server
+                        selectedTrip = viewModel.joinedTripChats.first { $0.id == tripId }
                     }
                 }
             }
@@ -139,28 +171,66 @@ struct ChatView: View {
     }
 }
 
+struct TripChatRow: View {
+    let trip: Trip
+
+    var body: some View {
+        HStack(spacing: 16) {
+            Group {
+                if let imageUrl = trip.imageUrl, !imageUrl.isEmpty {
+                    CustomAsyncImage(url: imageUrl, contentMode: .fill)
+                } else {
+                    Image(systemName: "person.3.fill")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundColor(.appPrimary)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(Color.appPrimary.opacity(0.12))
+                }
+            }
+            .frame(width: 48, height: 48)
+            .clipShape(Circle())
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(trip.title)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.adaptiveText)
+                    .lineLimit(1)
+                Text(trip.destination)
+                    .font(.system(size: 14))
+                    .foregroundColor(.gray)
+                    .lineLimit(1)
+            }
+            Spacer()
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.semibold))
+                .foregroundColor(.gray.opacity(0.6))
+        }
+        .padding(.vertical, 8)
+    }
+}
+
 struct ConversationRow: View {
     let conversation: Conversation
-    
+
     var body: some View {
         HStack(spacing: 16) {
             // Avatar
             let user = User(id: conversation.user.id, name: conversation.user.name, username: conversation.user.username, email: conversation.user.email, profileImage: conversation.user.profileImage ?? conversation.user.avatarUrl)
             UserAvatarView(user: user, size: 48)
-            
+
             VStack(alignment: .leading, spacing: 4) {
                 Text(conversation.user.name)
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(.adaptiveText)
-                
+
                 Text(conversation.lastMessage.content.isEmpty && conversation.lastMessage.imageUrl != nil ? tr("รูปภาพ", "Photo") : conversation.lastMessage.content)
                     .font(.system(size: 14))
                     .foregroundColor(.gray)
                     .lineLimit(1)
             }
-            
+
             Spacer()
-            
+
             VStack(alignment: .trailing, spacing: 4) {
                 HStack(spacing: 8) {
                     Text(timeAgoDisplay(date: conversation.lastMessage.createdAt))
@@ -194,7 +264,7 @@ struct ConversationRow: View {
         }
         .padding(.vertical, 8)
     }
-    
+
     // Simple helper for time display
     func timeAgoDisplay(date: Date) -> String {
         let formatter = RelativeDateTimeFormatter()

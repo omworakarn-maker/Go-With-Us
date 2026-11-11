@@ -3,9 +3,10 @@ import SwiftUI
 struct NotificationView: View {
     @StateObject private var viewModel = NotificationViewModel()
     @Environment(\.dismiss) private var dismiss
+    @State private var navigationPath: [String] = []
     
     var body: some View {
-        NavigationView {
+        NavigationStack(path: $navigationPath) {
             ZStack {
                 Color.white.ignoresSafeArea()
                 
@@ -23,22 +24,21 @@ struct NotificationView: View {
                 } else {
                     List {
                         ForEach(viewModel.notifications) { notification in
-                            NotificationRow(notification: notification) {
-                                Task {
-                                    await viewModel.markAsRead(id: notification.id)
+                            NotificationRow(
+                                notification: notification,
+                                onTap: {
+                                    if notification.type == "trip", let tripId = notification.targetId {
+                                        navigationPath.append(tripId)
+                                    }
+                                    Task { await viewModel.markAsRead(id: notification.id) }
+                                },
+                                onDelete: {
+                                    Task { await viewModel.deleteNotification(id: notification.id) }
                                 }
-                            }
+                            )
                             .listRowInsets(EdgeInsets())
                             .listRowSeparator(.hidden)
-                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                Button(role: .destructive) {
-                                    Task {
-                                        await viewModel.deleteNotification(id: notification.id)
-                                    }
-                                } label: {
-                                    Label(tr("ลบ", "Delete"), systemImage: "trash")
-                                }
-                            }
+                            .listRowBackground(Color.clear)
                         }
                     }
                     .listStyle(PlainListStyle())
@@ -49,6 +49,9 @@ struct NotificationView: View {
             }
             .navigationTitle(tr("การแจ้งเตือน", "Notifications"))
             .navigationBarTitleDisplayMode(.inline)
+            .navigationDestination(for: String.self) { tripId in
+                TripDetailView(tripId: tripId)
+            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     if !viewModel.notifications.isEmpty {
@@ -75,9 +78,22 @@ struct NotificationView: View {
 struct NotificationRow: View {
     let notification: AppNotification
     let onTap: () -> Void
+    let onDelete: () -> Void
+    @State private var swipeOffset: CGFloat = 0
     
     var body: some View {
-        Button(action: onTap) {
+        ZStack(alignment: .trailing) {
+            Button(action: onDelete) {
+                Image(systemName: "trash.fill")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(.red)
+                    .frame(width: 44, height: 44)
+                    .background(Circle().fill(Color.red.opacity(0.12)))
+            }
+            .buttonStyle(.plain)
+            .padding(.trailing, 14)
+            .accessibilityLabel(Text(tr("ลบการแจ้งเตือน", "Delete notification")))
+
             HStack(alignment: .top, spacing: 12) {
                 // Icon
                 Circle()
@@ -115,9 +131,35 @@ struct NotificationRow: View {
                 }
             }
             .padding()
-            .background(notification.isRead ? Color.clear : Color.appSecondary.opacity(0.05))
+            .background {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(notification.isRead ? Color.white : Color.appSecondary.opacity(0.05))
+            }
+            .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .offset(x: swipeOffset)
+            .onTapGesture {
+                if swipeOffset < 0 {
+                    withAnimation(.easeInOut(duration: 0.22)) { swipeOffset = 0 }
+                } else {
+                    onTap()
+                }
+            }
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 12)
+                    .onChanged { value in
+                        guard abs(value.translation.width) > abs(value.translation.height) else { return }
+                        swipeOffset = min(0, max(-74, value.translation.width))
+                    }
+                    .onEnded { value in
+                        guard abs(value.translation.width) > abs(value.translation.height) else { return }
+                        let shouldReveal = value.predictedEndTranslation.width < -36
+                        withAnimation(.easeInOut(duration: 0.24)) {
+                            swipeOffset = shouldReveal ? -68 : 0
+                        }
+                    }
+            )
         }
-        .buttonStyle(PlainButtonStyle())
+        .clipped()
     }
     
     private var iconName: String {
@@ -163,29 +205,24 @@ class NotificationViewModel: ObservableObject {
     
     func loadNotifications() async {
         isLoading = true
+        var serverNotifications: [AppNotification] = []
         do {
-            var serverNotifications: [AppNotification] = []
-            do {
-                serverNotifications = try await NotificationService.shared.getNotifications()
-            } catch {
-                print("Warning: failed to load server notifications: \(error)")
-            }
-
-            // Merge local persisted notifications (newer or offline) with server list
-            let local = LocalNotificationStore.shared.notifications
-
-            var map: [String: AppNotification] = [:]
-            for n in serverNotifications { map[n.id] = n }
-            for n in local { if map[n.id] == nil { map[n.id] = n } }
-
-            notifications = Array(map.values)
-            // Sort by createdAt desc
-            notifications.sort { lhs, rhs in
-                let f = ISO8601DateFormatter(); f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-                return (f.date(from: lhs.createdAt) ?? Date()) > (f.date(from: rhs.createdAt) ?? Date())
-            }
+            serverNotifications = try await NotificationService.shared.getNotifications()
         } catch {
-            print("Error loading notifications: \(error)")
+            print("Warning: failed to load server notifications: \(error)")
+        }
+
+        // Merge local persisted notifications (newer or offline) with server list
+        let local = LocalNotificationStore.shared.notifications
+
+        var map: [String: AppNotification] = [:]
+        for n in serverNotifications { map[n.id] = n }
+        for n in local { if map[n.id] == nil { map[n.id] = n } }
+
+        notifications = Array(map.values)
+        notifications.sort { lhs, rhs in
+            let f = ISO8601DateFormatter(); f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            return (f.date(from: lhs.createdAt) ?? Date()) > (f.date(from: rhs.createdAt) ?? Date())
         }
         isLoading = false
     }

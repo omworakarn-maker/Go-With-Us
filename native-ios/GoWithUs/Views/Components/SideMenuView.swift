@@ -270,6 +270,7 @@ struct SideMenuView: View {
                                 set: { SettingsManager.shared.isHapticEnabled = $0 }
                             ))
                             .labelsHidden()
+                            .accessibilityLabel(Text(SettingsManager.shared.localizedString(for: "vibration")))
                             .tint(.appPrimary)
                         }
                     }

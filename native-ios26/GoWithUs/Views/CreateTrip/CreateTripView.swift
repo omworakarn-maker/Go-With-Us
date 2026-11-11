@@ -77,7 +77,15 @@ struct CreateTripView: View {
     // Edit Injection
     var editingTrip: Trip?
 
-    init(draft: TripDraft? = nil) {
+    private var onClose: (() -> Void)? = nil
+
+    private func closeCreation() {
+        if let onClose { onClose() }
+        else { dismiss() }
+    }
+
+    init(draft: TripDraft? = nil, onClose: (() -> Void)? = nil) {
+        self.onClose = onClose
         self.draft = draft
         self.editingTrip = nil
 
@@ -163,11 +171,18 @@ struct CreateTripView: View {
 
         // Parse province and specific location from destination
         let dest = trip.destination
-        if let range = dest.range(of: " (") {
-            _destination = State(initialValue: String(dest[..<range.lowerBound]))
-            var spec = String(dest[range.lowerBound...])
-            spec = spec.replacingOccurrences(of: " (", with: "").replacingOccurrences(of: ")", with: "")
-            _specificLocation = State(initialValue: spec)
+        let destinationParts = dest.components(separatedBy: " (")
+        if destinationParts.count > 1 {
+            _destination = State(initialValue: destinationParts[0])
+            let locations = destinationParts.dropFirst().map {
+                $0.hasSuffix(")") ? String($0.dropLast()) : $0
+            }
+            // Older builds could append the same suffix every time a trip was
+            // edited. Collapse exact duplicates as the form is loaded.
+            let uniqueLocations = locations.reduce(into: [String]()) { result, location in
+                if !location.isEmpty && !result.contains(location) { result.append(location) }
+            }
+            _specificLocation = State(initialValue: uniqueLocations.joined(separator: " / "))
         } else {
             _destination = State(initialValue: dest)
             _specificLocation = State(initialValue: "")
@@ -647,7 +662,7 @@ struct CreateTripView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button(tr("ยกเลิก", "Cancel")) {
-                        dismiss()
+                        closeCreation()
                     }
                     .foregroundColor(.adaptiveText)
                 }
@@ -742,7 +757,7 @@ struct CreateTripView: View {
     #endif
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack(spacing: 0) {
                 wizardHeader
                 ScrollViewReader { proxy in
@@ -754,20 +769,26 @@ struct CreateTripView: View {
                         currentStepView
                             .padding(24)
                     }
+                    .scrollDismissesKeyboard(.interactively)
+                    .safeAreaInset(edge: .bottom, spacing: 0) {
+                        VStack(spacing: 0) {
+                            Divider()
+                            wizardNavigation
+                        }
+                        .background(Color.adaptiveBackground)
+                    }
                     .onChange(of: creationStep) { _ in
                         withAnimation(.easeOut(duration: 0.25)) {
                             proxy.scrollTo("createTripStepTop", anchor: .top)
                         }
                     }
                 }
-                Divider()
-                wizardNavigation
             }
             .background(Color.adaptiveBackground.ignoresSafeArea())
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button(tr("ยกเลิก", "Cancel")) { dismiss() }
+                    Button(tr("ยกเลิก", "Cancel")) { closeCreation() }
                         .foregroundColor(.adaptiveText)
                 }
                 if editingTrip != nil {
@@ -1240,9 +1261,10 @@ struct CreateTripView: View {
 
         Task {
             do {
+                let savedTrip: Trip
                 if let trip = editingTrip {
                     // Update
-                    _ = try await TripService.shared.updateTrip(
+                    savedTrip = try await TripService.shared.updateTrip(
                         id: trip.id,
                         title: title,
                         destination: fullDestination,
@@ -1263,7 +1285,7 @@ struct CreateTripView: View {
                     )
                 } else {
                     // Create
-                    _ = try await TripService.shared.createTrip(
+                    savedTrip = try await TripService.shared.createTrip(
                         title: title,
                         destination: fullDestination,
                         description: fullDescription,
@@ -1283,9 +1305,9 @@ struct CreateTripView: View {
                     )
                 }
 
-                NotificationCenter.default.post(name: NSNotification.Name("TripCreated"), object: nil)
+                NotificationCenter.default.post(name: NSNotification.Name("TripCreated"), object: savedTrip)
                 isLoading = false
-                dismiss()
+                closeCreation()
             } catch {
                 isLoading = false
                 errorMessage = error.localizedDescription
@@ -1301,8 +1323,11 @@ struct CreateTripView: View {
             do {
                 try await TripService.shared.deleteTrip(id: tripId)
                 await MainActor.run {
+                    NotificationCenter.default.post(name: .init("TripDeleted"), object: tripId)
+                    TripListViewModel.invalidateCache()
+                    MatchTripViewModel.removeCached(id: tripId)
                     isLoading = false
-                    dismiss()
+                    closeCreation()
                 }
             } catch {
                 await MainActor.run {

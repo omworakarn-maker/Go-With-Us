@@ -63,13 +63,15 @@ class HapticManager {
 
 // MARK: - Button Styles
 struct ScaledButtonStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
-            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: configuration.isPressed)
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.975 : 1.0)
+            .animation(reduceMotion ? nil : .spring(response: 0.32, dampingFraction: 0.72), value: configuration.isPressed)
             .onChange(of: configuration.isPressed) { _, isPressed in
                 if isPressed {
-                    HapticManager.shared.impact(style: .light)
+                    SettingsManager.shared.triggerHaptic(.light)
                 }
             }
     }
@@ -80,13 +82,14 @@ struct StaggeredAppearModifier: ViewModifier {
     let index: Int
     let delay: Double
     @State private var isAppeared = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func body(content: Self.Content) -> some View {
         content
-            .offset(y: isAppeared ? 0 : 20)
-            .opacity(isAppeared ? 1 : 0)
+            .offset(y: isAppeared || reduceMotion ? 0 : 20)
+            .opacity(isAppeared || reduceMotion ? 1 : 0)
             .onAppear {
-                withAnimation(.spring(response: 0.5, dampingFraction: 0.7).delay(Double(index) * delay)) {
+                withAnimation(reduceMotion ? nil : .spring(response: 0.5, dampingFraction: 0.7).delay(Double(index) * delay)) {
                     isAppeared = true
                 }
             }
@@ -106,6 +109,7 @@ private struct AppGlassModifier<S: Shape>: ViewModifier {
     let tint: Color?
     let interactive: Bool
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func body(content: Self.Content) -> some View {
         if reduceTransparency {
@@ -114,6 +118,7 @@ private struct AppGlassModifier<S: Shape>: ViewModifier {
                 .overlay(shape.stroke(Color.adaptiveBorder.opacity(0.4), lineWidth: 0.5))
         } else {
             content.glassEffect(.regular.tint(tint).interactive(interactive), in: shape)
+                .animation(reduceMotion ? nil : .smooth(duration: 0.22), value: tint)
         }
     }
 }

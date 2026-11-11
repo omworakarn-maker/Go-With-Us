@@ -126,6 +126,12 @@ struct MyTripsView: View {
                 await MainActor.run { selectedTab = 0 }
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .init("TripJoined"))) { note in
+            if let trip = note.object as? Trip { viewModel.insertJoinedTrip(trip) }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .init("TripDeleted"))) { note in
+            if let id = note.object as? String { viewModel.removeTrip(id: id) }
+        }
     }
 
     private var selectedTrips: [Trip] {
@@ -204,6 +210,19 @@ class MyTripsViewModel: ObservableObject {
     func insertCreatedTrip(_ trip: Trip) {
         guard !createdTrips.contains(where: { $0.id == trip.id }) else { return }
         createdTrips.insert(trip, at: 0)
+    }
+
+    @MainActor
+    func insertJoinedTrip(_ trip: Trip) {
+        joinedTrips.removeAll { $0.id == trip.id }
+        joinedTrips.insert(trip, at: 0)
+    }
+
+    @MainActor
+    func removeTrip(id: String) {
+        createdTrips.removeAll { $0.id == id }
+        joinedTrips.removeAll { $0.id == id }
+        interestedTrips.removeAll { $0.id == id }
     }
 }
 

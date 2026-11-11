@@ -20,14 +20,7 @@ struct HomeView: View {
                         ZStack {
                             // Center Title & Logo
                             HStack(spacing: 8) {
-                                Circle()
-                                    .fill(Color.appPrimary) // Ocean Navy logo
-                                    .frame(width: 28, height: 28)
-                                    .overlay(
-                                        Circle()
-                                            .fill(Color.adaptiveBackground)
-                                            .frame(width: 6, height: 6)
-                                    )
+                                AppBrandLogo(size: 36, animates: true)
                                 Text("GoWithUs")
                                     .font(.system(size: 24, weight: .heavy, design: .rounded))
                                     .foregroundColor(.adaptiveText)
@@ -93,37 +86,14 @@ struct HomeView: View {
                         .padding(.top, 8)
 
                         // New Filter Bar
-                        FilterBar(
+                        HomeSearchFilterBar(
+                            searchText: $viewModel.searchText,
+                            focus: $isSearchFocused,
                             selectedProvince: $viewModel.selectedProvince,
                             selectedDate: $viewModel.selectedDate,
                             selectedEndDate: $viewModel.selectedEndDate,
                             selectedCategory: $viewModel.selectedCategory
                         )
-
-                        // Search Bar
-                        HStack(spacing: 12) {
-                            Image(systemName: "magnifyingglass")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundColor(isSearchFocused ? .appAccent : .gray.opacity(0.8))
-                                .padding(8)
-                                .background(isSearchFocused ? Color.appAccent.opacity(0.15) : Color.gray.opacity(0.1))
-                                .clipShape(Circle())
-
-                            TextField(SettingsManager.shared.localizedString(for: "search_placeholder"), text: $viewModel.searchText)
-                                .foregroundColor(.adaptiveText)
-                                .accentColor(.appAccent)
-                                .focused($isSearchFocused)
-
-                            if !viewModel.searchText.isEmpty {
-                                Button(action: { viewModel.searchText = "" }) {
-                                    Image(systemName: "xmark.circle.fill")
-                                        .foregroundColor(.gray.opacity(0.6))
-                                }
-                            }
-                        }
-                        .padding()
-                        .appGlass(in: RoundedRectangle(cornerRadius: 24), tint: isSearchFocused ? Color.appAccent.opacity(0.15) : nil, interactive: true)
-                        .padding(.horizontal)
 
                         // New Segmented Control (Tabs)
                         SegmentedControl(
@@ -132,6 +102,7 @@ struct HomeView: View {
                                 SettingsManager.shared.localizedString(for: "tab_new"),
                                 SettingsManager.shared.localizedString(for: "tab_popular")
                             ],
+                            values: ["แนะนำ", "มาใหม่", "ยอดนิยม"],
                             selected: $viewModel.activeTab
                         )
                         .padding(.horizontal)
@@ -232,10 +203,15 @@ struct HomeView: View {
                     await viewModel.loadTrips()
                 }
             }
-            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("TripCreated"))) { _ in
-                Task {
-                    await viewModel.loadTrips()
-                }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("TripCreated"))) { note in
+                if let trip = note.object as? Trip { viewModel.includeCreatedTrip(trip) }
+                else { Task { await viewModel.refresh() } }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("TripDeleted"))) { note in
+                if let id = note.object as? String { viewModel.removeTrip(id: id) }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("AppDataRefreshRequested"))) { _ in
+                Task { await viewModel.refresh() }
             }
         }
     }
@@ -264,4 +240,65 @@ extension HomeView {
 
 #Preview {
     HomeView(showSideMenu: .constant(false), currentScreen: .constant(.home))
+}
+
+// One glass surface changes size; the search field keeps the existing query binding.
+struct ExpandingTripSearch: View {
+    @Binding var text: String
+    var focus: FocusState<Bool>.Binding
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Binding var expanded: Bool
+
+    var body: some View {
+        HStack(spacing: expanded ? 10 : 0) {
+            Button {
+                SettingsManager.shared.triggerSelection()
+                if expanded { focus.wrappedValue = true }
+                else { expanded = true }
+            } label: {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 19, weight: .medium))
+                    .foregroundStyle(Color.adaptiveText)
+                    .frame(width: 48, height: 48)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(SettingsManager.shared.text(thai: "ค้นหาทริป", english: "Search trips"))
+
+            if expanded {
+                TextField(SettingsManager.shared.localizedString(for: "search_placeholder"), text: $text)
+                    .foregroundStyle(Color.adaptiveText)
+                    .tint(.appAccent)
+                    .focused(focus)
+                    .submitLabel(.search)
+                    .onSubmit { focus.wrappedValue = false }
+                    .transition(.opacity)
+                    .task {
+                        do { try await Task.sleep(nanoseconds: 180_000_000) }
+                        catch { return }
+                        guard !Task.isCancelled else { return }
+                        focus.wrappedValue = true
+                    }
+
+                Button {
+                    focus.wrappedValue = false
+                    text = ""
+                    expanded = false
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Color.secondary)
+                        .frame(width: 44, height: 48)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(SettingsManager.shared.text(thai: "ปิดการค้นหา", english: "Close search"))
+                .transition(.opacity)
+            }
+        }
+        .frame(width: expanded ? nil : 48, height: 48)
+        .frame(maxWidth: expanded ? .infinity : nil)
+        .clipShape(Capsule())
+        .appGlass(in: Capsule(), interactive: true)
+        .animation(reduceMotion ? .easeOut(duration: 0.15) : .spring(response: 0.36, dampingFraction: 0.88), value: expanded)
+    }
 }

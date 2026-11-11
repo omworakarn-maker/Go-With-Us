@@ -24,17 +24,14 @@ struct CustomAsyncImage: View {
             }
         }
         .animation(.easeIn(duration: 0.2), value: loader.image != nil)
-        .onAppear {
+        .task(id: url) {
             if loadDelay > 0 {
-                DispatchQueue.main.asyncAfter(deadline: .now() + loadDelay) {
-                    loader.load(from: url)
-                }
-            } else {
-                loader.load(from: url)
+                do { try await Task.sleep(for: .seconds(loadDelay)) }
+                catch { return }
             }
+            guard !Task.isCancelled else { return }
+            loader.load(from: url)
         }
-        .onChange(of: url) { _, newUrl in
-            loader.load(from: newUrl)
-        }
+        .onDisappear { loader.cancel() }
     }
 }

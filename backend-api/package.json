@@ -12,7 +12,7 @@
     "send-noti": "node send-notification.js",
     "del-noti": "node delete-notification.js",
     "rm": "node reset_matches.js",
-    "db:deploy": "prisma generate && node scripts/recover-registration-migration.cjs && prisma migrate deploy",
+    "db:deploy": "prisma generate && node scripts/recover-registration-migration.cjs && prisma migrate deploy && node scripts/repair-interest-encoding.cjs",
     "test:sessions": "node tests/deviceSessions.test.cjs"
   },
   "dependencies": {

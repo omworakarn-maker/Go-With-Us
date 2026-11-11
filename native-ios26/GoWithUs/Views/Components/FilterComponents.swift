@@ -6,25 +6,53 @@ struct FilterButton: View {
     let isSelected: Bool
     let icon: String
     let action: () -> Void
+    var embedded = false
 
     var body: some View {
+        if embedded {
+            Button {
+                SettingsManager.shared.triggerSelection()
+                action()
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: icon).font(.system(size: 14, weight: .medium))
+                    Text(title).font(.system(size: 13, weight: .semibold))
+                }
+                .foregroundStyle(isSelected ? Color.appSecondary : Color.adaptiveText)
+                .padding(.horizontal, 12)
+                .frame(height: 48)
+                .background(isSelected ? Color.appAccent.opacity(0.12) : Color.clear, in: Capsule())
+                .contentShape(Capsule())
+                .fixedSize(horizontal: true, vertical: false)
+                .appGlass(in: Capsule(), interactive: true)
+            }
+            .buttonStyle(.plain)
+            .accessibilityAddTraits(isSelected ? .isSelected : [])
+        } else {
+            styledButton
+        }
+    }
+
+    private var styledButton: some View {
         Button(action: {
             SettingsManager.shared.triggerSelection()
             action()
         }) {
-            HStack(spacing: 4) {
-                Text(icon)
-                    .font(.system(size: 14))
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: 14, weight: .medium))
                 Text(title)
                     .font(.system(size: 13, weight: .bold))
             }
-            .foregroundColor(isSelected ? .appPrimary : .adaptiveText)
-            .padding(.horizontal, 16)
-            .frame(minHeight: 44)
+            .foregroundStyle(isSelected ? Color.appSecondary : Color.adaptiveText)
+            .frame(minHeight: 32)
             .fixedSize(horizontal: true, vertical: false)
-            .appGlass(in: Capsule(), tint: isSelected ? Color.appAccent.opacity(0.35) : nil, interactive: true)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.glass)
+        .buttonBorderShape(.capsule)
+        .controlSize(.regular)
+        .tint(isSelected ? Color.appAccent.opacity(0.2) : nil)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 

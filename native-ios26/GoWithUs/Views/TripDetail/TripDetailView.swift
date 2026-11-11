@@ -124,7 +124,7 @@ struct TripDetailView: View {
                 }
             }
         }
-        .toolbar(.hidden, for: .tabBar)
+        .hideTabBar(true)
         .onTapGesture { hideKeyboard() }
         .task {
             if viewModel.trip == nil {

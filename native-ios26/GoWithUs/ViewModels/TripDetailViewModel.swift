@@ -84,6 +84,11 @@ class TripDetailViewModel: ObservableObject {
             let user = try await AuthService.shared.getCurrentUser()
 
             trip = try await TripService.shared.joinTrip(id: tripId, name: user.name, interests: interests, status: status)
+            if let trip, status == "going" {
+                NotificationCenter.default.post(name: .init("TripJoined"), object: trip)
+            } else if status != "going" {
+                NotificationCenter.default.post(name: .init("TripLeft"), object: tripId)
+            }
             showJoinSheet = false
             isJoining = false
             return true
@@ -101,6 +106,7 @@ class TripDetailViewModel: ObservableObject {
 
         do {
             try await TripService.shared.leaveTrip(id: tripId)
+            NotificationCenter.default.post(name: .init("TripLeft"), object: tripId)
             await loadTrip() // Reload to get updated participant list
             showLeaveSheet = false
             isLeaving = false
@@ -119,6 +125,9 @@ class TripDetailViewModel: ObservableObject {
 
         do {
             try await TripService.shared.deleteTrip(id: tripId)
+            NotificationCenter.default.post(name: .init("TripDeleted"), object: tripId)
+            TripListViewModel.invalidateCache()
+            MatchTripViewModel.removeCached(id: tripId)
             return true
         } catch {
             errorMessage = error.localizedDescription

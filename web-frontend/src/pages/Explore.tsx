@@ -1,3 +1,4 @@
+import { BrandLogo } from '../components/BrandLogo';
 import React, { useState, useEffect, useRef } from 'react';
 import { Trip } from '../types';
 import { tripsAPI } from '../services/api';
@@ -145,9 +146,7 @@ const Explore: React.FC = () => {
       <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full pt-8 pb-6 px-4">
         {/* Header */}
         <div className="text-center mb-8 animate-in slide-in-from-top-4">
-          <div className="w-16 h-16 bg-black rounded-2xl mx-auto mb-4 flex items-center justify-center shadow-lg">
-            <div className="w-3 h-3 bg-white rounded-full"></div>
-          </div>
+          <BrandLogo className="w-24 h-20 mx-auto mb-4" />
           <h1 className="text-3xl font-black tracking-tight mb-2">Ai assistant</h1>
           <p className="text-gray-500 text-sm">พร้อมช่วยแล้วครับ...</p>
         </div>

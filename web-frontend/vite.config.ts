@@ -25,7 +25,7 @@ export default defineConfig(({ mode }) => {
       react(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['logo.svg', 'apple-touch-icon.png', 'masked-icon.svg'],
+        includeAssets: ['logo.svg', 'brand/logo.png', 'brand/apple-touch-icon.png', 'brand/icon-192.png', 'brand/icon-512.png', 'brand/icon-maskable-512.png'],
         manifest: {
           name: 'Go-With-Us',
           short_name: 'GoWithUs',
@@ -34,12 +34,9 @@ export default defineConfig(({ mode }) => {
           background_color: '#ffffff',
           display: 'standalone',
           icons: [
-            {
-              src: '/logo.svg', // ใช้ logo ธรรมดาไปก่อน
-              sizes: '192x192 512x512',
-              type: 'image/svg+xml',
-              purpose: 'any maskable'
-            }
+            { src: '/brand/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+            { src: '/brand/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+            { src: '/brand/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
           ]
         }
       })

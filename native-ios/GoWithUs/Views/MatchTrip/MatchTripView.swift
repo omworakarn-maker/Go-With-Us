@@ -1,13 +1,14 @@
+import Combine
 import SwiftUI
 
 struct MatchTripView: View {
     @StateObject private var viewModel = MatchTripViewModel()
     @Binding var showSideMenu: Bool
-    
+
     var body: some View {
         ZStack {
             Color.adaptiveBackground.ignoresSafeArea()
-            
+
             NavigationStack {
                 VStack(spacing: 0) {
                     // Custom Header
@@ -21,15 +22,15 @@ struct MatchTripView: View {
                                 .font(.system(size: 24, weight: .bold))
                                 .foregroundColor(.adaptiveText)
                         }
-                        
+
                         Spacer()
-                        
+
                         Text(tr("แมตช์ทริป", "Trip matches"))
                             .font(.system(size: 17, weight: .semibold))
                             .foregroundColor(.adaptiveText)
-                        
+
                         Spacer()
-                        
+
                         Button(action: {
                             Task { await viewModel.fetchMatches(force: true) }
                         }) {
@@ -50,7 +51,7 @@ struct MatchTripView: View {
                         .accessibilityLabel(viewModel.isLoading ? "กำลังโหลดทริป" : "รีเฟรชทริป")
                     }
                     .padding()
-                    
+
                     Group {
                         if viewModel.isLoading {
                             VStack {
@@ -94,7 +95,7 @@ struct MatchTripView: View {
                                     .font(.system(size: 14))
                                     .foregroundColor(.gray)
                                     .multilineTextAlignment(.center)
-                                
+
                                 Button(tr("รีเฟรช", "Refresh")) {
                                     Task { await viewModel.fetchMatches(force: true) }
                                 }
@@ -108,14 +109,14 @@ struct MatchTripView: View {
                                 let matchCount = viewModel.matches.count
                                 // Only show top 3-4 cards for performance
                                 let displayCount = min(matchCount, 4)
-                                
+
                                 ForEach(0..<displayCount, id: \.self) { i in
                                     // Index 0 is the TOP card, Index (count-1) is the BOTTOM card
                                     // But ZStack renders last-item-on-top.
                                     // So we render from BOTTOM (back) to TOP (front).
                                     let index = displayCount - 1 - i
                                     let trip = viewModel.matches[index]
-                                    
+
                                     TinderSwipeCardView(
                                         trip: trip,
                                         onRemove: {
@@ -143,7 +144,8 @@ struct MatchTripView: View {
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                         }
                     }
-                    .padding(.bottom, 80) // Added for TabBar
+                    .padding(.bottom, 80)
+
                 }
                 .navigationDestination(item: $viewModel.selectedTripForJoin) { trip in
                     TripDetailView(tripId: trip.id, autoShowJoin: true)
@@ -153,6 +155,16 @@ struct MatchTripView: View {
         .task {
             await viewModel.fetchMatches()
         }
+        .onReceive(NotificationCenter.default.publisher(for: .init("TripJoined"))) { note in
+            if let trip = note.object as? Trip {
+                viewModel.remove(id: trip.id)
+            } else if let id = note.object as? String {
+                viewModel.remove(id: id)
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .init("TripDeleted"))) { note in
+            if let id = note.object as? String { viewModel.remove(id: id) }
+        }
     }
 }
 
@@ -161,11 +173,11 @@ struct TinderSwipeCardView: View {
     let trip: Trip
     let onRemove: () -> Void
     var onRightSwipe: () -> Void = {}
-    
+
     @State private var offset: CGSize = .zero
     @State private var color: Color = .clear
     @State private var contentNavigation = false
-    
+
     var body: some View {
 
         ZStack {
@@ -173,7 +185,7 @@ struct TinderSwipeCardView: View {
                 .background(Color.adaptiveCardBackground)
                 .cornerRadius(24)
                 .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
-            
+
             // Swipe feedback colors
             if offset.width > 0 {
                 // Liked/Passed Right
@@ -223,28 +235,38 @@ class MatchTripViewModel: ObservableObject {
     @Published var selectedTripForJoin: Trip?
     private static var lastLoaded: Date? = nil
     private static var cachedMatches: [Trip] = []
-    
+
     static func invalidateCache() {
         lastLoaded = nil
         cachedMatches = []
     }
-    
+
+    static func removeCached(id: String) {
+        cachedMatches.removeAll { $0.id == id }
+    }
+
+    func remove(id: String) {
+        Self.removeCached(id: id)
+        matches.removeAll { $0.id == id }
+        if selectedTripForJoin?.id == id { selectedTripForJoin = nil }
+    }
+
     init() {
         self.matches = Self.cachedMatches
     }
-    
+
     func fetchMatches(force: Bool = false) async {
         if !force, let lastLoaded = Self.lastLoaded, Date().timeIntervalSince(lastLoaded) < 180, !Self.cachedMatches.isEmpty {
             self.matches = Self.cachedMatches
             return
         }
-        
+
         await MainActor.run {
             isLoading = true
             errorMessage = nil
             // Clear out matches momentarily for a fresh bounce effect if desired, or keep them.
         }
-        
+
         do {
             let response: MatchTripResponse = try await APIService.shared.request(endpoint: "/match/trips", method: .get)
             await MainActor.run {

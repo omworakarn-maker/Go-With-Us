@@ -10,34 +10,47 @@ class TripListViewModel: ObservableObject {
     @Published var searchText = ""
     
     // Filters
-    @Published var activeTab: String = "แนะนำ" {
-        didSet { Task { await loadTrips(force: true) } }
+    @Published var activeTab: String {
+        didSet {
+            UserDefaults.standard.set(activeTab, forKey: Self.activeTabStorageKey)
+            Task { await switchTabWithoutClearing() }
+        }
     }
     @Published var selectedProvince: String? {
-        didSet { Task { await loadTrips(force: true) } }
+        didSet { Task { await loadTrips(showLoading: false, force: true) } }
     }
     @Published var selectedDate: Date? {
-        didSet { Task { await loadTrips(force: true) } }
+        didSet { Task { await loadTrips(showLoading: false, force: true) } }
     }
     @Published var selectedEndDate: Date? {
-        didSet { Task { await loadTrips(force: true) } }
+        didSet { Task { await loadTrips(showLoading: false, force: true) } }
     }
     @Published var selectedCategory: TripCategory? {
-        didSet { Task { await loadTrips(force: true) } }
+        didSet { Task { await loadTrips(showLoading: false, force: true) } }
     }
     
     private var cancellables = Set<AnyCancellable>()
     
-    private static var lastLoaded: Date? = nil
-    private static var cachedTrips: [Trip] = []
+    private static var lastLoadedByQuery: [String: Date] = [:]
+    private static var cachedTripsByQuery: [String: [Trip]] = [:]
+    private static let activeTabStorageKey = "GoWithUs.home.activeTripTab"
+
+    private var queryKey: String {
+        [activeTab, selectedProvince ?? "*", selectedDate.map(String.init(describing:)) ?? "*",
+         selectedEndDate.map(String.init(describing:)) ?? "*", selectedCategory?.rawValue ?? "*"]
+            .joined(separator: "|")
+    }
     
     static func invalidateCache() {
-        lastLoaded = nil
-        cachedTrips = []
+        lastLoadedByQuery = [:]
+        cachedTripsByQuery = [:]
     }
     
     init() {
-        self.trips = Self.cachedTrips
+        let savedTab = UserDefaults.standard.string(forKey: Self.activeTabStorageKey)
+        activeTab = savedTab.flatMap {
+            ["แนะนำ", "มาใหม่", "ยอดนิยม", "มาแรง"].contains($0) ? $0 : nil
+        } ?? "แนะนำ"
         setupSearch()
     }
     
@@ -55,8 +68,11 @@ class TripListViewModel: ObservableObject {
     private var currentLoadTask: Task<Void, Never>?
 
     func loadTrips(showLoading: Bool = true, force: Bool = false) async {
-        if !force, let lastLoaded = Self.lastLoaded, Date().timeIntervalSince(lastLoaded) < 180, !Self.cachedTrips.isEmpty {
-            var filtered = Self.cachedTrips
+        let key = queryKey
+        if !force, let lastLoaded = Self.lastLoadedByQuery[key],
+           Date().timeIntervalSince(lastLoaded) < 600,
+           let cached = Self.cachedTripsByQuery[key], !cached.isEmpty {
+            var filtered = cached
             
             // Local search filtering on cached trips
             if !searchText.isEmpty {
@@ -114,8 +130,8 @@ class TripListViewModel: ObservableObject {
                 }
                 
                 // Cache before search filtering
-                Self.cachedTrips = filtered
-                Self.lastLoaded = Date()
+                Self.cachedTripsByQuery[key] = filtered
+                Self.lastLoadedByQuery[key] = Date()
                 
                 // Local search filtering
                 if !searchText.isEmpty {
@@ -147,5 +163,31 @@ class TripListViewModel: ObservableObject {
     
     func refresh() async {
         await loadTrips(showLoading: false, force: true)
+    }
+
+    private func switchTabWithoutClearing() async {
+        currentLoadTask?.cancel()
+        let key = queryKey
+        if let cached = Self.cachedTripsByQuery[key], !cached.isEmpty {
+            trips = cached
+            return
+        }
+        await loadTrips(showLoading: false, force: true)
+    }
+
+    func includeCreatedTrip(_ trip: Trip) {
+        for key in Array(Self.cachedTripsByQuery.keys) {
+            Self.cachedTripsByQuery[key]?.removeAll { $0.id == trip.id }
+            Self.cachedTripsByQuery[key]?.insert(trip, at: 0)
+        }
+        trips.removeAll { $0.id == trip.id }
+        trips.insert(trip, at: 0)
+    }
+
+    func removeTrip(id: String) {
+        for key in Array(Self.cachedTripsByQuery.keys) {
+            Self.cachedTripsByQuery[key]?.removeAll { $0.id == id }
+        }
+        trips.removeAll { $0.id == id }
     }
 }

@@ -1,3 +1,4 @@
+import { BrandLogo } from '../components/BrandLogo';
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 
@@ -17,7 +18,7 @@ const AdminShell: React.FC<React.PropsWithChildren<{ title: string; subtitle?: s
             <div className="mx-auto flex min-h-screen max-w-[1500px]">
                 <aside className="hidden w-64 shrink-0 border-r border-gray-200 bg-white p-5 md:block">
                     <button onClick={() => navigate('/')} className="mb-9 flex items-center gap-3 text-left">
-                        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-black text-lg font-bold text-white">G</span>
+                        <BrandLogo className="w-12 h-10" />
                         <span><b className="block">GoWithUs</b><small className="text-slate-500">Admin Console</small></span>
                     </button>
                     <nav className="space-y-1.5">

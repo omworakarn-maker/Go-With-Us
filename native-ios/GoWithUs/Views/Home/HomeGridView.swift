@@ -25,9 +25,12 @@ struct HomeGridView: View {
                         // Title & Menu
                         ZStack {
                             // Center Title
-                            Text("GoWithUs")
-                                .font(.system(size: 24, weight: .heavy, design: .rounded))
-                                .foregroundColor(.adaptiveText)
+                            HStack(spacing: 8) {
+                                AppBrandLogo(size: 36, animates: true)
+                                Text("GoWithUs")
+                                    .font(.system(size: 24, weight: .heavy, design: .rounded))
+                                    .foregroundColor(.adaptiveText)
+                            }
                             
                             HStack {
                                 // Left actions
@@ -82,45 +85,14 @@ struct HomeGridView: View {
                         .padding(.top, 8)
                         
                         // Filter Bar
-                        FilterBar(
+                        HomeSearchFilterBar(
+                            searchText: $viewModel.searchText,
+                            focus: $isSearchFocused,
                             selectedProvince: $viewModel.selectedProvince,
                             selectedDate: $viewModel.selectedDate,
                             selectedEndDate: $viewModel.selectedEndDate,
                             selectedCategory: $viewModel.selectedCategory
                         )
-                        
-                        // Search Bar
-                        HStack(spacing: 12) {
-                            Image(systemName: "magnifyingglass")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundColor(isSearchFocused ? .appAccent : .gray.opacity(0.8))
-                                .padding(8)
-                                .background(isSearchFocused ? Color.appAccent.opacity(0.15) : Color.gray.opacity(0.1))
-                                .clipShape(Circle())
-                            
-                            TextField(SettingsManager.shared.localizedString(for: "search_placeholder"), text: $viewModel.searchText)
-                                .foregroundColor(.adaptiveText)
-                                .accentColor(.appAccent)
-                                .focused($isSearchFocused)
-                            
-                            if !viewModel.searchText.isEmpty {
-                                Button(action: {
-                                    viewModel.searchText = ""
-                                    isSearchFocused = false
-                                }) {
-                                    Image(systemName: "xmark.circle.fill")
-                                        .foregroundColor(.gray.opacity(0.6))
-                                }
-                            }
-                        }
-                        .padding()
-                        .background(isSearchFocused ? Color.appAccent.opacity(0.05) : Color.gray.opacity(0.05))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(isSearchFocused ? Color.appAccent : Color.gray.opacity(0.2), lineWidth: 1)
-                        )
-                        .cornerRadius(12)
-                        .padding(.horizontal)
                         
                         // Tabs
                         SegmentedControl(
@@ -195,10 +167,15 @@ struct HomeGridView: View {
                     await viewModel.loadTrips() 
                 }
             }
-            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("TripCreated"))) { _ in
-                Task {
-                    await viewModel.loadTrips()
-                }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("TripCreated"))) { note in
+                if let trip = note.object as? Trip { viewModel.includeCreatedTrip(trip) }
+                else { Task { await viewModel.refresh() } }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("TripDeleted"))) { note in
+                if let id = note.object as? String { viewModel.removeTrip(id: id) }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("AppDataRefreshRequested"))) { _ in
+                Task { await viewModel.refresh() }
             }
         }
     }
