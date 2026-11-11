@@ -95,7 +95,15 @@ struct NativeTabIconFeedback: UIViewRepresentable {
                     guard !Task.isCancelled else { return }
                     self.accents.forEach { $0.removeFromSuperlayer() }
                     self.accents = []
+                    CATransaction.begin()
+                    CATransaction.setDisableActions(true)
+                    for image in self.animatedImages {
+                        image.layer.removeAnimation(forKey: self.translationKey)
+                        image.layer.removeAnimation(forKey: self.opacityKey)
+                        image.layer.removeAnimation(forKey: self.scaleKey)
+                    }
                     self.transientIcons.forEach { $0.removeFromSuperview() }
+                    CATransaction.commit()
                     self.transientIcons = []
                     self.animatedImages = []
                 } catch { /* A newer selection or disappearing bar cancels the pulse. */ }
@@ -216,11 +224,11 @@ struct NativeTabIconFeedback: UIViewRepresentable {
                     bar.addSubview(incoming)
                     transientIcons.append(incoming)
 
-                    let duration = 0.62
+                    let duration = 0.38
                     let travelTimes: [Double] = [0, 0.12, 0.34, 0.58, 0.82, 0.94, 1]
                     let outgoing = keyframes(
                         "transform.translation.x",
-                        values: [0, -2, -8, -14, -18, -18, 0],
+                        values: [0, -2, -8, -14, -18, -18, -18],
                         times: travelTimes,
                         duration: duration
                     )
@@ -228,13 +236,13 @@ struct NativeTabIconFeedback: UIViewRepresentable {
                     let opacity = 1.0
                     let depart = keyframes(
                         "opacity",
-                        values: [opacity, opacity, opacity, opacity * 0.72, opacity * 0.25, 0, opacity],
+                        values: [opacity, opacity, opacity, opacity * 0.72, opacity * 0.25, 0, 0],
                         times: travelTimes,
                         duration: duration
                     )
                     let shrink = keyframes(
                         "transform.scale",
-                        values: [1, 1, 0.98, 0.94, 0.9, 0.9, 1],
+                        values: [1, 1, 0.98, 0.94, 0.9, 0.9, 0.9],
                         times: travelTimes,
                         duration: duration
                     )
@@ -244,26 +252,40 @@ struct NativeTabIconFeedback: UIViewRepresentable {
 
                     let arrival = keyframes(
                         "transform.translation.x",
-                        values: [20, 18, 13, 7, 1, 0, 0],
+                        values: [20, 18, 13, 6, 0, 0, 0],
                         times: travelTimes,
                         duration: duration
                     )
                     arrival.isAdditive = true
                     let appear = keyframes(
                         "opacity",
-                        values: [0, opacity * 0.8, opacity, opacity, opacity, opacity, 0],
+                        values: [0, opacity * 0.8, opacity, opacity, opacity, opacity, opacity],
                         times: travelTimes,
                         duration: duration
                     )
                     let zoom = keyframes(
                         "transform.scale",
-                        values: [0.88, 0.9, 0.94, 0.98, 1.02, 1, 1],
+                        values: [0.88, 0.9, 0.94, 0.98, 1, 1, 1],
                         times: travelTimes,
                         duration: duration
                     )
                     incoming.layer.add(arrival, forKey: translationKey)
                     incoming.layer.add(appear, forKey: opacityKey)
                     incoming.layer.add(zoom, forKey: scaleKey)
+                    // Hold the replacement at its final pose until all native
+                    // animations finish, then reveal the original atomically.
+                    for animationKey in [translationKey, opacityKey, scaleKey] {
+                        if let animation = image.layer.animation(forKey: animationKey) {
+                            animation.fillMode = .forwards
+                            animation.isRemovedOnCompletion = false
+                            image.layer.add(animation, forKey: animationKey)
+                        }
+                        if let animation = incoming.layer.animation(forKey: animationKey) {
+                            animation.fillMode = .forwards
+                            animation.isRemovedOnCompletion = false
+                            incoming.layer.add(animation, forKey: animationKey)
+                        }
+                    }
                 }
             case .create:
                 break
