@@ -30,7 +30,7 @@ struct ChatDetailView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(spacing: 12) {
-                        ForEach(viewModel.messages) { message in
+                        ForEach(viewModel.messages, id: \.displayID) { message in
                             if message.isSystem == true {
                                 Text(message.content)
                                     .font(.caption)
@@ -38,11 +38,12 @@ struct ChatDetailView: View {
                                     .multilineTextAlignment(.center)
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 6)
-                                    .id(message.id)
+                                    .id(message.displayID)
                             } else {
                             MessageBubble(
                                 message: message,
                                 isCurrentUser: viewModel.isFromCurrentUser(message: message),
+                                onRetry: { viewModel.retryMessage(message) },
                                 onTapAvatar: {
                                     // Tap on avatar to view sender profile
                                     if let sender = message.sender,
@@ -56,7 +57,7 @@ struct ChatDetailView: View {
                                     }
                                 }
                             )
-                            .id(message.id)
+                            .id(message.displayID)
                             .contextMenu {
                                 Button {
                                     UIPasteboard.general.string = message.content
@@ -65,7 +66,7 @@ struct ChatDetailView: View {
                                     Label(tr("คัดลอกข้อความ", "Copy message"), systemImage: "doc.on.doc")
                                 }
 
-                                if viewModel.isFromCurrentUser(message: message) {
+                                if viewModel.isFromCurrentUser(message: message), message.deliveryState != .sending, message.deliveryState != .failed {
                                     Button(role: .destructive) {
                                         Task {
                                             await viewModel.deleteMessage(message)
@@ -77,9 +78,9 @@ struct ChatDetailView: View {
                             }
                             }
                         }
+                        Color.clear.frame(height: 1).id("ChatBottom")
                     }
                     .padding()
-                    .id("Bottom")
                 }
                 .refreshable {
                     if let tripId = tripId {
@@ -88,9 +89,29 @@ struct ChatDetailView: View {
                         await viewModel.refreshPrivateMessages(userId: partnerId)
                     }
                 }
-                .onChange(of: viewModel.messages) { _, _ in
-                    withAnimation {
-                        proxy.scrollTo("Bottom", anchor: .bottom)
+                .defaultScrollAnchor(.bottom)
+                .scrollDismissesKeyboard(.interactively)
+                .onAppear {
+                    Task { @MainActor in
+                        await Task.yield()
+                        proxy.scrollTo("ChatBottom", anchor: .bottom)
+                    }
+                }
+                .onChange(of: viewModel.messages.map(\.displayID)) { oldIDs, newIDs in
+                    guard oldIDs.last != newIDs.last else { return }
+                    Task { @MainActor in
+                        await Task.yield()
+                        withAnimation(.easeOut(duration: 0.22)) {
+                            proxy.scrollTo("ChatBottom", anchor: .bottom)
+                        }
+                    }
+                }
+                .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardDidShowNotification)) { _ in
+                    Task { @MainActor in
+                        await Task.yield()
+                        withAnimation(.easeOut(duration: 0.22)) {
+                            proxy.scrollTo("ChatBottom", anchor: .bottom)
+                        }
                     }
                 }
             }
@@ -150,14 +171,12 @@ struct ChatDetailView: View {
                             let content = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
                             guard !isSendingImage, !content.isEmpty || selectedImageData != nil else { return }
                             SettingsManager.shared.triggerSelection()
-                            isSendingImage = true
                             messageText = ""
                             selectedItem = nil
                             let dataToSend = selectedImageData
                             selectedImageData = nil
                             Task {
                                 await sendMessage(content: content, imageUrl: dataToSend?.base64EncodedString())
-                                isSendingImage = false
                             }
                         } label: {
                             ZStack {
@@ -308,6 +327,7 @@ struct ChatDetailView: View {
 struct MessageBubble: View {
     let message: Message
     let isCurrentUser: Bool
+    var onRetry: (() -> Void)? = nil
     var onTapAvatar: (() -> Void)? = nil
 
     private static let timeFormatter: DateFormatter = {
@@ -381,6 +401,25 @@ struct MessageBubble: View {
                             )
                         )
                         .shadow(color: Color.black.opacity(0.04), radius: 2, x: 0, y: 1)
+                }
+
+                if isCurrentUser, message.isRead != true {
+                    switch message.deliveryState {
+                    case .sending:
+                        Text(tr("กำลังส่ง", "Sending"))
+                            .font(.caption2).foregroundStyle(.secondary)
+                    case .sent:
+                        Text(tr("ส่งแล้ว", "Sent"))
+                            .font(.caption2).foregroundStyle(.secondary)
+                    case .failed:
+                        Button { onRetry?() } label: {
+                            Label(tr("ส่งไม่สำเร็จ · ลองอีกครั้ง", "Failed · Retry"), systemImage: "exclamationmark.circle")
+                                .font(.caption2)
+                        }
+                        .foregroundStyle(.red)
+                    case nil:
+                        EmptyView()
+                    }
                 }
             }
 
