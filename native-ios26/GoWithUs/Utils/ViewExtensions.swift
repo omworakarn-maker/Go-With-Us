@@ -31,15 +31,13 @@ class HapticManager {
     private init() {}
 
     var isEnabled: Bool {
-        get { UserDefaults.standard.bool(forKey: "haptics_enabled") }
-        set { UserDefaults.standard.set(newValue, forKey: "haptics_enabled") }
+        get { SettingsManager.shared.isHapticEnabled }
+        set { SettingsManager.shared.isHapticEnabled = newValue }
     }
 
     // Default to true on first run
     static func setupInitial() {
-        if UserDefaults.standard.object(forKey: "haptics_enabled") == nil {
-            UserDefaults.standard.set(true, forKey: "haptics_enabled")
-        }
+        _ = SettingsManager.shared.isHapticEnabled
     }
 
     func notification(type: UINotificationFeedbackGenerator.FeedbackType) {

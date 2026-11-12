@@ -231,14 +231,7 @@ struct ContentView: View {
                         print("   conv: \(c.user.name) unread=\(c.unreadCount ?? 0)")
                     }
 
-                    // Trigger notification if count increased (and > 0)
-                    if totalUnread > lastUnreadCount {
-                        let newMessages = totalUnread - lastUnreadCount
-                        if newMessages > 0 {
-                            triggerLocalNotification(count: newMessages)
-                            NotificationCenter.default.post(name: NSNotification.Name("NewNotificationReceived"), object: nil)
-                        }
-                    }
+                    // NotificationPoller owns sender-specific alerts; badge updates are silent.
 
                     // Use local override total if it's higher than server total
                     lastUnreadCount = totalUnread
@@ -258,24 +251,7 @@ struct ContentView: View {
     }
 
     
-    private func triggerLocalNotification(count: Int) {
-        let content = UNMutableNotificationContent()
-        content.title = "ข้อความใหม่"
-        content.body = "คุณมี \(count) ข้อความใหม่ที่ยังไม่ได้อ่าน"
-        content.sound = .default
-        
-        let request = UNNotificationRequest(
-            identifier: UUID().uuidString,
-            content: content,
-            trigger: nil // Deliver immediately
-        )
-        
-        UNUserNotificationCenter.current().add(request) { error in
-            if let error = error {
-                print("❌ Notification Error: \(error)")
-            }
-        }
-    }
+
 
     
     // Bridge AppScreen <-> Tab

@@ -6,12 +6,21 @@ struct ChatView: View {
     @State private var selectedPartnerId: String? = nil
     @State private var selectedTrip: Trip? = nil
 
+    private var inboxItems: [ChatInboxItem] {
+        (viewModel.conversations.map(ChatInboxItem.person) +
+         viewModel.joinedTripChats.map(ChatInboxItem.trip))
+            .sorted {
+                if $0.date == $1.date { return $0.id < $1.id }
+                return $0.date > $1.date
+            }
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
                 Color.adaptiveBackground.ignoresSafeArea()
 
-                if viewModel.isLoading && viewModel.conversations.isEmpty {
+                if viewModel.isLoading && viewModel.conversations.isEmpty && viewModel.joinedTripChats.isEmpty {
                     ProgressView()
                         .tint(.appPrimary)
                 } else if viewModel.conversations.isEmpty && viewModel.mutualMatches.isEmpty && viewModel.joinedTripChats.isEmpty {
@@ -25,22 +34,6 @@ struct ChatView: View {
                     }
                 } else {
                     List {
-                        if !viewModel.joinedTripChats.isEmpty {
-                            Section {
-                                ForEach(viewModel.joinedTripChats) { trip in
-                                    Button {
-                                        selectedTrip = trip
-                                    } label: {
-                                        TripChatRow(trip: trip)
-                                    }
-                                }
-                            } header: {
-                                Text(SettingsManager.shared.text(thai: "แชททริป", english: "Trip chats"))
-                                    .font(.system(size: 14, weight: .bold))
-                                    .foregroundColor(.adaptiveSecondaryText)
-                            }
-                        }
-
                         // NEW MATCHES SECTION
                         if !viewModel.mutualMatches.isEmpty {
                             VStack(alignment: .leading, spacing: 12) {
@@ -79,21 +72,25 @@ struct ChatView: View {
                             .listRowSeparator(.hidden)
                         }
 
-                        // CONVERSATIONS SECTION
-                        Section {
-                            ForEach(viewModel.conversations) { conversation in
-                                Button(action: {
-                                    selectedConversation = conversation
-                                }) {
+                        ForEach(inboxItems) { item in
+                            switch item {
+                            case .trip(let trip):
+                                Button { selectedTrip = trip } label: {
+                                    TripChatRow(trip: trip)
+                                }
+                            case .person(let conversation):
+                                Button { selectedConversation = conversation } label: {
                                     ConversationRow(conversation: conversation)
                                 }
-                            }
-                            .onDelete(perform: viewModel.deleteConversation)
-                        } header: {
-                            if !viewModel.conversations.isEmpty && !viewModel.mutualMatches.isEmpty {
-                                Text(SettingsManager.shared.text(thai: "ข้อความล่าสุด", english: "Recent messages"))
-                                    .font(.system(size: 14, weight: .bold))
-                                    .foregroundColor(.adaptiveSecondaryText)
+                                .swipeActions {
+                                    Button(role: .destructive) {
+                                        if let index = viewModel.conversations.firstIndex(where: { $0.id == conversation.id }) {
+                                            viewModel.deleteConversation(at: IndexSet(integer: index))
+                                        }
+                                    } label: {
+                                        Label(tr("ลบ", "Delete"), systemImage: "trash")
+                                    }
+                                }
                             }
                         }
                     }
@@ -135,6 +132,7 @@ struct ChatView: View {
                 Task { await viewModel.loadInitialData() }
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("NewMessageReceived"))) { _ in
+                // Only emitted for actual sends, reads or deletes; polling snapshots arrive separately.
                 Task { await viewModel.loadConversations() }
             }
             .onReceive(NotificationCenter.default.publisher(for: .init("TripJoined"))) { note in
@@ -167,6 +165,25 @@ struct ChatView: View {
                 ChatDetailView(chatTitle: "", tripId: nil, partnerId: partnerId)
             }
             .hideTabBar(false)
+        }
+    }
+}
+
+private enum ChatInboxItem: Identifiable {
+    case person(Conversation)
+    case trip(Trip)
+
+    var id: String {
+        switch self {
+        case .person(let conversation): return "person:" + conversation.id
+        case .trip(let trip): return "trip:" + trip.id
+        }
+    }
+
+    var date: Date {
+        switch self {
+        case .person(let conversation): return conversation.lastMessage.createdAt
+        case .trip(let trip): return trip.updatedAt ?? trip.createdAt ?? .distantPast
         }
     }
 }

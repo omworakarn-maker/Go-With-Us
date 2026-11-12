@@ -922,7 +922,7 @@ struct CreateTripView: View {
                 ForEach(INTEREST_CATEGORIES) { category in
                     let isSelected = selectedTripStyles.contains(category.label)
                     Button {
-                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        SettingsManager.shared.triggerHaptic(.light)
                         toggleTripStyle(category.label)
                     } label: {
                         VStack(spacing: 8) {

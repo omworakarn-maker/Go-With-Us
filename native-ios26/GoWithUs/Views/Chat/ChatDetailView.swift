@@ -31,6 +31,15 @@ struct ChatDetailView: View {
                 ScrollView {
                     LazyVStack(spacing: 12) {
                         ForEach(viewModel.messages) { message in
+                            if message.isSystem == true {
+                                Text(message.content)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .multilineTextAlignment(.center)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 6)
+                                    .id(message.id)
+                            } else {
                             MessageBubble(
                                 message: message,
                                 isCurrentUser: viewModel.isFromCurrentUser(message: message),
@@ -66,6 +75,7 @@ struct ChatDetailView: View {
                                     }
                                 }
                             }
+                            }
                         }
                     }
                     .padding()
@@ -73,9 +83,9 @@ struct ChatDetailView: View {
                 }
                 .refreshable {
                     if let tripId = tripId {
-                        await viewModel.loadTripMessages(tripId: tripId)
+                        await viewModel.refreshTripMessages(tripId: tripId)
                     } else if let partnerId = partnerId {
-                        await viewModel.loadPrivateMessages(userId: partnerId)
+                        await viewModel.refreshPrivateMessages(userId: partnerId)
                     }
                 }
                 .onChange(of: viewModel.messages) { _, _ in
@@ -177,6 +187,23 @@ struct ChatDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.visible, for: .navigationBar)
         .toolbar {
+            if let tripId {
+                ToolbarItem(placement: .principal) {
+                    NavigationLink {
+                        TripDetailView(tripId: tripId)
+                    } label: {
+                        HStack(spacing: 5) {
+                            Text(chatTitle.isEmpty ? tr("แชททริป", "Trip chat") : chatTitle)
+                                .font(.headline)
+                                .lineLimit(1)
+                            Image(systemName: "chevron.right")
+                                .font(.caption.weight(.semibold))
+                        }
+                        .foregroundStyle(Color.adaptiveText)
+                    }
+                    .accessibilityLabel(tr("ดูรายละเอียดทริป", "View trip details"))
+                }
+            }
             if isModal {
                 ToolbarItem(placement: .topBarLeading) {
                     Button(tr("ปิด", "Close"), systemImage: "xmark") { dismiss() }
@@ -197,6 +224,12 @@ struct ChatDetailView: View {
         .onChange(of: selectedItem) { _, item in
             guard let item else { return }
             Task { await prepareImage(from: item) }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            Task {
+                if let tripId { await viewModel.refreshTripMessages(tripId: tripId) }
+                else if let partnerId { await viewModel.refreshPrivateMessages(userId: partnerId) }
+            }
         }
         .onAppear {
             // Initial load
@@ -224,7 +257,11 @@ struct ChatDetailView: View {
                                     (partnerId != nil && (message.senderId == partnerId || message.recipientId == partnerId))
 
                 if isForThisChat && !viewModel.messages.contains(where: { $0.id == message.id }) {
-                    viewModel.messages.append(message)
+                    viewModel.receiveMessage(message)
+                    Task {
+                        if let tripId { await viewModel.refreshTripMessages(tripId: tripId) }
+                        else if let partnerId { await viewModel.refreshPrivateMessages(userId: partnerId) }
+                    }
                 }
             }
         }

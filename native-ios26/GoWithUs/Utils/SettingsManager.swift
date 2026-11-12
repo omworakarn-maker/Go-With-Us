@@ -40,7 +40,7 @@ class SettingsManager: ObservableObject {
 
     private init() {
         // Load Haptics
-        self.isHapticEnabled = UserDefaults.standard.object(forKey: "haptic_enabled") as? Bool ?? true
+        self.isHapticEnabled = UserDefaults.standard.object(forKey: "haptic_enabled") as? Bool ?? UserDefaults.standard.object(forKey: "haptics_enabled") as? Bool ?? true
 
         // Load Language
         let savedLang = UserDefaults.standard.string(forKey: "AppLanguage") ?? "th"

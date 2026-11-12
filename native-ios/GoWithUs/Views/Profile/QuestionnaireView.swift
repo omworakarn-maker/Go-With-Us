@@ -44,7 +44,7 @@ struct QuestionnaireView: View {
     }
     
     private func triggerHapticFeedback() {
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        SettingsManager.shared.triggerHaptic(.light)
     }
     @State private var startTime: Date = Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date()) ?? Date()
     @State private var endTime: Date = Calendar.current.date(bySettingHour: 18, minute: 0, second: 0, of: Date()) ?? Date()
@@ -679,7 +679,7 @@ struct QuestionnaireActivityStyleCard: View {
     var body: some View {
         let isSelected = selectedValue == value
         Button {
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            SettingsManager.shared.triggerHaptic(.light)
             selectedValue = value
         } label: {
             HStack {

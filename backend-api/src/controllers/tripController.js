@@ -1,4 +1,6 @@
 import prisma from '../utils/prismaClient.js';
+import { saveTripMembership } from '../utils/tripChatEvents.js';
+import { sendMessageToUser } from '../utils/websocket.js';
 import { generateEmbedding } from '../utils/gemini.js';
 import { calculateTripCompatibilityDetailed } from './matchController.js';
 import { calculateActivityStyleFromItinerary } from '../utils/tripActivityStyle.js';
@@ -612,40 +614,23 @@ export const joinTrip = async (req, res, next) => {
             (p) => p.userId === req.user.userId
         );
 
-        if (alreadyJoined) {
-            const updatedParticipant = await prisma.participant.update({
-                where: {
-                    tripId_userId: {
-                        tripId: id,
-                        userId: req.user.userId
-                    }
-                },
-                data: {
-                    name,
-                    interests: interests || [],
-                    status: status || 'going'
-                }
-            });
-            return res.json({
-                message: 'Participant updated successfully',
-                participant: updatedParticipant
-            });
-        }
-
-        // Check if trip is full
-        if (trip.participants.length >= trip.maxParticipants) {
+        if (!alreadyJoined && trip.participants.length >= trip.maxParticipants) {
             return res.status(400).json({ error: 'This trip is full.' });
         }
 
-        const participant = await prisma.participant.create({
-            data: {
-                tripId: id,
-                userId: req.user.userId,
-                name,
-                interests: interests || [],
-                status: status || 'going',
-            },
+        const { participant, event } = await saveTripMembership(prisma, {
+            tripId: id, userId: req.user.userId, name, interests, status, existing: alreadyJoined
         });
+
+        if (event) {
+            const recipients = new Set([req.user.userId, trip.creatorId,
+                ...trip.participants.filter(p => p.status === 'going').map(p => p.userId)]);
+            for (const userId of recipients) sendMessageToUser(userId, event);
+        }
+
+        if (alreadyJoined) {
+            return res.json({ message: 'Participant updated successfully', participant });
+        }
 
         // Notify existing participants
         if (trip.participants && trip.participants.length > 0) {
