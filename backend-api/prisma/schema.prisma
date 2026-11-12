@@ -19,6 +19,8 @@ model AppPromotion {
   target     String  @default("")
   title      String  @default("")
   revision   String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now())
 
   @@map("app_promotion")
 }

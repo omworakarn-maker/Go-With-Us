@@ -13,6 +13,17 @@ The image is resized to 1400px and JPEG-compressed by the native app.
 Deploy the backend and run the existing `npm run db:deploy` before using this
 feature. It applies the `20261111193000_add_app_promotion` migration.
 No promotion is shown until an admin saves and enables one.
+Also deploy migration `20261112110000_promotion_history` for the campaign list.
+Existing saved promotion data is retained. The admin page supports creating
+multiple saved campaigns, editing their details, and toggling their status.
+Only one campaign can be enabled at a time; enabling another disables the
+previous one inside a serialized database transaction.
+
+The website now mounts PromotionPopup on the signed-in home route. Its daily
+and once history is saved per account in localStorage. The launch frequency
+uses sessionStorage, meaning once per browser tab session, including reloads.
+The web preview does not record views. iOS continues using the same active
+promotion response, so existing native clients remain compatible.
 
 The popup is checked after startup and onboarding finish. It does not block
 startup if the request fails. The close button is always available.
