@@ -152,11 +152,17 @@ struct ChatMessage: Identifiable, Equatable, Codable {
     let content: String
     let isUser: Bool
     let timestamp: Date
+    private var tripDraftData: Data?
+
+    var tripDraft: TripDraft? {
+        tripDraftData.flatMap { try? JSONDecoder().decode(TripDraft.self, from: $0) }
+    }
     
-    init(id: UUID = UUID(), content: String, isUser: Bool, timestamp: Date = Date()) {
+    init(id: UUID = UUID(), content: String, isUser: Bool, timestamp: Date = Date(), draft: TripDraft? = nil) {
         self.id = id
         self.content = content
         self.isUser = isUser
         self.timestamp = timestamp
+        self.tripDraftData = draft.flatMap { try? JSONEncoder().encode($0) }
     }
 }

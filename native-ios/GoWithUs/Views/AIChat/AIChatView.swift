@@ -23,7 +23,7 @@ struct AIChatView: View {
                             .font(.system(size: 24, weight: .bold))
                             .foregroundColor(.adaptiveText)
                     }
-                    
+
                     Spacer()
                     
                     VStack(spacing: 4) {
@@ -53,8 +53,14 @@ struct AIChatView: View {
                     ScrollView {
                         LazyVStack(spacing: 16) {
                             ForEach(viewModel.messages) { message in
-                                ChatMessageView(message: message)
-                                    .id(message.id)
+                                VStack(alignment: .leading, spacing: 10) {
+                                    ChatMessageView(message: message)
+                                    if !message.isUser, let draft = message.tripDraft {
+                                        draftCard(draft)
+                                            .padding(.leading, 36)
+                                    }
+                                }
+                                .id(message.id)
                             }
                             
                             if viewModel.isLoading {
@@ -103,90 +109,6 @@ struct AIChatView: View {
                 .frame(maxHeight: .infinity)
                 .background(Color(UIColor.systemGroupedBackground))
                 
-                // Draft Alert (above input bar)
-                if let draft = viewModel.tripDraft, viewModel.showDraftAlert {
-                    VStack(spacing: 12) {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(SettingsManager.shared.localizedString(for: "ai_draft_ready"))
-                                    .font(.headline)
-                                    .foregroundColor(.adaptiveText)
-                                Text(draft.title)
-                                    .font(.system(size: 14, weight: .bold))
-                                    .foregroundColor(.appPrimary)
-                            }
-                            Spacer()
-                            Button(action: {
-                                withAnimation { viewModel.showDraftAlert = false }
-                            }) {
-                                Image(systemName: "xmark.circle.fill")
-                                    .font(.system(size: 20))
-                                    .foregroundColor(.gray)
-                            }
-                        }
-                        
-                        // Draft Details
-                        VStack(spacing: 8) {
-                            HStack(spacing: 16) {
-                                DraftInfoPill(icon: "mappin", text: draft.destination, color: .appAccent)
-                                DraftInfoPill(icon: "calendar", text: draft.endDate != nil ? "\(draft.startDate) → \(draft.endDate!)" : draft.startDate, color: .appPrimary)
-                            }
-                            HStack(spacing: 16) {
-                                DraftInfoPill(icon: "banknote", text: "\(draft.budget) ฿", color: Color(hex: "#2ECC71"))
-                                DraftInfoPill(icon: "person.2", text: "\(tr("สูงสุด", "Up to")) \(draft.maxParticipants) \(tr("คน", "people"))", color: .appSecondary)
-                            }
-                        }
-                        
-                        HStack(spacing: 8) {
-                            // Auto-create button
-                            Button(action: {
-                                autoCreateTrip(draft: draft)
-                            }) {
-                                HStack(spacing: 4) {
-                                    if isAutoCreating {
-                                        ProgressView()
-                                            .tint(.white)
-                                            .scaleEffect(0.8)
-                                    }
-                                    Text(SettingsManager.shared.localizedString(for: "ai_create_now"))
-                                        .font(.system(size: 14, weight: .semibold))
-                                }
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 10)
-                                .background(Color.appPrimary)
-                                .cornerRadius(8)
-                            }
-                            .disabled(isAutoCreating)
-                            
-                            // Edit before creating
-                            Button(action: {
-                                showCreateTrip = true
-                            }) {
-                                Text(SettingsManager.shared.localizedString(for: "ai_edit_before"))
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(.adaptiveText)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 10)
-                                    .background(Color.adaptiveCardBackground)
-                                    .cornerRadius(8)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-                                    )
-                            }
-                            .disabled(isAutoCreating)
-                        }
-                    }
-                    .padding()
-                    .background(Color.adaptiveCardBackground)
-                    .cornerRadius(16)
-                    .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: -2)
-                    .padding(.horizontal)
-                    .padding(.bottom, 8)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                }
-                
                 // Input Bar (directly inline)
                 HStack(alignment: .bottom, spacing: 0) {
                     TextField(SettingsManager.shared.localizedString(for: "ai_input_placeholder"), text: $viewModel.inputText, axis: .vertical)
@@ -194,7 +116,7 @@ struct AIChatView: View {
                         .padding(.horizontal, 16)
                         .padding(.vertical, 12)
                         .foregroundColor(.adaptiveText)
-                    
+
                     if !viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isLoading {
                         Button(action: {
                             if viewModel.isLoading {
@@ -249,7 +171,117 @@ struct AIChatView: View {
             Text(tr("ทริปของคุณถูกสร้างแล้ว ไปดูได้ที่หน้าแรกเลย!", "Your trip has been created. View it on the Home screen!"))
         }
     }
-    
+
+    private func draftCard(_ draft: TripDraft) -> some View {
+                    VStack(spacing: 12) {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(SettingsManager.shared.localizedString(for: "ai_draft_ready"))
+                                    .font(.headline)
+                                    .foregroundColor(.adaptiveText)
+                                Text(draft.title)
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundColor(.appPrimary)
+                            }
+                            Spacer()
+                            Image(systemName: "map.fill")
+                                .foregroundStyle(Color.appPrimary)
+                        }
+                        
+                        Text(draft.description)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                        if let days = draft.itinerary, !days.isEmpty {
+                            DisclosureGroup(tr("ดูแผนการเดินทาง", "View itinerary")) {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    ForEach(days) { day in
+                                        Text("\(tr("วันที่", "Day")) \(day.day)")
+                                            .font(.subheadline.bold())
+                                        ForEach(day.activities) { activity in
+                                            VStack(alignment: .leading, spacing: 3) {
+                                                Text("\(activity.time)  \(activity.name)")
+                                                    .font(.subheadline.weight(.medium))
+                                                if !activity.location.isEmpty {
+                                                    Text(activity.location).font(.caption).foregroundStyle(.secondary)
+                                                }
+                                                if !activity.description.isEmpty {
+                                                    Text(activity.description).font(.caption).foregroundStyle(.secondary)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.top, 8)
+                            }
+                            .font(.subheadline)
+                            .tint(.appPrimary)
+                        }
+
+                        // Draft Details
+                        VStack(spacing: 8) {
+                            HStack(spacing: 16) {
+                                DraftInfoPill(icon: "mappin", text: draft.destination, color: .appAccent)
+                                DraftInfoPill(icon: "calendar", text: draft.endDate != nil ? "\(draft.startDate) → \(draft.endDate!)" : draft.startDate, color: .appPrimary)
+                            }
+                            HStack(spacing: 16) {
+                                DraftInfoPill(icon: "banknote", text: "\(draft.budget) ฿", color: Color(hex: "#2ECC71"))
+                                DraftInfoPill(icon: "person.2", text: "\(tr("สูงสุด", "Up to")) \(draft.maxParticipants) \(tr("คน", "people"))", color: .appSecondary)
+                            }
+                        }
+                        
+                        HStack(spacing: 8) {
+                            // Auto-create button
+                            Button(action: {
+                                autoCreateTrip(draft: draft)
+                            }) {
+                                HStack(spacing: 4) {
+                                    if isAutoCreating {
+                                        ProgressView()
+                                            .tint(.white)
+                                            .scaleEffect(0.8)
+                                    }
+                                    Text(SettingsManager.shared.localizedString(for: "ai_create_now"))
+                                        .font(.system(size: 14, weight: .semibold))
+                                }
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 10)
+                                .background(Color.appPrimary)
+                                .cornerRadius(8)
+                            }
+                            .disabled(isAutoCreating)
+                            
+                            // Edit before creating
+                            Button(action: {
+                                viewModel.tripDraft = draft
+                                showCreateTrip = true
+                            }) {
+                                Text(SettingsManager.shared.localizedString(for: "ai_edit_before"))
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(.adaptiveText)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 10)
+                                    .background(Color.adaptiveCardBackground)
+                                    .cornerRadius(8)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                                    )
+                            }
+                            .disabled(isAutoCreating)
+                        }
+                    }
+                    .padding()
+                    .background(Color.adaptiveCardBackground)
+                    .cornerRadius(16)
+                    .shadow(color: Color.black.opacity(0.06), radius: 5, x: 0, y: 2)
+                    .padding(.bottom, 8)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+    }
+
     private func autoCreateTrip(draft: TripDraft) {
         isAutoCreating = true
         let calendar = Calendar.current
@@ -419,7 +451,7 @@ class AIChatViewModel: ObservableObject {
                 guard !message.isUser, message.content.contains("{") else { return message }
                 let parsed = AITripResponse.parse(message.content)
                 if let draft = parsed.draft { tripDraft = draft; showDraftAlert = true }
-                return ChatMessage(id: message.id, content: parsed.message, isUser: false, timestamp: message.timestamp)
+                return ChatMessage(id: message.id, content: parsed.message, isUser: false, timestamp: message.timestamp, draft: parsed.draft)
             }
         } else {
             self.messages = [ChatMessage(id: UUID(), content: SettingsManager.shared.localizedString(for: "ai_welcome_message"), isUser: false, timestamp: Date())]
@@ -464,7 +496,7 @@ class AIChatViewModel: ObservableObject {
             self.tripDraft = parsed.draft
             self.showDraftAlert = parsed.draft != nil
 
-            let aiMessage = ChatMessage(content: parsed.message, isUser: false)
+            let aiMessage = ChatMessage(content: parsed.message, isUser: false, draft: parsed.draft)
             
             await MainActor.run {
                 messages.append(aiMessage)
