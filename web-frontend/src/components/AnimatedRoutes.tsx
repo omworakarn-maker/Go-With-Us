@@ -18,6 +18,7 @@ import SearchPage from '../pages/Search';
 import TripHistory from '../pages/TripHistory';
 import AdminAlert from '../pages/AdminAlert';
 import AdminPromotion from '../pages/AdminPromotion';
+import PromotionPopup from './PromotionPopup';
 import AdminReports from '../pages/AdminReports';
 import AdminVerification from '../pages/AdminVerification';
 import AdminDashboard from '../pages/AdminDashboard';
@@ -97,6 +98,7 @@ const AnimatedRoutes: React.FC = () => {
             <CreateTripModal />
             {/* Desktop Navbar - Hidden on mobile via CSS */}
             {showNavbar && <Navbar />} {/* Fixed Navbar outside AnimatePresence */}
+            <PromotionPopup />
 
             <div className={showBottomNav ? "pb-28 md:pb-0" : ""}>
                 <AnimatePresence mode="wait" custom={direction.current}>

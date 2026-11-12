@@ -3,8 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import AdminShell from '../components/AdminShell';
 import { useAuth } from '../contexts/AuthContext';
 import { authFetch } from '../services/api';
+import { AnimatePresence } from 'framer-motion';
+import PromotionCard from '../components/PromotionCard';
 
 type Promotion = {
+    id?: string;
+    createdAt?: string;
+    updatedAt?: string;
     enabled: boolean;
     image: string;
     title: string;
@@ -45,6 +50,8 @@ const AdminPromotion: React.FC = () => {
     const { user, isLoading: authLoading } = useAuth();
     const navigate = useNavigate();
     const [form, setForm] = useState<Promotion>(empty);
+    const [promotions, setPromotions] = useState<Promotion[]>([]);
+    const [editingId, setEditingId] = useState<string>(() => crypto.randomUUID());
     const [loading, setLoading] = useState(true);
     const [loadFailed, setLoadFailed] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -71,8 +78,10 @@ const AdminPromotion: React.FC = () => {
         setError('');
         authFetch(endpoint).then(data => {
             if (!active) return;
+            setPromotions(data.promotions || (data.promotion ? [data.promotion] : []));
             if (data.promotion) {
-                const { enabled, image, title, frequency, targetType, target } = data.promotion;
+                const { id, enabled, image, title, frequency, targetType, target } = data.promotion;
+                setEditingId(id);
                 setForm({ enabled, image, title, frequency, targetType, target });
             } else setForm(empty);
         }).catch(e => {
@@ -87,8 +96,11 @@ const AdminPromotion: React.FC = () => {
         const close = (event: KeyboardEvent) => {
             if (event.key === 'Escape') setPreview(false);
             if (event.key === 'Tab') {
-                event.preventDefault();
-                closePreview.current?.focus();
+                const buttons = closePreview.current?.closest('[role="dialog"]')?.querySelectorAll<HTMLButtonElement>('button');
+                if (!buttons?.length) return;
+                const first = buttons[0], last = buttons[buttons.length - 1];
+                if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+                else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
             }
         };
         window.addEventListener('keydown', close);
@@ -127,16 +139,51 @@ const AdminPromotion: React.FC = () => {
         if (form.targetType === 'trip' && !target) { setError('กรุณาใส่ Trip ID'); return; }
         setSaving(true);
         try {
-            await authFetch(endpoint, { method: 'PUT', body: JSON.stringify({ ...form, target }) });
+            await authFetch(endpoint, { method: 'PUT', body: JSON.stringify({ ...form, target, id: editingId }) });
             setForm(previous => ({ ...previous, target }));
+            const data = await authFetch(endpoint);
+            setPromotions(data.promotions || []);
             setSuccess('บันทึกแล้ว แอปจะใช้ค่านี้เมื่อตรวจโปรโมชันในการเปิดครั้งถัดไป');
         } catch (e) { setError(e instanceof Error ? e.message : 'บันทึกไม่สำเร็จ'); }
         finally { setSaving(false); }
     }
 
+    async function togglePromotion(promotion: Promotion) {
+        setSaving(true); setError(''); setSuccess('');
+        try {
+            await authFetch((import.meta.env.VITE_API_URL || '/api') + '/promotions/' + encodeURIComponent(promotion.id!) + '/enabled', {
+                method: 'PATCH', body: JSON.stringify({ enabled: !promotion.enabled })
+            });
+            const data = await authFetch(endpoint);
+            setPromotions(data.promotions || []);
+            const current = data.promotions?.find((item: Promotion) => item.id === editingId);
+            if (current) setForm(current);
+            setSuccess(promotion.enabled ? 'ปิดโปรโมชันแล้ว' : 'เปิดโปรโมชันแล้ว โปรโมชันอื่นจะถูกปิดอัตโนมัติ');
+        } catch (e) { setError(e instanceof Error ? e.message : 'เปลี่ยนสถานะไม่สำเร็จ'); }
+        finally { setSaving(false); }
+    }
+
     if (authLoading || user?.role !== 'admin') return null;
     const busy = loading || saving || processing || loadFailed;
-    return <AdminShell title="ป๊อปอัปโปรโมชัน" subtitle="จัดการแบนเนอร์ที่แสดงหลังเปิดแอป iOS">
+    return <AdminShell title="ป๊อปอัปโปรโมชัน" subtitle="เก็บโปรโมชันไว้ได้หลายรายการ และเปิดแสดงครั้งละหนึ่งรายการบนเว็บและ iOS">
+        <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-5">
+            <div className="mb-4 flex items-center justify-between gap-3">
+                <h2 className="font-bold">โปรโมชันที่บันทึกไว้ ({promotions.length})</h2>
+                <button disabled={busy} className="rounded-xl bg-black px-4 py-2 text-white disabled:opacity-40" onClick={() => {
+                    setEditingId(crypto.randomUUID()); setForm({ ...empty }); setSuccess(''); setError('');
+                }}>+ สร้างโปรโมชันใหม่</button>
+            </div>
+            {!promotions.length && !loading && <p className="text-sm text-gray-500">ยังไม่มีโปรโมชันที่บันทึกไว้</p>}
+            <div className="space-y-3">{promotions.map(item => <div key={item.id} className="flex flex-wrap items-center gap-4 rounded-xl border border-gray-100 p-3">
+                <img src={item.image} alt="" className="h-16 w-16 rounded-lg object-cover" />
+                <div className="min-w-0 flex-1"><b className="block">{item.title || 'โปรโมชันไม่มีชื่อ'}</b>
+                    <p className="text-sm text-gray-500">{item.enabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน'} · {item.frequency === 'daily' ? 'วันละครั้ง' : item.frequency === 'once' ? 'ครั้งเดียว' : 'ทุกครั้งที่เปิด'}</p>
+                    {item.updatedAt && <p className="text-xs text-gray-500">แก้ไข {new Date(item.updatedAt).toLocaleString('th-TH')}</p>}
+                </div>
+                <button disabled={busy} className="rounded-lg border px-3 py-2 text-sm" onClick={() => { setForm(item); setEditingId(item.id!); setSuccess(''); }}>รายละเอียด / แก้ไข</button>
+                <button disabled={busy} className="rounded-lg border px-3 py-2 text-sm" onClick={() => void togglePromotion(item)}>{item.enabled ? 'ปิดใช้งาน' : 'เปิดใช้งาน'}</button>
+            </div>)}</div>
+        </section>
         {error && <div role="alert" className="mb-5 rounded-xl bg-red-50 p-4 text-red-700">{error}
             {loadFailed && <button className="ml-3 underline" onClick={() => setRetry(v => v + 1)}>ลองโหลดใหม่</button>}
         </div>}
@@ -180,11 +227,9 @@ const AdminPromotion: React.FC = () => {
                 <p className="mt-3 text-xs text-gray-500">ตัวอย่างนี้ไม่บันทึกและไม่นับจำนวนการแสดง</p>
             </section>
         </div>}
-        {preview && <div role="dialog" aria-modal="true" aria-label="ตัวอย่างป๊อปอัปโปรโมชัน" className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-6">
-            <div className="w-full max-w-sm"><div className="mb-3 flex justify-end">
-                <button ref={closePreview} autoFocus onClick={() => setPreview(false)} aria-label="ปิดตัวอย่าง" className="h-11 w-11 rounded-full bg-black/60 text-xl text-white">×</button>
-            </div><img src={form.image} alt={form.title || 'โปรโมชัน'} className="max-h-[75vh] w-full rounded-[22px] object-contain" /></div>
-        </div>}
+        <AnimatePresence>{preview && <PromotionCard image={form.image} title={form.title}
+            actionable={form.targetType !== 'none'} closeRef={closePreview}
+            onClose={() => setPreview(false)} onOpen={() => setPreview(false)} />}</AnimatePresence>
     </AdminShell>;
 };
 export default AdminPromotion;
