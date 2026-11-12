@@ -22,13 +22,14 @@ class LocalNotificationStore: ObservableObject {
     private func load() {
         guard let data = UserDefaults.standard.data(forKey: key) else { return }
         do {
-            notifications = try JSONDecoder().decode([AppNotification].self, from: data)
+            notifications = try JSONDecoder().decode([AppNotification].self, from: data).filter { !$0.isChatMessage }
         } catch {
             print("⚠️ Failed to load local notifications: \(error)")
         }
     }
 
     func add(notification: AppNotification) {
+        guard !notification.isChatMessage else { return }
         // Prepend newest
         DispatchQueue.main.async {
             self.notifications.insert(notification, at: 0)

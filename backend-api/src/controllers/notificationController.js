@@ -6,7 +6,7 @@ export const getNotifications = async (req, res, next) => {
     try {
         const userId = req.user.userId;
         const userRole = req.user.role;
-        const { all } = req.query;
+        const { all, includeMessages } = req.query;
 
         let where = {
             OR: [
@@ -18,6 +18,8 @@ export const getNotifications = async (req, res, next) => {
         // If admin and requesting all
         if (userRole === 'admin' && all === 'true') {
             where = {}; // No filter = all notifications
+        } else if (includeMessages !== 'true') {
+            where.type = { notIn: ['message', 'trip_message', 'private_chat', 'chat'] };
         }
 
         const notifications = await prisma.notification.findMany({
@@ -38,6 +40,7 @@ export const getUnreadCount = async (req, res, next) => {
             where: {
                 userId: userId,
                 isRead: false,
+                type: { notIn: ['message', 'trip_message', 'private_chat', 'chat'] },
             },
         });
         res.json({ count });

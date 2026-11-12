@@ -6,11 +6,12 @@ class NotificationService {
     private init() {}
     
     // MARK: - Get Notifications
-    func getNotifications() async throws -> [AppNotification] {
-        return try await APIService.shared.request(
-            endpoint: "/notifications",
+    func getNotifications(includeChatMessages: Bool = false) async throws -> [AppNotification] {
+        let notifications: [AppNotification] = try await APIService.shared.request(
+            endpoint: includeChatMessages ? "/notifications?includeMessages=true" : "/notifications",
             method: .get
         )
+        return includeChatMessages ? notifications : notifications.filter { !$0.isChatMessage }
     }
     
     // MARK: - Mark as Read

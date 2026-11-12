@@ -191,7 +191,7 @@ class NotificationViewModel: ObservableObject {
                 )
             }
 
-            notifications = Array(map.values).filter { !deletedIDs.contains($0.id) }
+            notifications = Array(map.values).filter { !$0.isChatMessage && !deletedIDs.contains($0.id) }
             // Sort by createdAt desc
             notifications.sort { lhs, rhs in
                 let f = ISO8601DateFormatter(); f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]

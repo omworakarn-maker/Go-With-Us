@@ -56,7 +56,7 @@ class NotificationPoller: ObservableObject {
                     }
                 
                 // 2. Get latest notifications to see if we need to alert
-                let notifications = try await NotificationService.shared.getNotifications()
+                let notifications = try await NotificationService.shared.getNotifications(includeChatMessages: true)
                 guard KeychainService.shared.getToken() == token else { return }
                 
                 // Filter for new notifications (created after last checked time)
