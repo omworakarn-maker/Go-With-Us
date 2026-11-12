@@ -8,6 +8,7 @@ struct AIChatView: View {
     @State private var showCreateTrip = false
     @State private var isAutoCreating = false
     @State private var showAutoCreateSuccess = false
+    @State private var sendTask: Task<Void, Never>?
 
     var body: some View {
         NavigationStack {
@@ -59,34 +60,44 @@ struct AIChatView: View {
 
                             if viewModel.isLoading {
                                 HStack {
-                                    TypingIndicatorView()
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        TypingIndicatorView()
+                                        Text(tr("กำลังคิดคำตอบ…", "Thinking…"))
+                                            .font(.caption).foregroundStyle(.secondary)
+                                    }
                                     Spacer()
                                 }
                                 .padding(.horizontal)
                                 .id("TypingIndicator")
                             }
+                            Color.clear.frame(height: 1).id("AIChatBottom")
                         }
                         .padding()
                     }
                     .onTapGesture {
                         hideKeyboard()
                     }
+                    .scrollDismissesKeyboard(.interactively)
+                    .onAppear { proxy.scrollTo("AIChatBottom", anchor: .bottom) }
                     .onChange(of: viewModel.messages.count) { _ in
-                        if let lastMessage = viewModel.messages.last {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                                withAnimation {
-                                    proxy.scrollTo(lastMessage.id, anchor: .bottom)
-                                }
+                        Task { @MainActor in
+                            await Task.yield()
+                            withAnimation(.easeOut(duration: 0.22)) {
+                                proxy.scrollTo("AIChatBottom", anchor: .bottom)
                             }
                         }
                     }
                     .onChange(of: viewModel.isLoading) { _ in
-                        if viewModel.isLoading {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                                withAnimation {
-                                    proxy.scrollTo("TypingIndicator", anchor: .bottom)
-                                }
+                        Task { @MainActor in
+                            await Task.yield()
+                            withAnimation(.easeOut(duration: 0.22)) {
+                                proxy.scrollTo("AIChatBottom", anchor: .bottom)
                             }
+                        }
+                    }
+                    .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardDidShowNotification)) { _ in
+                        withAnimation(.easeOut(duration: 0.22)) {
+                            proxy.scrollTo("AIChatBottom", anchor: .bottom)
                         }
                     }
                 }
@@ -187,10 +198,16 @@ struct AIChatView: View {
 
                     if !viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isLoading {
                         Button(action: {
-                            Task { await viewModel.sendMessage() }
+                            if viewModel.isLoading {
+                                sendTask?.cancel()
+                            } else {
+                                sendTask = Task { await viewModel.sendMessage() }
+                            }
                         }) {
                             if viewModel.isLoading {
-                                ProgressView()
+                                Image(systemName: "stop.circle.fill")
+                                    .font(.system(size: 32))
+                                    .foregroundColor(.appPrimary)
                                     .frame(width: 34, height: 34)
                                     .padding(.trailing, 6)
                                     .padding(.bottom, 6)
@@ -203,7 +220,7 @@ struct AIChatView: View {
                                     .shadow(color: Color.appPrimary.opacity(0.3), radius: 3, x: 0, y: 2)
                             }
                         }
-                        .disabled(viewModel.isLoading)
+                        .accessibilityLabel(viewModel.isLoading ? tr("หยุดคำตอบ", "Stop response") : tr("ส่งข้อความ", "Send message"))
                     }
                 }
                 .background(Color.adaptiveCardBackground)
@@ -217,6 +234,7 @@ struct AIChatView: View {
                 .padding(.vertical, 12)
                 .background(Color.adaptiveBackground)
             }
+            .onDisappear { sendTask?.cancel() }
             .navigationBarHidden(true)
             .sheet(isPresented: $showCreateTrip) {
                 if let draft = viewModel.tripDraft {
@@ -380,6 +398,7 @@ struct ChatMessageView: View {
     }
 }
 
+@MainActor
 class AIChatViewModel: ObservableObject {
     @Published var messages: [ChatMessage] = [] {
         didSet { saveMessages() }
@@ -397,7 +416,12 @@ class AIChatViewModel: ObservableObject {
         if let data = UserDefaults.standard.data(forKey: chatStorageKey),
            let savedMessages = try? JSONDecoder().decode([ChatMessage].self, from: data),
            !savedMessages.isEmpty {
-            self.messages = savedMessages
+            self.messages = savedMessages.map { message in
+                guard !message.isUser, message.content.contains("{") else { return message }
+                let parsed = AITripResponse.parse(message.content)
+                if let draft = parsed.draft { tripDraft = draft; showDraftAlert = true }
+                return ChatMessage(id: message.id, content: parsed.message, isUser: false, timestamp: message.timestamp)
+            }
         } else {
             self.messages = [ChatMessage(id: UUID(), content: SettingsManager.shared.localizedString(for: "ai_welcome_message"), isUser: false, timestamp: Date())]
         }
@@ -413,6 +437,7 @@ class AIChatViewModel: ObservableObject {
     @Published var showDraftAlert = false
 
     func clearChat() {
+        guard !isLoading else { return }
         messages = [ChatMessage(id: UUID(), content: SettingsManager.shared.localizedString(for: "ai_welcome_message"), isUser: false, timestamp: Date())]
         tripDraft = nil
         showDraftAlert = false
@@ -421,60 +446,35 @@ class AIChatViewModel: ObservableObject {
 
     func sendMessage() async {
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty else { return }
+        guard !text.isEmpty, !isLoading else { return }
+        defer { isLoading = false }
 
         let userMessage = ChatMessage(content: text, isUser: true)
 
-        await MainActor.run {
-            messages.append(userMessage)
-            inputText = ""
-            isLoading = true
-        }
+        messages.append(userMessage)
+        inputText = ""
+        isLoading = true
 
         do {
             // Pass conversation history (skip welcome message and current message which is sent separately)
-            let history = Array(messages.dropFirst().dropLast())
+            let history = Array(messages.dropFirst().dropLast().suffix(12))
             let responseText = try await GeminiService.shared.chat(message: text, history: history)
 
-            // Check for JSON Block (Robust multiple lines & markdown support)
-            // Use greedy regex to match from the first { to the last }
-            let pattern = "(\\{[\\s\\S]*\\})"
-            if let regex = try? NSRegularExpression(pattern: pattern, options: []),
-               let match = regex.firstMatch(in: responseText, options: [], range: NSRange(location: 0, length: responseText.utf16.count)) {
+            try Task.checkCancellation()
+            let parsed = AITripResponse.parse(responseText)
+            self.tripDraft = parsed.draft
+            self.showDraftAlert = parsed.draft != nil
 
-                if let range = Range(match.range, in: responseText) {
-                    let jsonString = String(responseText[range])
-
-                    if let data = jsonString.data(using: .utf8),
-                       let draft = try? JSONDecoder().decode(TripDraft.self, from: data) {
-
-                        await MainActor.run {
-                            self.tripDraft = draft
-                            self.showDraftAlert = true
-
-                            // Clean up display text
-                            var cleanText = responseText.replacingOccurrences(of: jsonString, with: "")
-                            cleanText = cleanText.replacingOccurrences(of: "```json", with: "")
-                            cleanText = cleanText.replacingOccurrences(of: "```", with: "")
-                            cleanText = cleanText.trimmingCharacters(in: .whitespacesAndNewlines)
-
-                            let displayContent = cleanText.isEmpty ? tr("ผมได้ร่างทริปให้คุณแล้วครับ กดดูรายละเอียดด้านล่างได้เลย! 👇", "I've drafted a trip for you. View the details below! 👇") : cleanText
-
-                            messages.append(ChatMessage(content: displayContent, isUser: false))
-                            isLoading = false
-                        }
-                        return
-                    }
-                }
-            }
-
-            let aiMessage = ChatMessage(content: responseText, isUser: false)
+            let aiMessage = ChatMessage(content: parsed.message, isUser: false)
 
             await MainActor.run {
                 messages.append(aiMessage)
                 isLoading = false
             }
+        } catch is CancellationError {
+        } catch let error as URLError where error.code == .cancelled {
         } catch {
+            guard !Task.isCancelled else { return }
             await MainActor.run {
                 messages.append(ChatMessage(content: "\(tr("เกิดข้อผิดพลาด", "Error")): \(error.localizedDescription)", isUser: false))
                 isLoading = false
