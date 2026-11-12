@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import AdminShell from '../components/AdminShell';
 import { useAuth } from '../contexts/AuthContext';
 import { authFetch } from '../services/api';
+import { AnimatePresence } from 'framer-motion';
+import PromotionCard from '../components/PromotionCard';
 
 type Promotion = {
     id?: string;
@@ -94,8 +96,11 @@ const AdminPromotion: React.FC = () => {
         const close = (event: KeyboardEvent) => {
             if (event.key === 'Escape') setPreview(false);
             if (event.key === 'Tab') {
-                event.preventDefault();
-                closePreview.current?.focus();
+                const buttons = closePreview.current?.closest('[role="dialog"]')?.querySelectorAll<HTMLButtonElement>('button');
+                if (!buttons?.length) return;
+                const first = buttons[0], last = buttons[buttons.length - 1];
+                if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+                else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
             }
         };
         window.addEventListener('keydown', close);
@@ -222,11 +227,9 @@ const AdminPromotion: React.FC = () => {
                 <p className="mt-3 text-xs text-gray-500">ตัวอย่างนี้ไม่บันทึกและไม่นับจำนวนการแสดง</p>
             </section>
         </div>}
-        {preview && <div role="dialog" aria-modal="true" aria-label="ตัวอย่างป๊อปอัปโปรโมชัน" className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-6">
-            <div className="w-full max-w-sm"><div className="mb-3 flex justify-end">
-                <button ref={closePreview} autoFocus onClick={() => setPreview(false)} aria-label="ปิดตัวอย่าง" className="h-11 w-11 rounded-full bg-black/60 text-xl text-white">×</button>
-            </div><img src={form.image} alt={form.title || 'โปรโมชัน'} className="max-h-[75vh] w-full rounded-[22px] object-contain" /></div>
-        </div>}
+        <AnimatePresence>{preview && <PromotionCard image={form.image} title={form.title}
+            actionable={form.targetType !== 'none'} closeRef={closePreview}
+            onClose={() => setPreview(false)} onOpen={() => setPreview(false)} />}</AnimatePresence>
     </AdminShell>;
 };
 export default AdminPromotion;

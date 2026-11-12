@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { authFetch } from '../services/api';
+import { AnimatePresence } from 'framer-motion';
+import PromotionCard from './PromotionCard';
 
 type Promotion = { id: string; revision: string; enabled: boolean; image: string; title: string; frequency: string; targetType: string; target: string };
 
@@ -60,11 +62,10 @@ export default function PromotionPopup() {
             oldFocus?.focus();
         };
     }, [promotion]);
-    if (!promotion) return null;
-    return <div role="dialog" aria-modal="true" aria-label={promotion.title || 'โปรโมชัน'} className="fixed inset-0 z-[150] flex items-center justify-center bg-black/50 p-6">
-        <div className="w-full max-w-sm">
-            <div className="mb-3 flex justify-end"><button ref={closeButton} onClick={() => setPromotion(null)} aria-label="ปิดโปรโมชัน" className="h-11 w-11 rounded-full bg-black/60 text-xl text-white">×</button></div>
-            <button className="block w-full" onClick={() => {
+    return <AnimatePresence>{promotion && <PromotionCard
+        key={promotion.revision} image={promotion.image} title={promotion.title}
+        actionable={promotion.targetType !== 'none'} closeRef={closeButton}
+        onClose={() => setPromotion(null)} onOpen={() => {
                 if (promotion.targetType === 'trip') {
                     setPromotion(null); navigate('/trip/' + encodeURIComponent(promotion.target));
                 } else if (promotion.targetType === 'url') {
@@ -73,9 +74,5 @@ export default function PromotionPopup() {
                         if (url.protocol === 'https:') { setPromotion(null); window.location.assign(url.href); }
                     } catch { /* Ignore invalid legacy targets. */ }
                 }
-            }} aria-label={promotion.title || 'โปรโมชัน'}>
-                <img src={promotion.image} alt={promotion.title || 'โปรโมชัน'} className="max-h-[75vh] w-full rounded-[22px] object-contain" />
-            </button>
-        </div>
-    </div>;
+            }} />}</AnimatePresence>;
 }
