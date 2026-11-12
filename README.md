@@ -2,7 +2,6 @@
   <img src="branding/Logo.png" alt="GoWithUs — รถกับกระต่าย" width="220" />
   <h1>GoWithUs</h1>
   <p><strong>แพลตฟอร์มที่เชื่อมโยงผู้คนมาเป็นเพื่อนกัน</strong></p>
-  <p>แพลตฟอร์มหาเพื่อนเที่ยว วางแผนทริป และพูดคุยกับเพื่อนร่วมทาง<br />Native iOS · Web · Admin Console · REST API & WebSocket</p>
   <p>
     <img src="https://img.shields.io/badge/SwiftUI-iOS%2017%2B-FA7343?logo=swift&logoColor=white" alt="SwiftUI iOS 17+" />
     <img src="https://img.shields.io/badge/Liquid%20Glass-iOS%2026%2B-222222?logo=apple&logoColor=white" alt="Liquid Glass iOS 26+" />
