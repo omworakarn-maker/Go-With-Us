@@ -203,8 +203,8 @@ struct NativeTabIconFeedback: UIViewRepresentable {
                     wave.add(draw, forKey: "chat.draw")
                 }
             case .profile:
-                // Render the native glyph as-is: rebuilding its SF Symbol with
-                // aspect-fit enlarged it to the image view's padded bounds.
+                // Only the outgoing person is a snapshot. The incoming person
+                // is UIKit's own icon, so no size or rendering swap occurs at rest.
                 let renderer = UIGraphicsImageRenderer(size: source.bounds.size)
                 let bitmap = renderer.image { context in
                     source.layer.render(in: context.cgContext)
@@ -212,9 +212,8 @@ struct NativeTabIconFeedback: UIViewRepresentable {
                 func person() -> UIImageView {
                     let icon = UIImageView(image: bitmap.withRenderingMode(.alwaysTemplate))
                     icon.tintColor = bar.tintColor.resolvedColor(with: bar.traitCollection)
-                    icon.contentMode = .center
-                    icon.bounds = CGRect(origin: .zero, size: source.bounds.size)
-                    icon.center = CGPoint(x: frame.midX, y: frame.midY)
+                    icon.contentMode = .scaleToFill
+                    icon.frame = frame
                     icon.isUserInteractionEnabled = false
                     icon.isAccessibilityElement = false
                     icon.layer.zPosition = 101
@@ -223,7 +222,6 @@ struct NativeTabIconFeedback: UIViewRepresentable {
                     return icon
                 }
                 let outgoing = person()
-                let incoming = person()
                 let start = CACurrentMediaTime()
                 func motion(_ path: String, from: Double, to: Double, duration: Double, delay: Double = 0) -> CABasicAnimation {
                     let animation = CABasicAnimation(keyPath: path)
@@ -236,9 +234,8 @@ struct NativeTabIconFeedback: UIViewRepresentable {
                     animation.isRemovedOnCompletion = false
                     return animation
                 }
-                // Hide UIKit's native duplicates during the handoff, then restore
-                // them atomically when both overlays are removed.
-                for image in images {
+                // Keep the primary native icon as the incoming person.
+                for image in images where image !== source {
                     let hide = motion("opacity", from: 0, to: 0, duration: 0.48)
                     hide.beginTime = image.layer.convertTime(start, from: nil)
                     image.layer.add(hide, forKey: opacityKey)
@@ -248,10 +245,13 @@ struct NativeTabIconFeedback: UIViewRepresentable {
                 let disappear = motion("opacity", from: 1, to: 0, duration: 0.25)
                 let enter = motion("transform.translation.x", from: distance, to: 0, duration: 0.38, delay: 0.04)
                 let appear = motion("opacity", from: 0, to: 1, duration: 0.24, delay: 0.04)
+                enter.isAdditive = true
+                enter.beginTime = source.layer.convertTime(start + 0.04, from: nil)
+                appear.beginTime = enter.beginTime
                 outgoing.layer.add(leave, forKey: translationKey)
                 outgoing.layer.add(disappear, forKey: opacityKey)
-                incoming.layer.add(enter, forKey: translationKey)
-                incoming.layer.add(appear, forKey: opacityKey)
+                source.layer.add(enter, forKey: translationKey)
+                source.layer.add(appear, forKey: opacityKey)
             case .create:
                 break
             }
