@@ -3,9 +3,9 @@ import Foundation
 // Compile with the production Models/Message.swift; no network or UIKit required.
 @main
 struct ChatMessageTimelineTests {
-    static func message(_ id: String, state: MessageDeliveryState? = nil) -> Message {
+    static func message(_ id: String, state: MessageDeliveryState? = nil, date: Date = Date()) -> Message {
         var message = Message(id: id, content: id, senderId: "self", recipientId: "friend",
-                              tripId: nil, createdAt: Date(), sender: nil, recipient: nil, imageUrl: nil)
+                              tripId: nil, createdAt: date, sender: nil, recipient: nil, imageUrl: nil)
         message.deliveryState = state
         if state != nil { message.localID = id }
         return message
@@ -53,6 +53,30 @@ struct ChatMessageTimelineTests {
         let legacyJSON = #"{"id":"legacy","content":"hello","senderId":"friend","createdAt":0}"#
         let legacy = try JSONDecoder().decode(Message.self, from: Data(legacyJSON.utf8))
         assert(legacy.deliveryState == nil && legacy.displayID == "legacy")
+        let readState = ChatReadState()
+        let friend = ChatUser(id: "friend", name: "Friend", email: "", avatarUrl: nil, profileImage: nil, gallery: nil)
+        let other = ChatUser(id: "other", name: "Other", email: "", avatarUrl: nil, profileImage: nil, gallery: nil)
+        let readMessage = message("read", date: Date(timeIntervalSince1970: 100))
+        let stale = Conversation(user: friend, lastMessage: readMessage, unreadCount: 2)
+        let otherChat = Conversation(user: other, lastMessage: readMessage, unreadCount: 3)
+        readState.updateSnapshot([stale, otherChat], userID: "account-1")
+        assert(readState.total(userID: "account-1") == 5)
+        readState.markRead(partnerID: friend.id, through: readMessage, userID: "account-1")
+        assert(readState.total(userID: "account-1") == 3, "reading one chat must retain unread counts in other rooms")
+        assert(readState.updateSnapshot([stale, otherChat], userID: "account-1")[0].unreadCount == 0,
+               "a stale network response must not restore a read badge")
+        let later = message("later", date: Date(timeIntervalSince1970: 101))
+        let newChat = Conversation(user: friend, lastMessage: later, unreadCount: 1)
+        assert(readState.updateSnapshot([newChat], userID: "account-1")[0].unreadCount == 1,
+               "new messages after leaving the room must remain unread")
+        let sameTime = Conversation(user: friend, lastMessage: message("same-time-new", date: readMessage.createdAt), unreadCount: 1)
+        assert(readState.normalized([sameTime], userID: "account-1")[0].unreadCount == 1)
+        assert(readState.normalized([stale], userID: "account-2")[0].unreadCount == 2, "read state must be account scoped")
+        readState.markRead(partnerID: friend.id, through: later, userID: "account-1")
+        readState.markRead(partnerID: friend.id, through: readMessage, userID: "account-1")
+        assert(readState.normalized([newChat], userID: "account-1")[0].unreadCount == 0,
+               "out-of-order read callbacks must not regress the watermark")
+        print("PASS: shared read counts, stale responses, other rooms, new arrivals, equal timestamps, and account isolation")
         print("PASS: pending sends, concurrent acknowledgements, stable scroll identity, stale refresh, deduplication, failure states, disk history, account isolation, and legacy decoding")
     }
 }

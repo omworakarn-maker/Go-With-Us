@@ -178,18 +178,13 @@ struct ContentView: View {
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("NewMessageReceived"))) { _ in
                 Task { await fetchUnreadCounts() }
             }
-            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("LocalUnreadTotalChanged"))) { note in
-                if let info = note.userInfo, let local = info["localTotal"] as? Int {
-                    print("🔔 ContentView: received LocalUnreadTotalChanged local=\(local) serverLast=\(lastUnreadCount)")
-                    Task { await MainActor.run {
-                        localOverrideTotal = local
-                        let display = max(lastUnreadCount, localOverrideTotal)
-                        badgeCounts[.chat] = display
-                        UNUserNotificationCenter.current().setBadgeCount(display) { error in
-                            if let error = error { print("❌ Failed to set badge count: \(error)") }
-                        }
-                    }}
-                }
+            .onReceive(NotificationCenter.default.publisher(for: .init("ChatUnreadStateChanged"))) { note in
+                guard let userID = note.userInfo?["userID"] as? String,
+                      userID == AuthService.shared.getCurrentUserId(),
+                      let total = note.userInfo?["total"] as? Int else { return }
+                lastUnreadCount = total
+                badgeCounts[.chat] = total
+                UNUserNotificationCenter.current().setBadgeCount(total) { _ in }
             }
         } else {
             LoginView()
@@ -211,7 +206,6 @@ struct ContentView: View {
     }
     
     @State private var lastUnreadCount: Int = 0
-    @State private var localOverrideTotal: Int = 0
     
     @State private var isFetchingUnread = false
 
@@ -221,11 +215,12 @@ struct ContentView: View {
         isFetchingUnread = true
         defer { isFetchingUnread = false }
         do {
-            let conversations = try await MessageService.shared.getConversations()
+            let fetched = try await MessageService.shared.getConversations()
             guard KeychainService.shared.getToken() == token else { return }
-            let totalUnread = conversations.compactMap { $0.unreadCount }.reduce(0, +)
+            let conversations = ChatReadState.shared.updateSnapshot(fetched, userID: AuthService.shared.getCurrentUserId() ?? "")
             
                 await MainActor.run {
+                    let totalUnread = ChatReadState.shared.total(userID: AuthService.shared.getCurrentUserId() ?? "")
                     print("🔔 ContentView: totalUnread=\(totalUnread)")
                     for c in conversations {
                         print("   conv: \(c.user.name) unread=\(c.unreadCount ?? 0)")
@@ -233,9 +228,9 @@ struct ContentView: View {
 
                     // NotificationPoller owns sender-specific alerts; badge updates are silent.
 
-                    // Use local override total if it's higher than server total
+                    // Apply the same read state used by the conversation list.
                     lastUnreadCount = totalUnread
-                    let display = max(totalUnread, localOverrideTotal)
+                    let display = totalUnread
                     badgeCounts[.chat] = display
 
                     // Update App Icon Badge
