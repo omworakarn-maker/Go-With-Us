@@ -210,7 +210,8 @@ struct NativeTabIconFeedback: UIViewRepresentable {
                     source.layer.render(in: context.cgContext)
                 }
                 func person() -> UIImageView {
-                    let icon = UIImageView(image: bitmap)
+                    let icon = UIImageView(image: bitmap.withRenderingMode(.alwaysTemplate))
+                    icon.tintColor = bar.tintColor.resolvedColor(with: bar.traitCollection)
                     icon.contentMode = .center
                     icon.bounds = CGRect(origin: .zero, size: source.bounds.size)
                     icon.center = CGPoint(x: frame.midX, y: frame.midY)
