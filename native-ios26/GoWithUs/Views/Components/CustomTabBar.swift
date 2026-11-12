@@ -53,6 +53,8 @@ struct NativeTabIconFeedback: UIViewRepresentable {
         func cancel() {
             pending?.cancel()
             pending = nil
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
             for image in animatedImages {
                 image.layer.removeAnimation(forKey: translationKey)
                 image.layer.removeAnimation(forKey: scaleKey)
@@ -64,6 +66,7 @@ struct NativeTabIconFeedback: UIViewRepresentable {
             transientIcons.forEach { $0.removeFromSuperview() }
             transientIcons = []
             animatedImages = []
+            CATransaction.commit()
         }
 
         func update(host: UIView, selection: Int, tab: Tab, separatedAction: Bool, pulse: UUID, enabled: Bool) {
@@ -200,14 +203,46 @@ struct NativeTabIconFeedback: UIViewRepresentable {
                     wave.add(draw, forKey: "chat.draw")
                 }
             case .profile:
-                // A single restrained zoom, with no translated replacement glyph.
-                let zoom = keyframes(
-                    "transform.scale",
-                    values: [1, 1.18, 1],
-                    times: [0, 0.48, 1],
-                    duration: 0.50
-                )
-                source.layer.add(zoom, forKey: scaleKey)
+                // The old person drops away while a new person grows into place.
+                // Use bar coordinates so UIKit cannot clip the replacement glyph.
+                let replacement = UIImageView(image: source.image)
+                replacement.preferredSymbolConfiguration = source.preferredSymbolConfiguration
+                replacement.tintColor = bar.tintColor
+                replacement.contentMode = source.contentMode
+                replacement.frame = frame
+                replacement.isUserInteractionEnabled = false
+                replacement.isAccessibilityElement = false
+                replacement.layer.zPosition = 101
+                bar.addSubview(replacement)
+                transientIcons.append(replacement)
+
+                let start = CACurrentMediaTime()
+                func motion(_ path: String, from: Double, to: Double, duration: Double, delay: Double = 0) -> CABasicAnimation {
+                    let animation = CABasicAnimation(keyPath: path)
+                    animation.fromValue = from
+                    animation.toValue = to
+                    animation.duration = duration
+                    animation.beginTime = start + delay
+                    animation.timingFunction = CAMediaTimingFunction(controlPoints: 0.2, 0.8, 0.2, 1)
+                    animation.fillMode = .both
+                    animation.isRemovedOnCompletion = false
+                    return animation
+                }
+                // Configure every animation before attaching it to a layer.
+                let drop = motion("transform.translation.y", from: 0, to: 11, duration: 0.28)
+                drop.isAdditive = true
+                let shrink = motion("transform.scale", from: 1, to: 0.78, duration: 0.28)
+                let disappear = motion("opacity", from: 1, to: 0, duration: 0.23)
+                let enter = motion("transform.translation.y", from: -7, to: 0, duration: 0.44, delay: 0.08)
+                enter.isAdditive = true
+                let grow = motion("transform.scale", from: 0.72, to: 1, duration: 0.44, delay: 0.08)
+                let appear = motion("opacity", from: 0, to: 1, duration: 0.25, delay: 0.08)
+                source.layer.add(drop, forKey: translationKey)
+                source.layer.add(shrink, forKey: scaleKey)
+                source.layer.add(disappear, forKey: opacityKey)
+                replacement.layer.add(enter, forKey: translationKey)
+                replacement.layer.add(grow, forKey: scaleKey)
+                replacement.layer.add(appear, forKey: opacityKey)
             case .create:
                 break
             }
