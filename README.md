@@ -170,6 +170,8 @@ JWT_SECRET=REPLACE_WITH_A_LONG_RANDOM_SECRET
 PORT=3000
 GEMINI_API_KEY=YOUR_SERVER_SIDE_KEY
 GEMINI_MODEL=gemini-flash-latest
+GROQ_API_KEY=YOUR_OPTIONAL_FALLBACK_KEY
+GROQ_MODEL=openai/gpt-oss-20b
 SENDGRID_API_KEY=YOUR_SENDGRID_KEY
 SENDGRID_FROM_EMAIL=YOUR_VERIFIED_SENDER
 ```
@@ -283,6 +285,7 @@ npm run test:sessions
 node tests/migrationRecovery.test.cjs
 node tests/interestEncoding.test.cjs
 node tests/aiTimeout.test.cjs
+node tests/aiFallback.test.cjs
 node tests/serverDiagnostics.test.cjs
 ```
 
