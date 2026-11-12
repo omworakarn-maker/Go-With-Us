@@ -17,6 +17,7 @@ import Chat from '../pages/Chat';
 import SearchPage from '../pages/Search';
 import TripHistory from '../pages/TripHistory';
 import AdminAlert from '../pages/AdminAlert';
+import AdminPromotion from '../pages/AdminPromotion';
 import AdminReports from '../pages/AdminReports';
 import AdminVerification from '../pages/AdminVerification';
 import AdminDashboard from '../pages/AdminDashboard';
@@ -244,6 +245,7 @@ const AnimatedRoutes: React.FC = () => {
                     <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
                     <Route path="/admin/users" element={<ProtectedRoute><AdminUsers /></ProtectedRoute>} />
                     <Route path="/admin/trips" element={<ProtectedRoute><AdminTrips /></ProtectedRoute>} />
+                    <Route path="/admin/promotions" element={<ProtectedRoute><AdminPromotion /></ProtectedRoute>} />
                     <Route
                         path="/admin/alerts"
                         element={

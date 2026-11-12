@@ -1,6 +1,10 @@
 # Promotion popup
 
 Admin path: Profile → Manage promotion popup.
+Web admin path: /admin/promotions (available in the admin sidebar, dashboard,
+and profile menu). It edits the same settings used by iOS. The web page includes
+image compression, a popup preview, and load/save error handling. A failed
+initial load disables saving to prevent overwriting an unseen existing campaign.
 
 Choose an image, enable/disable, select frequency, and optionally choose an
 HTTPS link or public trip ID. Save persists the settings on the API server.

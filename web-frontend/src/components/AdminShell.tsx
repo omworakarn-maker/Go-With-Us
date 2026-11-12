@@ -9,6 +9,7 @@ const links = [
     ['/admin/reports', 'รายงานผู้ใช้', '!'],
     ['/admin/verify', 'ยืนยันตัวตน', '✓'],
     ['/admin/alerts', 'แจ้งเตือน', '◉'],
+    ['/admin/promotions', 'ป๊อปอัปโปรโมชัน', '▧'],
 ];
 
 const AdminShell: React.FC<React.PropsWithChildren<{ title: string; subtitle?: string }>> = ({ title, subtitle, children }) => {

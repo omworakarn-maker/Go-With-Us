@@ -37,6 +37,7 @@ const AdminDashboard: React.FC = () => {
                 <Link to="/admin/verify" className="rounded-xl bg-gray-100 p-4 text-sm"><b className="block text-black">คำขอยืนยันตัวตน</b><span>{data?.pendingVerifications ?? '–'} รายการรอดำเนินการ</span></Link>
                 <Link to="/admin/reports" className="rounded-xl bg-gray-100 p-4 text-sm"><b className="block text-black">รายงานผู้ใช้</b><span>{data?.pendingReports ?? '–'} รายการรอตรวจสอบ</span></Link>
                 <Link to="/admin/alerts" className="rounded-xl bg-gray-100 p-4 text-sm"><b className="block text-black">ประกาศระบบ</b><span>สร้างข้อความแจ้งเตือนผู้ใช้</span></Link>
+                <Link to="/admin/promotions" className="rounded-xl bg-gray-100 p-4 text-sm"><b className="block text-black">ป๊อปอัปโปรโมชัน</b><span>เลือกรูป เปิด–ปิด และตั้งความถี่</span></Link>
             </div>
         </section>
     </AdminShell>;
