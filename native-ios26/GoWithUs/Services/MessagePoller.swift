@@ -61,13 +61,14 @@ final class MessagePoller: ObservableObject {
         Task { @MainActor in
             defer { isChecking = false }
             do {
-                let conversations = try await MessageService.shared.getConversations()
+                let fetched = try await MessageService.shared.getConversations()
                 guard KeychainService.shared.getToken() == token else { return }
                 if accountToken != token {
                     accountToken = token
                     lastMessageIds = [:]
                     conversationSnapshot = []
                 }
+                let conversations = ChatReadState.shared.updateSnapshot(fetched, userID: AuthService.shared.getCurrentUserId() ?? "")
                 let totalUnread = conversations.compactMap { $0.unreadCount }.reduce(0, +)
                 // Ensure UI updates and notifications happen on main thread
                 await MainActor.run {
@@ -117,7 +118,7 @@ final class MessagePoller: ObservableObject {
                     }
 
                     // Update app badge using UNUserNotificationCenter (iOS 17+)
-                    UNUserNotificationCenter.current().setBadgeCount(totalUnread) { error in
+                    UNUserNotificationCenter.current().setBadgeCount(ChatReadState.shared.total(userID: currentUserId ?? "")) { error in
                         if let err = error {
                             print("❌ Failed to set badge: \(err)")
                         }

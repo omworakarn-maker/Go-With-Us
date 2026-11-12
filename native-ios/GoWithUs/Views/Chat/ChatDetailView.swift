@@ -12,6 +12,7 @@ struct ChatDetailView: View {
     @State private var selectedItem: PhotosPickerItem? = nil
     @State private var selectedImageData: Data? = nil
     @State private var isSendingImage = false
+    @State private var isChatVisible = false
     @Environment(\.dismiss) private var dismiss
     
     init(chatTitle: String, tripId: String? = nil, partnerId: String? = nil, initialPartnerUser: User? = nil) {
@@ -300,12 +301,15 @@ struct ChatDetailView: View {
             Task { await prepareImage(from: item) }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            guard isChatVisible else { return }
             Task {
                 if let tripId { await viewModel.refreshTripMessages(tripId: tripId) }
                 else if let partnerId { await viewModel.refreshPrivateMessages(userId: partnerId) }
             }
         }
         .onAppear {
+            isChatVisible = true
+            if let partnerId { viewModel.beginReadingPrivateChat(partnerID: partnerId) }
             // Initial load
             if let tripId = tripId {
                 Task { await viewModel.loadTripMessages(tripId: tripId) }
@@ -328,9 +332,10 @@ struct ChatDetailView: View {
             if let message = notification.userInfo?["message"] as? Message {
                 // Ensure the message belongs to this chat before appending
                 let isForThisChat = (tripId != nil && message.tripId == tripId) ||
-                                    (partnerId != nil && (message.senderId == partnerId || message.recipientId == partnerId))
+                                    (tripId == nil && message.tripId == nil && partnerId != nil && (message.senderId == partnerId || message.recipientId == partnerId))
                 
-                if isForThisChat && !viewModel.messages.contains(where: { $0.id == message.id }) {
+                if isChatVisible && UIApplication.shared.applicationState == .active &&
+                    isForThisChat && !viewModel.messages.contains(where: { $0.id == message.id }) {
                     viewModel.receiveMessage(message)
                     Task {
                         if let tripId { await viewModel.refreshTripMessages(tripId: tripId) }
@@ -338,6 +343,10 @@ struct ChatDetailView: View {
                     }
                 }
             }
+        }
+        .onDisappear {
+            viewModel.endReadingPrivateChat()
+            isChatVisible = false
         }
         .sheet(isPresented: $showPartnerProfile) {
             if let user = partnerUser {

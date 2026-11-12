@@ -1,6 +1,7 @@
 import Foundation
 import Combine
 import SwiftUI
+import UIKit
 
 @MainActor
 class ChatViewModel: ObservableObject {
@@ -13,6 +14,8 @@ class ChatViewModel: ObservableObject {
     private var roomKey: String?
     private var roomUpdates: AnyCancellable?
     private var inboxUpdates: AnyCancellable?
+    private var readUpdates: AnyCancellable?
+    private var visiblePartnerID: String?
 
     private func key(_ kind: String, _ id: String) -> String {
         "\(currentUserId ?? ""):\(kind):\(id)"
@@ -42,6 +45,7 @@ class ChatViewModel: ObservableObject {
         messages.append(message)
         lastMessageCount = messages.count
         saveRoom()
+        markVisiblePrivateChatRead()
     }
 
     // Active chat messages
@@ -68,8 +72,6 @@ class ChatViewModel: ObservableObject {
         dirtyRooms = []
     }
 
-    // Local overrides to keep unread badges visible until user reads
-    private var localUnreadOverrides: [String: Int] = [:]
 
     // Current User ID
     private var currentUserId: String? {
@@ -119,11 +121,10 @@ class ChatViewModel: ObservableObject {
         }
     }
 
-    private var conversationUpdates: AnyCancellable?
 
     init() {
         // Load from static cache instantly
-        self.conversations = Self.cachedConversations
+        self.conversations = ChatReadState.shared.normalized(Self.cachedConversations, userID: AuthService.shared.getCurrentUserId() ?? "")
         self.mutualMatches = Self.cachedMutualMatches
         self.joinedTripChats = Self.cachedJoinedTripChats
 
@@ -131,8 +132,9 @@ class ChatViewModel: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] note in
                 guard let self, let updated = note.userInfo?["conversations"] as? [Conversation] else { return }
-                self.conversations = updated
-                Self.cachedConversations = updated
+                let normalized = ChatReadState.shared.normalized(updated, userID: self.currentUserId ?? "")
+                self.conversations = normalized
+                Self.cachedConversations = normalized
                 for conversation in updated {
                     let key = self.key("person", conversation.user.id)
                     if let cached = Self.cachedRoomMessages[key], cached.last?.id != conversation.lastMessage.id {
@@ -158,15 +160,15 @@ class ChatViewModel: ObservableObject {
                 }
             }
 
-        // Subscribe once to conversation new-message events
-        conversationUpdates = NotificationCenter.default.publisher(for: NSNotification.Name("ConversationNewMessage"))
+        readUpdates = NotificationCenter.default.publisher(for: .init("ChatUnreadStateChanged"))
             .receive(on: DispatchQueue.main)
             .sink { [weak self] note in
-                guard let self else { return }
-                if let info = note.userInfo, let partnerId = info["partnerId"] as? String {
-                    Task { await self.incrementUnread(for: partnerId) }
-                }
+                guard let self, let userID = note.userInfo?["userID"] as? String,
+                      userID == self.currentUserId else { return }
+                self.conversations = ChatReadState.shared.normalized(self.conversations, userID: userID)
+                Self.cachedConversations = ChatReadState.shared.normalized(Self.cachedConversations, userID: userID)
             }
+
     }
 
     private func loadJoinedTripChatsInternal() async {
@@ -213,17 +215,11 @@ class ChatViewModel: ObservableObject {
     private func loadConversationsInternal() async {
         do {
             let convs = try await MessageService.shared.getConversations()
-            // Merge server conversations with local unread overrides so badge stays visible
-            let mappedConvs = convs.map { conv in
-                let pid = conv.user.id
-                let serverCount = conv.unreadCount ?? 0
-                let override = localUnreadOverrides[pid] ?? 0
-                let display = max(serverCount, override)
-                return Conversation(user: conv.user, lastMessage: conv.lastMessage, unreadCount: display)
-            }
+            let mappedConvs = ChatReadState.shared.updateSnapshot(convs, userID: currentUserId ?? "")
             await MainActor.run {
-                self.conversations = mappedConvs
-                Self.cachedConversations = mappedConvs
+                let latest = ChatReadState.shared.normalized(mappedConvs, userID: self.currentUserId ?? "")
+                self.conversations = latest
+                Self.cachedConversations = latest
             }
             print("🛰 ChatViewModel: loaded \(mappedConvs.count) conversations")
             for c in mappedConvs {
@@ -240,7 +236,10 @@ class ChatViewModel: ObservableObject {
     func loadPrivateMessages(userId: String) async {
         let cacheKey = key("person", userId)
         let restored = restoreRoom(cacheKey)
-        if restored && !Self.dirtyRooms.contains(cacheKey) { return }
+        if restored && !Self.dirtyRooms.contains(cacheKey) {
+            markVisiblePrivateChatRead()
+            return
+        }
         defer {
             if errorMessage == nil {
                 saveRoom()
@@ -256,26 +255,7 @@ class ChatViewModel: ObservableObject {
             let received = try await MessageService.shared.getPrivateMessages(userId: userId)
             messages = ChatMessageTimeline.merge(received, with: messages, knownIDs: knownIDs)
             lastMessageCount = messages.count
-            // Persist last-seen message id for this partner so future starts know we've seen up to this message
-            if let last = messages.last {
-                // Use MessagePoller API to update both persistent and in-memory caches
-                MessagePoller.shared.markConversationSeen(partnerId: userId, messageId: last.id)
-            } else {
-                MessagePoller.shared.markConversationSeen(partnerId: userId, messageId: nil)
-            }
-            // Clear local unread override for this partner since user opened the chat
-            localUnreadOverrides.removeValue(forKey: userId)
-
-            // Optimistically clear unread count for this conversation so badge disappears immediately
-            if let idx = conversations.firstIndex(where: { $0.user.id == userId }) {
-                var conv = conversations[idx]
-                conv = Conversation(user: conv.user, lastMessage: conv.lastMessage, unreadCount: 0)
-                conversations[idx] = conv
-            }
-
-            postLocalTotal()
-            // Reload conversations to sync with server and remove badge
-            Task { await loadConversations() }
+            markVisiblePrivateChatRead()
             NotificationCenter.default.post(name: NSNotification.Name("NewMessageReceived"), object: nil)
         } catch {
             errorMessage = error.localizedDescription
@@ -400,31 +380,24 @@ class ChatViewModel: ObservableObject {
         }
     }
 
-    private func incrementUnread(for partnerId: String) async {
-        // Increment local override for partner to keep badge visible until user opens chat
-        let current = localUnreadOverrides[partnerId] ?? 0
-        localUnreadOverrides[partnerId] = current + 1
-
-        // Reflect override in the in-memory conversations if present
-        if let idx = conversations.firstIndex(where: { $0.user.id == partnerId }) {
-            var conv = conversations[idx]
-            let serverCount = conv.unreadCount ?? 0
-            let newCount = max(serverCount, localUnreadOverrides[partnerId] ?? 0)
-            conv = Conversation(user: conv.user, lastMessage: conv.lastMessage, unreadCount: newCount)
-            await MainActor.run {
-                conversations[idx] = conv
-            }
-        } else {
-            // If not found, reload conversations to pick it up (merge will apply override)
-            await loadConversations()
-        }
-        postLocalTotal()
+    func beginReadingPrivateChat(partnerID: String) {
+        visiblePartnerID = partnerID
+        markVisiblePrivateChatRead()
     }
 
-    private func postLocalTotal() {
-        let total = localUnreadOverrides.values.reduce(0, +)
-        print("🔔 ChatViewModel: localOverrideTotal=\(total) overrides=\(localUnreadOverrides)")
-        NotificationCenter.default.post(name: NSNotification.Name("LocalUnreadTotalChanged"), object: nil, userInfo: ["localTotal": total])
+    func endReadingPrivateChat() {
+        markVisiblePrivateChatRead()
+        visiblePartnerID = nil
+    }
+
+    private func markVisiblePrivateChatRead() {
+        guard UIApplication.shared.applicationState == .active,
+              let partnerID = visiblePartnerID, let userID = currentUserId,
+              let last = messages.last(where: {
+                  $0.tripId == nil && $0.deliveryState != .sending && $0.deliveryState != .failed
+              }) else { return }
+        ChatReadState.shared.markRead(partnerID: partnerID, through: last, userID: userID)
+        MessagePoller.shared.markConversationSeen(partnerId: partnerID, messageId: last.id)
     }
 
     // MARK: - Refresh Messages (Silent, for polling)
@@ -436,12 +409,13 @@ class ChatViewModel: ObservableObject {
             let knownIDs = Set(messages.map(\.id))
             let newMessages = try await MessageService.shared.getPrivateMessages(userId: userId)
             Self.dirtyRooms.remove(key("person", userId))
-            MessagePoller.shared.markConversationSeen(partnerId: userId, messageId: newMessages.last?.id)
             let merged = ChatMessageTimeline.merge(newMessages, with: messages, knownIDs: knownIDs)
             if merged != messages {
                 messages = merged
                 lastMessageCount = newMessages.count
             }
+            markVisiblePrivateChatRead()
+            NotificationCenter.default.post(name: NSNotification.Name("NewMessageReceived"), object: nil)
         } catch {
             // Silently fail for polling
         }

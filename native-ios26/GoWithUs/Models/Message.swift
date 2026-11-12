@@ -53,6 +53,57 @@ enum MessageDeliveryState: String, Codable {
     case sending, sent, failed
 }
 
+// Shared across inbox, room and tab badge so a stale response cannot resurrect
+// unread counts for messages already displayed in an open conversation.
+final class ChatReadState {
+    static let shared = ChatReadState()
+    private struct Watermark {
+        var date: Date
+        var ids: Set<String>
+    }
+    private var seen: [String: [String: Watermark]] = [:]
+    private var snapshots: [String: [Conversation]] = [:]
+
+    func normalized(_ conversations: [Conversation], userID: String) -> [Conversation] {
+        conversations.map { conversation in
+            guard let mark = seen[userID]?[conversation.id],
+                  conversation.lastMessage.createdAt < mark.date || mark.ids.contains(conversation.lastMessage.id) else {
+                return conversation
+            }
+            return Conversation(user: conversation.user, lastMessage: conversation.lastMessage, unreadCount: 0)
+        }
+    }
+
+    @discardableResult
+    func updateSnapshot(_ conversations: [Conversation], userID: String) -> [Conversation] {
+        snapshots[userID] = conversations
+        let result = normalized(conversations, userID: userID)
+        publish(userID: userID)
+        return result
+    }
+
+    func markRead(partnerID: String, through message: Message, userID: String) {
+        guard message.deliveryState != .sending, message.deliveryState != .failed else { return }
+        var mark = seen[userID]?[partnerID]
+        if mark == nil || message.createdAt > mark!.date {
+            mark = Watermark(date: message.createdAt, ids: [message.id])
+        } else if message.createdAt == mark!.date {
+            mark!.ids.insert(message.id)
+        }
+        seen[userID, default: [:]][partnerID] = mark
+        publish(userID: userID)
+    }
+
+    func total(userID: String) -> Int {
+        normalized(snapshots[userID] ?? [], userID: userID).reduce(0) { $0 + ($1.unreadCount ?? 0) }
+    }
+
+    private func publish(userID: String) {
+        NotificationCenter.default.post(name: .init("ChatUnreadStateChanged"), object: nil,
+                                        userInfo: ["userID": userID, "total": total(userID: userID)])
+    }
+}
+
 enum ChatMessageTimeline {
     static func acknowledge(_ server: Message, replacing localID: String, in messages: [Message]) -> [Message] {
         var confirmed = server
