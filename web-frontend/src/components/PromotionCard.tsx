@@ -32,7 +32,7 @@ export default function PromotionCard({ image, title, actionable, onClose, onOpe
                     <BrandLogo className="h-9 w-10" alt="" />
                 </span>
                 <div className="flex-1"><p className="text-[15px] font-bold tracking-tight text-[#263b45]">GoWithUs</p>
-                    <p className="mt-0.5 text-xs text-[#7c8585]">เรื่องดี ๆ ระหว่างทาง</p></div>
+                    <p className="mt-0.5 text-xs text-[#7c8585]">แพลตฟอร์มที่เชื่อมโยงผู้คนมาเป็นเพื่อนกัน</p></div>
                 <button ref={closeRef} autoFocus type="button" onClick={onClose} aria-label="ปิดโปรโมชัน"
                     className="flex h-11 w-11 items-center justify-center rounded-full bg-[#f1efe7] text-xl text-[#687477] transition hover:bg-[#e8e4d9] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#527987]">×</button>
             </header>
@@ -47,7 +47,6 @@ export default function PromotionCard({ image, title, actionable, onClose, onOpe
                     className="flex w-full items-center justify-center gap-3 rounded-full bg-[#263f49] px-5 py-3.5 text-sm font-semibold text-[#fff9e9] transition hover:bg-[#355662] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#527987]">
                     ออกไปดูด้วยกัน <span aria-hidden="true">↗</span>
                 </button>}
-                <p className="py-3 text-center text-[11px] tracking-wide text-[#89918c]">ไปด้วยกัน มีเรื่องราวมากกว่า</p>
             </footer>
         </motion.section>
     </motion.div>;
