@@ -1,5 +1,7 @@
 # GoWithUs brand assets
 
+Official Thai slogan: **แพลตฟอร์มที่เชื่อมโยงผู้คนมาเป็นเพื่อนกัน**
+
 Original artwork and SwiftUI splash supplied in Downloads/SplashView. These masters preserve the supplied art.
 
 - `Logo.png`: transparent artwork for in-app headers and authentication.

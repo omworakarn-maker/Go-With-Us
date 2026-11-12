@@ -1,7 +1,7 @@
 <div align="center">
   <img src="branding/Logo.png" alt="GoWithUs — รถกับกระต่าย" width="220" />
   <h1>GoWithUs</h1>
-  <p><strong>ไปด้วยกัน มีเรื่องราวมากกว่า</strong></p>
+  <p><strong>แพลตฟอร์มที่เชื่อมโยงผู้คนมาเป็นเพื่อนกัน</strong></p>
   <p>แพลตฟอร์มหาเพื่อนเที่ยว วางแผนทริป และพูดคุยกับเพื่อนร่วมทาง<br />Native iOS · Web · Admin Console · REST API & WebSocket</p>
   <p>
     <img src="https://img.shields.io/badge/SwiftUI-iOS%2017%2B-FA7343?logo=swift&logoColor=white" alt="SwiftUI iOS 17+" />
@@ -371,6 +371,6 @@ Commit อ้างอิงของงานล่าสุด:
 
 <div align="center">
   <img src="branding/Logo.png" alt="" width="72" />
-  <p><strong>GoWithUs</strong> · ออกเดินทางไปด้วยกัน</p>
+  <p><strong>GoWithUs</strong> · แพลตฟอร์มที่เชื่อมโยงผู้คนมาเป็นเพื่อนกัน</p>
   <p>Developed by Worakan P.</p>
 </div>
