@@ -205,6 +205,13 @@ const Navbar: React.FC<NavbarProps> = ({ onCreateActivity }) => {
                                 >
                                   ส่งแจ้งเตือนระบบ (Admin)
                                 </Link>
+                                <Link
+                                  to="/admin/promotions"
+                                  onClick={() => setShowProfileMenu(false)}
+                                  className="block px-4 py-2.5 text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors"
+                                >
+                                  ป๊อปอัปโปรโมชัน (Admin)
+                                </Link>
                               </>
                             )}
                             <Link
