@@ -55,8 +55,21 @@ struct ChatDetailView: View {
                                 .lineLimit(1)
                         }
                     }
+                } else if let tripId {
+                    NavigationLink {
+                        TripDetailView(tripId: tripId)
+                    } label: {
+                        HStack(spacing: 5) {
+                            Text(chatTitle.isEmpty ? tr("แชททริป", "Trip chat") : chatTitle)
+                                .font(.system(size: 18, weight: .bold))
+                                .lineLimit(1)
+                            Image(systemName: "chevron.right")
+                                .font(.caption.weight(.semibold))
+                        }
+                        .foregroundColor(.adaptiveText)
+                    }
+                    .accessibilityLabel(tr("ดูรายละเอียดทริป", "View trip details"))
                 } else {
-                    // Group chat — just show title
                     Text(chatTitle.isEmpty ? tr("แชทกลุ่ม", "Group chat") : chatTitle)
                         .font(.system(size: 18, weight: .bold))
                         .foregroundColor(.adaptiveText)

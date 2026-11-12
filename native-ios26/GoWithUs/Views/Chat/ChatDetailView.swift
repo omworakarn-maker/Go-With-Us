@@ -177,6 +177,23 @@ struct ChatDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.visible, for: .navigationBar)
         .toolbar {
+            if let tripId {
+                ToolbarItem(placement: .principal) {
+                    NavigationLink {
+                        TripDetailView(tripId: tripId)
+                    } label: {
+                        HStack(spacing: 5) {
+                            Text(chatTitle.isEmpty ? tr("แชททริป", "Trip chat") : chatTitle)
+                                .font(.headline)
+                                .lineLimit(1)
+                            Image(systemName: "chevron.right")
+                                .font(.caption.weight(.semibold))
+                        }
+                        .foregroundStyle(Color.adaptiveText)
+                    }
+                    .accessibilityLabel(tr("ดูรายละเอียดทริป", "View trip details"))
+                }
+            }
             if isModal {
                 ToolbarItem(placement: .topBarLeading) {
                     Button(tr("ปิด", "Close"), systemImage: "xmark") { dismiss() }
