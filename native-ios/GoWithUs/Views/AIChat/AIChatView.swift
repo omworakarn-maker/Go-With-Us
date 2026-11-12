@@ -7,6 +7,7 @@ struct AIChatView: View {
     @State private var showCreateTrip = false
     @State private var isAutoCreating = false
     @State private var showAutoCreateSuccess = false
+    @State private var sendTask: Task<Void, Never>?
     
     var body: some View {
         NavigationStack {
@@ -22,7 +23,7 @@ struct AIChatView: View {
                             .font(.system(size: 24, weight: .bold))
                             .foregroundColor(.adaptiveText)
                     }
-                    
+
                     Spacer()
                     
                     VStack(spacing: 4) {
@@ -52,48 +53,126 @@ struct AIChatView: View {
                     ScrollView {
                         LazyVStack(spacing: 16) {
                             ForEach(viewModel.messages) { message in
-                                ChatMessageView(message: message)
-                                    .id(message.id)
+                                VStack(alignment: .leading, spacing: 10) {
+                                    ChatMessageView(message: message)
+                                    if !message.isUser, let draft = message.tripDraft {
+                                        draftCard(draft)
+                                            .padding(.leading, 36)
+                                    }
+                                }
+                                .id(message.id)
                             }
                             
                             if viewModel.isLoading {
                                 HStack {
-                                    TypingIndicatorView()
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        TypingIndicatorView()
+                                        Text(tr("กำลังคิดคำตอบ…", "Thinking…"))
+                                            .font(.caption).foregroundStyle(.secondary)
+                                    }
                                     Spacer()
                                 }
                                 .padding(.horizontal)
                                 .id("TypingIndicator")
                             }
+                            Color.clear.frame(height: 1).id("AIChatBottom")
                         }
                         .padding()
                     }
                     .onTapGesture {
                         hideKeyboard()
                     }
+                    .scrollDismissesKeyboard(.interactively)
+                    .onAppear { proxy.scrollTo("AIChatBottom", anchor: .bottom) }
                     .onChange(of: viewModel.messages.count) { _ in
-                        if let lastMessage = viewModel.messages.last {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                                withAnimation {
-                                    proxy.scrollTo(lastMessage.id, anchor: .bottom)
-                                }
+                        Task { @MainActor in
+                            await Task.yield()
+                            withAnimation(.easeOut(duration: 0.22)) {
+                                proxy.scrollTo("AIChatBottom", anchor: .bottom)
                             }
                         }
                     }
                     .onChange(of: viewModel.isLoading) { _ in
-                        if viewModel.isLoading {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                                withAnimation {
-                                    proxy.scrollTo("TypingIndicator", anchor: .bottom)
-                                }
+                        Task { @MainActor in
+                            await Task.yield()
+                            withAnimation(.easeOut(duration: 0.22)) {
+                                proxy.scrollTo("AIChatBottom", anchor: .bottom)
                             }
+                        }
+                    }
+                    .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardDidShowNotification)) { _ in
+                        withAnimation(.easeOut(duration: 0.22)) {
+                            proxy.scrollTo("AIChatBottom", anchor: .bottom)
                         }
                     }
                 }
                 .frame(maxHeight: .infinity)
                 .background(Color(UIColor.systemGroupedBackground))
                 
-                // Draft Alert (above input bar)
-                if let draft = viewModel.tripDraft, viewModel.showDraftAlert {
+                // Input Bar (directly inline)
+                HStack(alignment: .bottom, spacing: 0) {
+                    TextField(SettingsManager.shared.localizedString(for: "ai_input_placeholder"), text: $viewModel.inputText, axis: .vertical)
+                        .lineLimit(1...5)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .foregroundColor(.adaptiveText)
+
+                    if !viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isLoading {
+                        Button(action: {
+                            if viewModel.isLoading {
+                                sendTask?.cancel()
+                            } else {
+                                sendTask = Task { await viewModel.sendMessage() }
+                            }
+                        }) {
+                            if viewModel.isLoading {
+                                Image(systemName: "stop.circle.fill")
+                                    .font(.system(size: 32))
+                                    .foregroundColor(.appPrimary)
+                                    .frame(width: 34, height: 34)
+                                    .padding(.trailing, 6)
+                                    .padding(.bottom, 6)
+                            } else {
+                                Image(systemName: "arrow.up.circle.fill")
+                                    .font(.system(size: 32))
+                                    .foregroundColor(Color.appPrimary)
+                                    .padding(.trailing, 6)
+                                    .padding(.bottom, 4)
+                                    .shadow(color: Color.appPrimary.opacity(0.3), radius: 3, x: 0, y: 2)
+                            }
+                        }
+                        .accessibilityLabel(viewModel.isLoading ? tr("หยุดคำตอบ", "Stop response") : tr("ส่งข้อความ", "Send message"))
+                    }
+                }
+                .background(Color.adaptiveCardBackground)
+                .cornerRadius(22)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 22)
+                        .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                )
+                .shadow(color: Color.black.opacity(0.03), radius: 5, x: 0, y: 2)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(Color.adaptiveBackground)
+            }
+            .onDisappear { sendTask?.cancel() }
+            .navigationBarHidden(true)
+            .sheet(isPresented: $showCreateTrip) {
+                if let draft = viewModel.tripDraft {
+                    CreateTripView(draft: draft)
+                } else {
+                    CreateTripView()
+                }
+            }
+        }
+        .alert(tr("สร้างทริปสำเร็จ! 🎉", "Trip created! 🎉"), isPresented: $showAutoCreateSuccess) {
+            Button(tr("ตกลง", "OK"), role: .cancel) {}
+        } message: {
+            Text(tr("ทริปของคุณถูกสร้างแล้ว ไปดูได้ที่หน้าแรกเลย!", "Your trip has been created. View it on the Home screen!"))
+        }
+    }
+
+    private func draftCard(_ draft: TripDraft) -> some View {
                     VStack(spacing: 12) {
                         HStack {
                             VStack(alignment: .leading, spacing: 4) {
@@ -105,15 +184,42 @@ struct AIChatView: View {
                                     .foregroundColor(.appPrimary)
                             }
                             Spacer()
-                            Button(action: {
-                                withAnimation { viewModel.showDraftAlert = false }
-                            }) {
-                                Image(systemName: "xmark.circle.fill")
-                                    .font(.system(size: 20))
-                                    .foregroundColor(.gray)
-                            }
+                            Image(systemName: "map.fill")
+                                .foregroundStyle(Color.appPrimary)
                         }
                         
+                        Text(draft.description)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                        if let days = draft.itinerary, !days.isEmpty {
+                            DisclosureGroup(tr("ดูแผนการเดินทาง", "View itinerary")) {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    ForEach(days) { day in
+                                        Text("\(tr("วันที่", "Day")) \(day.day)")
+                                            .font(.subheadline.bold())
+                                        ForEach(day.activities) { activity in
+                                            VStack(alignment: .leading, spacing: 3) {
+                                                Text("\(activity.time)  \(activity.name)")
+                                                    .font(.subheadline.weight(.medium))
+                                                if !activity.location.isEmpty {
+                                                    Text(activity.location).font(.caption).foregroundStyle(.secondary)
+                                                }
+                                                if !activity.description.isEmpty {
+                                                    Text(activity.description).font(.caption).foregroundStyle(.secondary)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.top, 8)
+                            }
+                            .font(.subheadline)
+                            .tint(.appPrimary)
+                        }
+
                         // Draft Details
                         VStack(spacing: 8) {
                             HStack(spacing: 16) {
@@ -150,6 +256,7 @@ struct AIChatView: View {
                             
                             // Edit before creating
                             Button(action: {
+                                viewModel.tripDraft = draft
                                 showCreateTrip = true
                             }) {
                                 Text(SettingsManager.shared.localizedString(for: "ai_edit_before"))
@@ -170,68 +277,11 @@ struct AIChatView: View {
                     .padding()
                     .background(Color.adaptiveCardBackground)
                     .cornerRadius(16)
-                    .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: -2)
-                    .padding(.horizontal)
+                    .shadow(color: Color.black.opacity(0.06), radius: 5, x: 0, y: 2)
                     .padding(.bottom, 8)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
-                }
-                
-                // Input Bar (directly inline)
-                HStack(alignment: .bottom, spacing: 0) {
-                    TextField(SettingsManager.shared.localizedString(for: "ai_input_placeholder"), text: $viewModel.inputText, axis: .vertical)
-                        .lineLimit(1...5)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 12)
-                        .foregroundColor(.adaptiveText)
-                    
-                    if !viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isLoading {
-                        Button(action: {
-                            Task { await viewModel.sendMessage() }
-                        }) {
-                            if viewModel.isLoading {
-                                ProgressView()
-                                    .frame(width: 34, height: 34)
-                                    .padding(.trailing, 6)
-                                    .padding(.bottom, 6)
-                            } else {
-                                Image(systemName: "arrow.up.circle.fill")
-                                    .font(.system(size: 32))
-                                    .foregroundColor(Color.appPrimary)
-                                    .padding(.trailing, 6)
-                                    .padding(.bottom, 4)
-                                    .shadow(color: Color.appPrimary.opacity(0.3), radius: 3, x: 0, y: 2)
-                            }
-                        }
-                        .disabled(viewModel.isLoading)
-                    }
-                }
-                .background(Color.adaptiveCardBackground)
-                .cornerRadius(22)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 22)
-                        .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                )
-                .shadow(color: Color.black.opacity(0.03), radius: 5, x: 0, y: 2)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .background(Color.adaptiveBackground)
-            }
-            .navigationBarHidden(true)
-            .sheet(isPresented: $showCreateTrip) {
-                if let draft = viewModel.tripDraft {
-                    CreateTripView(draft: draft)
-                } else {
-                    CreateTripView()
-                }
-            }
-        }
-        .alert(tr("สร้างทริปสำเร็จ! 🎉", "Trip created! 🎉"), isPresented: $showAutoCreateSuccess) {
-            Button(tr("ตกลง", "OK"), role: .cancel) {}
-        } message: {
-            Text(tr("ทริปของคุณถูกสร้างแล้ว ไปดูได้ที่หน้าแรกเลย!", "Your trip has been created. View it on the Home screen!"))
-        }
     }
-    
+
     private func autoCreateTrip(draft: TripDraft) {
         isAutoCreating = true
         let calendar = Calendar.current
@@ -379,6 +429,7 @@ struct ChatMessageView: View {
     }
 }
 
+@MainActor
 class AIChatViewModel: ObservableObject {
     @Published var messages: [ChatMessage] = [] {
         didSet { saveMessages() }
@@ -396,7 +447,12 @@ class AIChatViewModel: ObservableObject {
         if let data = UserDefaults.standard.data(forKey: chatStorageKey),
            let savedMessages = try? JSONDecoder().decode([ChatMessage].self, from: data),
            !savedMessages.isEmpty {
-            self.messages = savedMessages
+            self.messages = savedMessages.map { message in
+                guard !message.isUser, message.content.contains("{") else { return message }
+                let parsed = AITripResponse.parse(message.content)
+                if let draft = parsed.draft { tripDraft = draft; showDraftAlert = true }
+                return ChatMessage(id: message.id, content: parsed.message, isUser: false, timestamp: message.timestamp, draft: parsed.draft)
+            }
         } else {
             self.messages = [ChatMessage(id: UUID(), content: SettingsManager.shared.localizedString(for: "ai_welcome_message"), isUser: false, timestamp: Date())]
         }
@@ -412,6 +468,7 @@ class AIChatViewModel: ObservableObject {
     @Published var showDraftAlert = false
     
     func clearChat() {
+        guard !isLoading else { return }
         messages = [ChatMessage(id: UUID(), content: SettingsManager.shared.localizedString(for: "ai_welcome_message"), isUser: false, timestamp: Date())]
         tripDraft = nil
         showDraftAlert = false
@@ -420,60 +477,35 @@ class AIChatViewModel: ObservableObject {
 
     func sendMessage() async {
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty else { return }
+        guard !text.isEmpty, !isLoading else { return }
+        defer { isLoading = false }
         
         let userMessage = ChatMessage(content: text, isUser: true)
         
-        await MainActor.run {
-            messages.append(userMessage)
-            inputText = ""
-            isLoading = true
-        }
+        messages.append(userMessage)
+        inputText = ""
+        isLoading = true
         
         do {
             // Pass conversation history (skip welcome message and current message which is sent separately)
-            let history = Array(messages.dropFirst().dropLast())
+            let history = Array(messages.dropFirst().dropLast().suffix(12))
             let responseText = try await GeminiService.shared.chat(message: text, history: history)
             
-            // Check for JSON Block (Robust multiple lines & markdown support)
-            // Use greedy regex to match from the first { to the last }
-            let pattern = "(\\{[\\s\\S]*\\})"
-            if let regex = try? NSRegularExpression(pattern: pattern, options: []),
-               let match = regex.firstMatch(in: responseText, options: [], range: NSRange(location: 0, length: responseText.utf16.count)) {
-                
-                if let range = Range(match.range, in: responseText) {
-                    let jsonString = String(responseText[range])
-                    
-                    if let data = jsonString.data(using: .utf8),
-                       let draft = try? JSONDecoder().decode(TripDraft.self, from: data) {
-                        
-                        await MainActor.run {
-                            self.tripDraft = draft
-                            self.showDraftAlert = true
-                            
-                            // Clean up display text
-                            var cleanText = responseText.replacingOccurrences(of: jsonString, with: "")
-                            cleanText = cleanText.replacingOccurrences(of: "```json", with: "")
-                            cleanText = cleanText.replacingOccurrences(of: "```", with: "")
-                            cleanText = cleanText.trimmingCharacters(in: .whitespacesAndNewlines)
-                            
-                            let displayContent = cleanText.isEmpty ? tr("ผมได้ร่างทริปให้คุณแล้วครับ กดดูรายละเอียดด้านล่างได้เลย! 👇", "I've drafted a trip for you. View the details below! 👇") : cleanText
-                            
-                            messages.append(ChatMessage(content: displayContent, isUser: false))
-                            isLoading = false
-                        }
-                        return
-                    }
-                }
-            }
-            
-            let aiMessage = ChatMessage(content: responseText, isUser: false)
+            try Task.checkCancellation()
+            let parsed = AITripResponse.parse(responseText)
+            self.tripDraft = parsed.draft
+            self.showDraftAlert = parsed.draft != nil
+
+            let aiMessage = ChatMessage(content: parsed.message, isUser: false, draft: parsed.draft)
             
             await MainActor.run {
                 messages.append(aiMessage)
                 isLoading = false
             }
+        } catch is CancellationError {
+        } catch let error as URLError where error.code == .cancelled {
         } catch {
+            guard !Task.isCancelled else { return }
             await MainActor.run {
                 messages.append(ChatMessage(content: "\(tr("เกิดข้อผิดพลาด", "Error")): \(error.localizedDescription)", isUser: false))
                 isLoading = false
