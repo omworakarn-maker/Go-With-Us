@@ -203,42 +203,54 @@ struct NativeTabIconFeedback: UIViewRepresentable {
                     wave.add(draw, forKey: "chat.draw")
                 }
             case .profile:
-                // Exchange full-size people vertically without shrinking either glyph.
-                // Use bar coordinates so UIKit cannot clip the replacement glyph.
-                let replacement = UIImageView(image: source.image)
-                replacement.preferredSymbolConfiguration = source.preferredSymbolConfiguration
-                replacement.tintColor = bar.tintColor
-                replacement.contentMode = .scaleAspectFit
-                replacement.frame = frame
-                replacement.isUserInteractionEnabled = false
-                replacement.isAccessibilityElement = false
-                replacement.layer.zPosition = 101
-                bar.addSubview(replacement)
-                transientIcons.append(replacement)
-
+                // Render the native glyph as-is: rebuilding its SF Symbol with
+                // aspect-fit enlarged it to the image view's padded bounds.
+                let renderer = UIGraphicsImageRenderer(size: source.bounds.size)
+                let bitmap = renderer.image { context in
+                    source.layer.render(in: context.cgContext)
+                }
+                func person() -> UIImageView {
+                    let icon = UIImageView(image: bitmap)
+                    icon.contentMode = .center
+                    icon.bounds = CGRect(origin: .zero, size: source.bounds.size)
+                    icon.center = CGPoint(x: frame.midX, y: frame.midY)
+                    icon.isUserInteractionEnabled = false
+                    icon.isAccessibilityElement = false
+                    icon.layer.zPosition = 101
+                    bar.addSubview(icon)
+                    transientIcons.append(icon)
+                    return icon
+                }
+                let outgoing = person()
+                let incoming = person()
                 let start = CACurrentMediaTime()
                 func motion(_ path: String, from: Double, to: Double, duration: Double, delay: Double = 0) -> CABasicAnimation {
                     let animation = CABasicAnimation(keyPath: path)
                     animation.fromValue = from
                     animation.toValue = to
                     animation.duration = duration
-                    animation.beginTime = start + delay
-                    animation.timingFunction = CAMediaTimingFunction(controlPoints: 0.2, 0.8, 0.2, 1)
+                    animation.beginTime = bar.layer.convertTime(start + delay, from: nil)
+                    animation.timingFunction = CAMediaTimingFunction(controlPoints: 0.22, 0.7, 0.25, 1)
                     animation.fillMode = .both
                     animation.isRemovedOnCompletion = false
                     return animation
                 }
-                // Configure every animation before attaching it to a layer.
-                let drop = motion("transform.translation.y", from: 0, to: 11, duration: 0.28)
-                drop.isAdditive = true
-                let disappear = motion("opacity", from: 1, to: 0, duration: 0.23)
-                let enter = motion("transform.translation.y", from: -7, to: 0, duration: 0.44, delay: 0.08)
-                enter.isAdditive = true
-                let appear = motion("opacity", from: 0, to: 1, duration: 0.25, delay: 0.08)
-                source.layer.add(drop, forKey: translationKey)
-                source.layer.add(disappear, forKey: opacityKey)
-                replacement.layer.add(enter, forKey: translationKey)
-                replacement.layer.add(appear, forKey: opacityKey)
+                // Hide UIKit's native duplicates during the handoff, then restore
+                // them atomically when both overlays are removed.
+                for image in images {
+                    let hide = motion("opacity", from: 0, to: 0, duration: 0.48)
+                    hide.beginTime = image.layer.convertTime(start, from: nil)
+                    image.layer.add(hide, forKey: opacityKey)
+                }
+                let distance = Double(min(18, source.bounds.width * 0.7))
+                let leave = motion("transform.translation.x", from: 0, to: -distance, duration: 0.30)
+                let disappear = motion("opacity", from: 1, to: 0, duration: 0.25)
+                let enter = motion("transform.translation.x", from: distance, to: 0, duration: 0.38, delay: 0.04)
+                let appear = motion("opacity", from: 0, to: 1, duration: 0.24, delay: 0.04)
+                outgoing.layer.add(leave, forKey: translationKey)
+                outgoing.layer.add(disappear, forKey: opacityKey)
+                incoming.layer.add(enter, forKey: translationKey)
+                incoming.layer.add(appear, forKey: opacityKey)
             case .create:
                 break
             }
