@@ -81,7 +81,9 @@ class NotificationPoller: ObservableObject {
                         LocalNotificationStore.shared.add(notification: notification)
 
                         // Trigger local notification with payload so taps can navigate
-                        self.triggerLocalNotification(notification: notification)
+                        if !notification.isRead {
+                            self.triggerLocalNotification(notification: notification)
+                        }
                     }
 
                     // Notify app to refresh UI

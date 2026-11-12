@@ -10,6 +10,8 @@ final class MessagePoller: ObservableObject {
     private var timer: Timer?
     // Keep last seen message id per conversation to detect new messages
     private var lastMessageIds: [String: String] = [:]
+    private var conversationSnapshot: [String] = []
+    private var accountToken: String?
     // Use persistent last-seen message id per partner to detect new messages across launches
     private func lastSeenMessageId(for partnerId: String) -> String? {
         return UserDefaults.standard.string(forKey: "lastSeenMessageId_\(partnerId)")
@@ -61,6 +63,11 @@ final class MessagePoller: ObservableObject {
             do {
                 let conversations = try await MessageService.shared.getConversations()
                 guard KeychainService.shared.getToken() == token else { return }
+                if accountToken != token {
+                    accountToken = token
+                    lastMessageIds = [:]
+                    conversationSnapshot = []
+                }
                 let totalUnread = conversations.compactMap { $0.unreadCount }.reduce(0, +)
                 // Ensure UI updates and notifications happen on main thread
                 await MainActor.run {
@@ -79,7 +86,7 @@ final class MessagePoller: ObservableObject {
 
                         if let persisted = persistedSeenId {
                             // If persisted seen id differs from last message id -> new
-                            if persisted != lastMsgId {
+                            if persisted != lastMsgId && lastMessageIds[partnerId] != lastMsgId {
                                 // Only notify if the last message was sent by the other user
                                 if conv.lastMessage.senderId != currentUserId {
                                     shouldNotify = true
@@ -101,24 +108,8 @@ final class MessagePoller: ObservableObject {
                             // Post conversation event for UI optimistic update
                             NotificationCenter.default.post(name: NSNotification.Name("ConversationNewMessage"), object: nil, userInfo: ["partnerId": partnerId, "messageId": lastMsgId])
 
-                            // Schedule a local notification so user sees a banner even if app is foreground
-                            let content = UNMutableNotificationContent()
-                            content.title = "ข้อความใหม่จาก \(conv.user.name)"
-                            // Truncate body to reasonable length
-                            let bodyText = conv.lastMessage.content
-                            content.body = bodyText.count > 120 ? String(bodyText.prefix(120)) + "…" : bodyText
-                            content.sound = .default
-                            content.userInfo = ["partnerId": partnerId, "messageId": lastMsgId]
+                            // NotificationPoller owns sender-specific banners to avoid duplicate alerts.
 
-                            // Create a unique identifier to avoid duplicates
-                            let request = UNNotificationRequest(identifier: "message_\(lastMsgId)", content: content, trigger: nil)
-                            UNUserNotificationCenter.current().add(request) { err in
-                                if let err = err {
-                                    print("❌ Failed to schedule local notification: \(err)")
-                                } else {
-                                    print("✅ Scheduled local notification for message \(lastMsgId)")
-                                }
-                            }
                         }
 
                         // Update in-memory cache
@@ -133,7 +124,14 @@ final class MessagePoller: ObservableObject {
                     }
 
                     // Notify app to refresh UI (Chat lists, tabbar)
-                    NotificationCenter.default.post(name: NSNotification.Name("NewMessageReceived"), object: nil)
+                    let snapshot = conversations.map {
+                        "\($0.id):\($0.lastMessage.id):\($0.unreadCount ?? 0)"
+                    }
+                    if snapshot != conversationSnapshot {
+                        conversationSnapshot = snapshot
+                        NotificationCenter.default.post(name: NSNotification.Name("ConversationsUpdated"), object: nil,
+                                                        userInfo: ["conversations": conversations])
+                    }
                 }
             } catch {
                 // Silently ignore

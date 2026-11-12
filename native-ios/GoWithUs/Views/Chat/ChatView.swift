@@ -20,7 +20,7 @@ struct ChatView: View {
             ZStack {
                 Color.adaptiveBackground.ignoresSafeArea()
 
-                if viewModel.isLoading && viewModel.conversations.isEmpty {
+                if viewModel.isLoading && viewModel.conversations.isEmpty && viewModel.joinedTripChats.isEmpty {
                     ProgressView()
                         .tint(.appPrimary)
                 } else if viewModel.conversations.isEmpty && viewModel.mutualMatches.isEmpty && viewModel.joinedTripChats.isEmpty {
@@ -132,6 +132,7 @@ struct ChatView: View {
                 Task { await viewModel.loadInitialData() }
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("NewMessageReceived"))) { _ in
+                // Only emitted for actual sends, reads or deletes; polling snapshots arrive separately.
                 Task { await viewModel.loadConversations() }
             }
             .onReceive(NotificationCenter.default.publisher(for: .init("TripJoined"))) { note in

@@ -1,4 +1,5 @@
 import prisma from '../utils/prismaClient.js';
+import { serializeTripChatMessage, TRIP_JOIN_PREFIX } from '../utils/tripChatEvents.js';
 import { sendPushNotification } from '../utils/firebase.js';
 import { sendMessageToUser } from '../utils/websocket.js';
 
@@ -49,7 +50,7 @@ export const getTripMessages = async (req, res, next) => {
             data: { isRead: true }
         });
 
-        res.json({ messages });
+        res.json({ messages: messages.map(serializeTripChatMessage) });
     } catch (error) {
         next(error);
     }
@@ -60,6 +61,9 @@ export const sendTripMessage = async (req, res, next) => {
     try {
         const { tripId } = req.params;
         const { content, imageUrl } = req.body;
+        if (typeof content === 'string' && content.trim().startsWith(TRIP_JOIN_PREFIX)) {
+            return res.status(400).json({ error: 'Reserved system message content.' });
+        }
 
         if ((!content || content.trim() === '') && !imageUrl) {
             return res.status(400).json({ error: 'Message content or image is required.' });
@@ -465,6 +469,10 @@ export const deleteMessage = async (req, res, next) => {
 
         if (!message) {
             return res.status(404).json({ error: 'Message not found' });
+        }
+
+        if (message.content.startsWith(TRIP_JOIN_PREFIX) && req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'System messages cannot be unsent.' });
         }
 
         // Only the sender or an admin can delete a message

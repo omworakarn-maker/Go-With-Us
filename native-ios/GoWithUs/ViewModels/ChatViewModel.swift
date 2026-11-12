@@ -8,6 +8,36 @@ class ChatViewModel: ObservableObject {
     @Published var conversations: [Conversation] = []
     @Published var joinedTripChats: [Trip] = []
 
+    private static var cachedRoomMessages: [String: [Message]] = [:]
+    private static var dirtyRooms: Set<String> = []
+    private var roomKey: String?
+    private var roomUpdates: AnyCancellable?
+    private var inboxUpdates: AnyCancellable?
+
+    private func key(_ kind: String, _ id: String) -> String {
+        "\(currentUserId ?? ""):\(kind):\(id)"
+    }
+
+    private func restoreRoom(_ key: String) -> Bool {
+        roomKey = key
+        guard let saved = Self.cachedRoomMessages[key] else { return false }
+        messages = saved
+        lastMessageCount = saved.count
+        return true
+    }
+
+    private func saveRoom() {
+        guard let roomKey else { return }
+        Self.cachedRoomMessages[roomKey] = messages
+    }
+
+    func receiveMessage(_ message: Message) {
+        guard !messages.contains(where: { $0.id == message.id }) else { return }
+        messages.append(message)
+        lastMessageCount = messages.count
+        saveRoom()
+    }
+
     // Active chat messages
     @Published var messages: [Message] = []
 
@@ -28,6 +58,8 @@ class ChatViewModel: ObservableObject {
         cachedConversations = []
         cachedMutualMatches = []
         cachedJoinedTripChats = []
+        cachedRoomMessages = [:]
+        dirtyRooms = []
     }
 
     // Local overrides to keep unread badges visible until user reads
@@ -46,7 +78,7 @@ class ChatViewModel: ObservableObject {
         }
 
         // Cache for 3 minutes (180 seconds)
-        if !force, let lastLoaded = Self.lastLoaded, Date().timeIntervalSince(lastLoaded) < 180, !conversations.isEmpty {
+        if !force, let lastLoaded = Self.lastLoaded, Date().timeIntervalSince(lastLoaded) < 180, (!conversations.isEmpty || !joinedTripChats.isEmpty || !mutualMatches.isEmpty) {
             return // Skip reloading if recently loaded
         }
 
@@ -88,6 +120,37 @@ class ChatViewModel: ObservableObject {
         self.conversations = Self.cachedConversations
         self.mutualMatches = Self.cachedMutualMatches
         self.joinedTripChats = Self.cachedJoinedTripChats
+
+        inboxUpdates = NotificationCenter.default.publisher(for: .init("ConversationsUpdated"))
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] note in
+                guard let self, let updated = note.userInfo?["conversations"] as? [Conversation] else { return }
+                self.conversations = updated
+                Self.cachedConversations = updated
+                for conversation in updated {
+                    let key = self.key("person", conversation.user.id)
+                    if let cached = Self.cachedRoomMessages[key], cached.last?.id != conversation.lastMessage.id {
+                        Self.cachedRoomMessages.removeValue(forKey: key)
+                    }
+                }
+            }
+        roomUpdates = NotificationCenter.default.publisher(for: .init("WebSocketNewMessage"))
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] note in
+                guard let self, let message = note.userInfo?["message"] as? Message else { return }
+                let key: String
+                if let tripId = message.tripId { key = self.key("trip", tripId) }
+                else {
+                    let partnerId = message.senderId == self.currentUserId ? message.recipientId : message.senderId
+                    guard let partnerId else { return }
+                    key = self.key("person", partnerId)
+                }
+                Self.dirtyRooms.insert(key)
+                if var cached = Self.cachedRoomMessages[key], !cached.contains(where: { $0.id == message.id }) {
+                    cached.append(message)
+                    Self.cachedRoomMessages[key] = cached
+                }
+            }
 
         // Subscribe once to conversation new-message events
         conversationUpdates = NotificationCenter.default.publisher(for: NSNotification.Name("ConversationNewMessage"))
@@ -169,9 +232,18 @@ class ChatViewModel: ObservableObject {
 
     // MARK: - Load Private Messages
     func loadPrivateMessages(userId: String) async {
-        isLoading = true
+        let cacheKey = key("person", userId)
+        let restored = restoreRoom(cacheKey)
+        if restored && !Self.dirtyRooms.contains(cacheKey) { return }
+        defer {
+            if errorMessage == nil {
+                saveRoom()
+                Self.dirtyRooms.remove(cacheKey)
+            }
+        }
+        isLoading = !restored
         errorMessage = nil
-        messages = [] // Clear previous messages
+        if !restored { messages = [] } // Clear previous messages
 
         do {
             messages = try await MessageService.shared.getPrivateMessages(userId: userId)
@@ -206,6 +278,7 @@ class ChatViewModel: ObservableObject {
 
     // MARK: - Send Private Message
     func sendPrivateMessage(userId: String, content: String, imageUrl: String? = nil) async {
+        defer { saveRoom() }
         guard !content.isEmpty || imageUrl != nil else { return }
 
         do {
@@ -219,9 +292,18 @@ class ChatViewModel: ObservableObject {
 
     // MARK: - Load Trip Messages (Group Chat)
     func loadTripMessages(tripId: String) async {
-        isLoading = true
+        let cacheKey = key("trip", tripId)
+        let restored = restoreRoom(cacheKey)
+        if restored && !Self.dirtyRooms.contains(cacheKey) { return }
+        defer {
+            if errorMessage == nil {
+                saveRoom()
+                Self.dirtyRooms.remove(cacheKey)
+            }
+        }
+        isLoading = !restored
         errorMessage = nil
-        messages = []
+        if !restored { messages = [] }
 
         do {
             messages = try await MessageService.shared.getTripMessages(tripId: tripId)
@@ -238,6 +320,7 @@ class ChatViewModel: ObservableObject {
 
     // MARK: - Send Trip Message
     func sendTripMessage(tripId: String, content: String, imageUrl: String? = nil) async {
+        defer { saveRoom() }
         guard !content.isEmpty || imageUrl != nil else { return }
 
         do {
@@ -250,6 +333,7 @@ class ChatViewModel: ObservableObject {
     }
 
     func deleteMessage(_ message: Message) async {
+        defer { saveRoom() }
         do {
             try await MessageService.shared.deleteMessage(messageId: message.id)
             messages.removeAll { $0.id == message.id }
@@ -306,10 +390,14 @@ class ChatViewModel: ObservableObject {
 
     // MARK: - Refresh Messages (Silent, for polling)
     func refreshPrivateMessages(userId: String) async {
+        roomKey = key("person", userId)
+        defer { saveRoom() }
         // Silent refresh without showing loading state
         do {
             let newMessages = try await MessageService.shared.getPrivateMessages(userId: userId)
-            if newMessages.count != lastMessageCount {
+            Self.dirtyRooms.remove(key("person", userId))
+            MessagePoller.shared.markConversationSeen(partnerId: userId, messageId: newMessages.last?.id)
+            if newMessages.map(\.id) != messages.map(\.id) {
                 messages = newMessages
                 lastMessageCount = newMessages.count
             }
@@ -319,10 +407,13 @@ class ChatViewModel: ObservableObject {
     }
 
     func refreshTripMessages(tripId: String) async {
+        roomKey = key("trip", tripId)
+        defer { saveRoom() }
         // Silent refresh without showing loading state
         do {
             let newMessages = try await MessageService.shared.getTripMessages(tripId: tripId)
-            if newMessages.count != lastMessageCount {
+            Self.dirtyRooms.remove(key("trip", tripId))
+            if newMessages.map(\.id) != messages.map(\.id) {
                 messages = newMessages
                 lastMessageCount = newMessages.count
             }

@@ -11,6 +11,7 @@ struct Message: Codable, Identifiable, Equatable {
     let sender: ChatUser?
     let recipient: ChatUser?
     var isRead: Bool?
+    var isSystem: Bool? = nil
     var imageUrl: String?
     
     // Equatable for UI updates

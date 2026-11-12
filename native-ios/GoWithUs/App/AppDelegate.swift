@@ -107,23 +107,9 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
                 // Check for unread notifications
                 let count = try await NotificationService.shared.getUnreadCount()
                 
-                if count > 0 {
-                    // Trigger Local Notification
-                    let content = UNMutableNotificationContent()
-                    content.title = "GoWithUs"
-                    content.body = "คุณมี \(count) ข้อความที่ยังไม่ได้อ่าน"
-                    content.sound = .default
-                    content.badge = NSNumber(value: count)
-                    
-                    let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil) // Deliver immediately
-                    try await UNUserNotificationCenter.current().add(request)
-                    
-                    print("🔔 Background Notification Scheduled: \(count) unread")
-                    completionHandler(.newData)
-                } else {
-                    print("✅ No new data")
-                    completionHandler(.noData)
-                }
+                // Background checks update the badge only; sender notifications carry the alert.
+                try await UNUserNotificationCenter.current().setBadgeCount(count)
+                completionHandler(.newData)
             } catch {
                 print("❌ Background Fetch Failed: \(error)")
                 completionHandler(.failed)
