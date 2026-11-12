@@ -20,6 +20,11 @@ class ChatViewModel: ObservableObject {
 
     private func restoreRoom(_ key: String) -> Bool {
         roomKey = key
+        if Self.cachedRoomMessages[key] == nil,
+           let stored = ChatHistoryStore.shared.load(key: key) {
+            Self.cachedRoomMessages[key] = stored
+            Self.dirtyRooms.insert(key)
+        }
         guard let saved = Self.cachedRoomMessages[key] else { return false }
         messages = saved
         lastMessageCount = saved.count
@@ -29,6 +34,7 @@ class ChatViewModel: ObservableObject {
     private func saveRoom() {
         guard let roomKey else { return }
         Self.cachedRoomMessages[roomKey] = messages
+        ChatHistoryStore.shared.save(messages, key: roomKey)
     }
 
     func receiveMessage(_ message: Message) {
@@ -130,7 +136,7 @@ class ChatViewModel: ObservableObject {
                 for conversation in updated {
                     let key = self.key("person", conversation.user.id)
                     if let cached = Self.cachedRoomMessages[key], cached.last?.id != conversation.lastMessage.id {
-                        Self.cachedRoomMessages.removeValue(forKey: key)
+                        Self.dirtyRooms.insert(key)
                     }
                 }
             }
@@ -246,7 +252,9 @@ class ChatViewModel: ObservableObject {
         if !restored { messages = [] } // Clear previous messages
 
         do {
-            messages = try await MessageService.shared.getPrivateMessages(userId: userId)
+            let knownIDs = Set(messages.map(\.id))
+            let received = try await MessageService.shared.getPrivateMessages(userId: userId)
+            messages = ChatMessageTimeline.merge(received, with: messages, knownIDs: knownIDs)
             lastMessageCount = messages.count
             // Persist last-seen message id for this partner so future starts know we've seen up to this message
             if let last = messages.last {
@@ -278,16 +286,17 @@ class ChatViewModel: ObservableObject {
 
     // MARK: - Send Private Message
     func sendPrivateMessage(userId: String, content: String, imageUrl: String? = nil) async {
-        defer { saveRoom() }
         guard !content.isEmpty || imageUrl != nil else { return }
-
-        do {
-            let message = try await MessageService.shared.sendPrivateMessage(userId: userId, content: content, imageUrl: imageUrl)
-            messages.append(message)
-            NotificationCenter.default.post(name: NSNotification.Name("NewMessageReceived"), object: nil)
-        } catch {
-            errorMessage = error.localizedDescription
-        }
+        roomKey = key("person", userId)
+        let localID = "local-" + UUID().uuidString
+        var pending = Message(id: localID, content: content, senderId: currentUserId ?? "",
+                              recipientId: userId, tripId: nil,
+                              createdAt: Date(), sender: nil, recipient: nil, imageUrl: imageUrl)
+        pending.localID = localID
+        pending.deliveryState = .sending
+        messages.append(pending)
+        saveRoom()
+        await deliverMessage(localID: localID)
     }
 
     // MARK: - Load Trip Messages (Group Chat)
@@ -306,7 +315,9 @@ class ChatViewModel: ObservableObject {
         if !restored { messages = [] }
 
         do {
-            messages = try await MessageService.shared.getTripMessages(tripId: tripId)
+            let knownIDs = Set(messages.map(\.id))
+            let received = try await MessageService.shared.getTripMessages(tripId: tripId)
+            messages = ChatMessageTimeline.merge(received, with: messages, knownIDs: knownIDs)
             lastMessageCount = messages.count
             // For trip chats, reload conversations to sync read state
             Task { await loadConversations() }
@@ -320,16 +331,44 @@ class ChatViewModel: ObservableObject {
 
     // MARK: - Send Trip Message
     func sendTripMessage(tripId: String, content: String, imageUrl: String? = nil) async {
-        defer { saveRoom() }
         guard !content.isEmpty || imageUrl != nil else { return }
+        roomKey = key("trip", tripId)
+        let localID = "local-" + UUID().uuidString
+        var pending = Message(id: localID, content: content, senderId: currentUserId ?? "",
+                              recipientId: nil, tripId: tripId,
+                              createdAt: Date(), sender: nil, recipient: nil, imageUrl: imageUrl)
+        pending.localID = localID
+        pending.deliveryState = .sending
+        messages.append(pending)
+        saveRoom()
+        await deliverMessage(localID: localID)
+    }
 
+    private func deliverMessage(localID: String) async {
+        guard let pending = messages.first(where: { $0.displayID == localID }) else { return }
+        defer { saveRoom() }
         do {
-            let message = try await MessageService.shared.sendTripMessage(tripId: tripId, content: content, imageUrl: imageUrl)
-            messages.append(message)
+            let server: Message
+            if let tripId = pending.tripId {
+                server = try await MessageService.shared.sendTripMessage(tripId: tripId, content: pending.content, imageUrl: pending.imageUrl)
+            } else if let partnerId = pending.recipientId {
+                server = try await MessageService.shared.sendPrivateMessage(userId: partnerId, content: pending.content, imageUrl: pending.imageUrl)
+            } else { return }
+            messages = ChatMessageTimeline.acknowledge(server, replacing: localID, in: messages)
             NotificationCenter.default.post(name: NSNotification.Name("NewMessageReceived"), object: nil)
         } catch {
+            if let index = messages.firstIndex(where: { $0.displayID == localID }) {
+                messages[index].deliveryState = .failed
+            }
             errorMessage = error.localizedDescription
         }
+    }
+
+    func retryMessage(_ message: Message) {
+        guard message.deliveryState == .failed,
+              let index = messages.firstIndex(where: { $0.displayID == message.displayID }) else { return }
+        messages[index].deliveryState = .sending
+        Task { await deliverMessage(localID: message.displayID) }
     }
 
     func deleteMessage(_ message: Message) async {
@@ -394,11 +433,13 @@ class ChatViewModel: ObservableObject {
         defer { saveRoom() }
         // Silent refresh without showing loading state
         do {
+            let knownIDs = Set(messages.map(\.id))
             let newMessages = try await MessageService.shared.getPrivateMessages(userId: userId)
             Self.dirtyRooms.remove(key("person", userId))
             MessagePoller.shared.markConversationSeen(partnerId: userId, messageId: newMessages.last?.id)
-            if newMessages.map(\.id) != messages.map(\.id) {
-                messages = newMessages
+            let merged = ChatMessageTimeline.merge(newMessages, with: messages, knownIDs: knownIDs)
+            if merged != messages {
+                messages = merged
                 lastMessageCount = newMessages.count
             }
         } catch {
@@ -411,10 +452,12 @@ class ChatViewModel: ObservableObject {
         defer { saveRoom() }
         // Silent refresh without showing loading state
         do {
+            let knownIDs = Set(messages.map(\.id))
             let newMessages = try await MessageService.shared.getTripMessages(tripId: tripId)
             Self.dirtyRooms.remove(key("trip", tripId))
-            if newMessages.map(\.id) != messages.map(\.id) {
-                messages = newMessages
+            let merged = ChatMessageTimeline.merge(newMessages, with: messages, knownIDs: knownIDs)
+            if merged != messages {
+                messages = merged
                 lastMessageCount = newMessages.count
             }
         } catch {
