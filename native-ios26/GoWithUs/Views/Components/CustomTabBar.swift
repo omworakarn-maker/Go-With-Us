@@ -203,12 +203,12 @@ struct NativeTabIconFeedback: UIViewRepresentable {
                     wave.add(draw, forKey: "chat.draw")
                 }
             case .profile:
-                // The old person drops away while a new person grows into place.
+                // Exchange full-size people vertically without shrinking either glyph.
                 // Use bar coordinates so UIKit cannot clip the replacement glyph.
                 let replacement = UIImageView(image: source.image)
                 replacement.preferredSymbolConfiguration = source.preferredSymbolConfiguration
                 replacement.tintColor = bar.tintColor
-                replacement.contentMode = source.contentMode
+                replacement.contentMode = .scaleAspectFit
                 replacement.frame = frame
                 replacement.isUserInteractionEnabled = false
                 replacement.isAccessibilityElement = false
@@ -231,17 +231,13 @@ struct NativeTabIconFeedback: UIViewRepresentable {
                 // Configure every animation before attaching it to a layer.
                 let drop = motion("transform.translation.y", from: 0, to: 11, duration: 0.28)
                 drop.isAdditive = true
-                let shrink = motion("transform.scale", from: 1, to: 0.78, duration: 0.28)
                 let disappear = motion("opacity", from: 1, to: 0, duration: 0.23)
                 let enter = motion("transform.translation.y", from: -7, to: 0, duration: 0.44, delay: 0.08)
                 enter.isAdditive = true
-                let grow = motion("transform.scale", from: 0.72, to: 1, duration: 0.44, delay: 0.08)
                 let appear = motion("opacity", from: 0, to: 1, duration: 0.25, delay: 0.08)
                 source.layer.add(drop, forKey: translationKey)
-                source.layer.add(shrink, forKey: scaleKey)
                 source.layer.add(disappear, forKey: opacityKey)
                 replacement.layer.add(enter, forKey: translationKey)
-                replacement.layer.add(grow, forKey: scaleKey)
                 replacement.layer.add(appear, forKey: opacityKey)
             case .create:
                 break
