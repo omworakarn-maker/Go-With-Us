@@ -265,7 +265,7 @@ struct ContentView: View {
             // The native detached trailing slot keeps Apple's glass and layout.
             // Its action is intercepted below, rather than selecting an empty page.
             if showsTrailingAction {
-                SwiftUI.Tab(value: Tab.create, role: .search) {
+                SwiftUI.Tab(value: Tab.create, role: createTabRole) {
                     Color.clear
                 } label: {
                     Label(settings.localizedString(for: "create"), systemImage: "plus")
@@ -292,6 +292,14 @@ struct ContentView: View {
     }
 
     // Bridge AppScreen <-> Tab
+    private var createTabRole: TabRole {
+        if #available(iOS 27.0, *) {
+            // iOS 27 separates visual prominence from the search destination role.
+            return .prominent
+        }
+        return .search
+    }
+
     private var selectedTabBinding: Binding<Tab> {
         Binding<Tab>(
             get: {

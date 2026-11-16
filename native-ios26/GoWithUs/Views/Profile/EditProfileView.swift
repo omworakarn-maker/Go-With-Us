@@ -411,7 +411,10 @@ struct EditProfileView: View {
                     }
                 }
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(SettingsManager.shared.text(thai: "ยกเลิก", english: "Cancel")) { dismiss() }
+                    Button { dismiss() } label: {
+                        Label(SettingsManager.shared.text(thai: "ยกเลิก", english: "Cancel"), systemImage: "xmark")
+                            .labelStyle(.iconOnly)
+                    }
                         .foregroundColor(.appAccent)
                 }
                 ToolbarItem(placement: .confirmationAction) {
@@ -495,7 +498,8 @@ struct EditProfileView: View {
                                 .progressViewStyle(CircularProgressViewStyle())
                                 .tint(.appAccent)
                         } else {
-                            Text(SettingsManager.shared.text(thai: "บันทึก", english: "Save"))
+                            Label(SettingsManager.shared.text(thai: "บันทึก", english: "Save"), systemImage: "checkmark")
+                                .labelStyle(.iconOnly)
                         }
                     }
                     .foregroundColor(.appAccent)

@@ -62,8 +62,11 @@ struct NotificationView: View {
                 }
 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(tr("ปิด", "Close")) {
+                    Button {
                         dismiss()
+                    } label: {
+                        Label(tr("ปิด", "Close"), systemImage: "xmark")
+                            .labelStyle(.iconOnly)
                     }
                 }
             }
