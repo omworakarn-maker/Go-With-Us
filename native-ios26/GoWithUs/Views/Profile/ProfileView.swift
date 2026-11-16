@@ -61,8 +61,11 @@ struct ProfileView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(settings.localizedString(for: "edit")) {
+                    Button {
                         showEditProfile = true
+                    } label: {
+                        Label(settings.localizedString(for: "edit"), systemImage: "pencil")
+                            .labelStyle(.iconOnly)
                     }
                     .foregroundColor(.appAccent)
                 }
@@ -508,7 +511,6 @@ struct UserTripsSectionView: View {
                         Text(SettingsManager.shared.text(thai: "ทริปที่เข้าร่วม", english: "Joined trips"))
                             .font(.system(size: 18, weight: .bold))
                             .foregroundColor(.adaptiveText)
-                            .padding(.horizontal, 24)
 
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 16) {
@@ -520,7 +522,6 @@ struct UserTripsSectionView: View {
                                     .buttonStyle(PlainButtonStyle())
                                 }
                             }
-                            .padding(.horizontal, 24)
                         }
                     }
                 }

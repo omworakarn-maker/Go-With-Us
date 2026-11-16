@@ -13,6 +13,7 @@ struct UserProfileView: View {
     // Moderation States
     @State private var showingActionSheet = false
     @State private var showingReportAlert = false
+    @State private var pendingUserAction: String?
     @State private var reportReason = ""
     @State private var actionMessage = ""
     @State private var showingActionMessage = false
@@ -211,23 +212,34 @@ struct UserProfileView: View {
             }
             ToolbarItem(placement: .topBarTrailing) {
                 if authViewModel.currentUser?.id != user.id {
-                    Button(tr("ตัวเลือก", "Options"), systemImage: "ellipsis") { showingActionSheet = true }
+                    Button(tr("รายงานผู้ใช้", "Report user"), systemImage: "exclamationmark.circle") { showingActionSheet = true }
+                        .labelStyle(.iconOnly)
                 }
             }
         }
         .task {
             await loadProfile()
         }
-        .sheet(isPresented: $showingActionSheet) {
+        .sheet(isPresented: $showingActionSheet, onDismiss: {
+            let action = pendingUserAction
+            pendingUserAction = nil
+            switch action {
+            case "report": showingReportAlert = true
+            case "warn": showingWarnAlert = true
+            case "edit": showingEditSheet = true
+            case "ban": Task { await banUser() }
+            default: break
+            }
+        }) {
             UserActionSheet(
                 isAdmin: authViewModel.currentUser?.role == .admin,
-                onWarn: { showingWarnAlert = true },
-                onReport: { showingReportAlert = true },
+                onWarn: { pendingUserAction = "warn" },
+                onReport: { pendingUserAction = "report" },
                 onBan: {
-                    Task { await banUser() }
+                    pendingUserAction = "ban"
                 },
                 onEdit: {
-                    showingEditSheet = true
+                    pendingUserAction = "edit"
                 }
             )
             .presentationDetents([.height(authViewModel.currentUser?.role == .admin ? 420 : 250)])
@@ -242,7 +254,7 @@ struct UserProfileView: View {
                     await warnUser()
                 }
             }
-            .presentationDetents([.height(340)])
+            .presentationSizing(.fitted)
         }
         .sheet(isPresented: $showingReportAlert) {
             ReportUserSheet(user: displayUser) { reason in
@@ -251,7 +263,8 @@ struct UserProfileView: View {
                     await reportUser()
                 }
             }
-            .presentationDetents([.height(340)])
+            .presentationDetents([.height(300)])
+            .presentationDragIndicator(.visible)
         }
         .tint(.appPrimary)
         .alert(actionMessage, isPresented: $showingActionMessage) {
@@ -467,9 +480,8 @@ struct ReportUserSheet: View {
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 24)
-            Spacer()
         }
-        .presentationDetents([.height(280)])
+        .fixedSize(horizontal: false, vertical: true)
     }
 }
 
@@ -563,7 +575,6 @@ struct UserActionSheet: View {
             .padding(.horizontal, 24)
             .padding(.bottom, 32)
         }
-        .background(Color.adaptiveBackground.ignoresSafeArea())
     }
 }
 

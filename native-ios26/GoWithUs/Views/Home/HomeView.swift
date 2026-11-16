@@ -248,13 +248,28 @@ struct ExpandingTripSearch: View {
     var focus: FocusState<Bool>.Binding
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Binding var expanded: Bool
+    @State private var expansionID = UUID()
+    @State private var isExpanding = false
 
     var body: some View {
         HStack(spacing: expanded ? 10 : 0) {
             Button {
                 SettingsManager.shared.triggerSelection()
-                if expanded { focus.wrappedValue = true }
-                else { expanded = true }
+                if expanded {
+                    if !isExpanding { focus.wrappedValue = true }
+                } else {
+                    let id = UUID()
+                    expansionID = id
+                    isExpanding = true
+                    withAnimation(reduceMotion ? .easeOut(duration: 0.15) : .spring(response: 0.36, dampingFraction: 0.88),
+                                  completionCriteria: .removed) {
+                        expanded = true
+                    } completion: {
+                        guard expanded, expansionID == id else { return }
+                        isExpanding = false
+                        focus.wrappedValue = true
+                    }
+                }
             } label: {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 19, weight: .medium))
@@ -272,14 +287,11 @@ struct ExpandingTripSearch: View {
                     .submitLabel(.search)
                     .onSubmit { focus.wrappedValue = false }
                     .transition(.opacity)
-                    .task {
-                        do { try await Task.sleep(nanoseconds: 180_000_000) }
-                        catch { return }
-                        guard !Task.isCancelled else { return }
-                        focus.wrappedValue = true
-                    }
+                    .allowsHitTesting(!isExpanding)
 
                 Button {
+                    expansionID = UUID()
+                    isExpanding = false
                     focus.wrappedValue = false
                     text = ""
                     expanded = false
@@ -299,6 +311,9 @@ struct ExpandingTripSearch: View {
         .frame(maxWidth: expanded ? .infinity : nil)
         .clipShape(Capsule())
         .appGlass(in: Capsule(), interactive: true)
-        .animation(reduceMotion ? .easeOut(duration: 0.15) : .spring(response: 0.36, dampingFraction: 0.88), value: expanded)
+        .onDisappear {
+            expansionID = UUID()
+            isExpanding = false
+        }
     }
 }
