@@ -108,11 +108,11 @@ README นี้อธิบายโค้ดใน repository ณ **12 พฤ�
 <a id="screenshots"></a>
 ## ภาพหน้าจอ
 
-ภาพตัวอย่างใน repo อาจเป็น UI รุ่นก่อนหน้าการปรับ iOS 26 และโปรโมชัน
+ภาพหน้าจอแอป Native iOS จาก iPhone 18 Pro Simulator (iOS 27.2) อัปเดตวันที่ 16 พฤศจิกายน 2569 แสดง TabBar ของ Apple พร้อมปุ่มสร้างทริปแยกด้านขวา
 
 | หน้าแรก | รายละเอียดทริป | สร้างทริป | โปรไฟล์ |
 | :---: | :---: | :---: | :---: |
-| <img src="web-frontend/assets/screenshots/1.png" width="190" alt="หน้าแรก" /> | <img src="web-frontend/assets/screenshots/2.png" width="190" alt="รายละเอียดทริป" /> | <img src="web-frontend/assets/screenshots/3.png" width="190" alt="สร้างทริป" /> | <img src="web-frontend/assets/screenshots/4.png" width="190" alt="โปรไฟล์" /> |
+| <img src="docs/screenshots/ios/home.png" width="190" alt="หน้าแรกและทริปแนะนำ พร้อม TabBar ของ Apple" /> | <img src="docs/screenshots/ios/trip-details.png" width="190" alt="รายละเอียดทริปและคะแนนความเข้ากันแยกตามปัจจัย" /> | <img src="docs/screenshots/ios/create-trip.png" width="190" alt="สร้างทริปใหม่ ขั้นตอนข้อมูลทริป" /> | <img src="docs/screenshots/ios/profile.png" width="190" alt="โปรไฟล์ สไตล์การเที่ยว และทริปที่เข้าร่วม" /> |
 
 ## โครงสร้างและเทคโนโลยี
 
