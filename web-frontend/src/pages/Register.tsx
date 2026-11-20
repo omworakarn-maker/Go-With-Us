@@ -2,10 +2,13 @@ import { BrandLogo } from '../components/BrandLogo';
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { authAPI } from '../services/api';
 
 const Register: React.FC = () => {
     const navigate = useNavigate();
-    const { register } = useAuth();
+    const { verifyRegistration } = useAuth();
+    const [pendingEmail, setPendingEmail] = useState('');
+    const [otp, setOtp] = useState('');
     const [formData, setFormData] = useState({
         name: '',
         email: '',
@@ -44,11 +47,29 @@ const Register: React.FC = () => {
         setLoading(true);
 
         try {
-            await register(formData.name, formData.email, formData.password);
-            setLoading(false);
-            navigate('/questionnaire');
+            const registration = await authAPI.register({
+                name: formData.name,
+                email: formData.email,
+                password: formData.password,
+            });
+            setPendingEmail(registration.email);
         } catch (err: any) {
             setError(err.message || 'เกิดข้อผิดพลาดในการสมัครสมาชิก');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleVerify = async (event: React.FormEvent) => {
+        event.preventDefault();
+        setError('');
+        setLoading(true);
+        try {
+            await verifyRegistration(pendingEmail, otp);
+            navigate('/questionnaire?onboarding=true', { replace: true });
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'ยืนยันอีเมลไม่สำเร็จ');
+        } finally {
             setLoading(false);
         }
     };
@@ -76,6 +97,30 @@ const Register: React.FC = () => {
                         </div>
                     )}
 
+                    {pendingEmail ? (
+                        <form onSubmit={handleVerify} className="space-y-4">
+                            <p className="text-sm text-gray-600">กรอกรหัสยืนยัน 6 หลักที่ส่งไปยัง {pendingEmail}</p>
+                            <label className="block space-y-2 text-sm font-medium">
+                                <span>รหัสยืนยันอีเมล</span>
+                                <input
+                                    value={otp}
+                                    onChange={event => setOtp(event.target.value.replace(/[^0-9]/g, ''))}
+                                    inputMode="numeric"
+                                    autoComplete="one-time-code"
+                                    pattern="[0-9]{6}"
+                                    maxLength={6}
+                                    required
+                                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3"
+                                />
+                            </label>
+                            <button type="submit" disabled={loading || otp.length !== 6} className="w-full rounded-xl bg-black px-4 py-3 font-bold text-white disabled:opacity-50">
+                                {loading ? 'กำลังยืนยัน…' : 'ยืนยันอีเมล'}
+                            </button>
+                            <button type="button" disabled={loading} onClick={() => { setPendingEmail(''); setOtp(''); setError(''); }} className="text-sm text-gray-600 underline">
+                                กลับไปแก้ไขอีเมลหรือขอรหัสใหม่
+                            </button>
+                        </form>
+                    ) : (
                     <form onSubmit={handleSubmit} className="space-y-5">
                         {/* Name */}
                         <div className="space-y-2">
@@ -176,6 +221,7 @@ const Register: React.FC = () => {
                             )}
                         </button>
                     </form>
+                    )}
 
                     {/* Divider */}
                     <div className="relative my-8">

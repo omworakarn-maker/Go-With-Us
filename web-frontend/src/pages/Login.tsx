@@ -1,4 +1,5 @@
 import { BrandLogo } from '../components/BrandLogo';
+import GoogleSignInButton from '../components/GoogleSignInButton';
 import { DeviceSession } from '../services/api';
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
@@ -7,17 +8,20 @@ import { useAuth } from '../contexts/AuthContext';
 const Login: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { login } = useAuth();
+    const { login, loginWithGoogle } = useAuth();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [googleCredential, setGoogleCredential] = useState('');
     const [sessions, setSessions] = useState<DeviceSession[]>([]);
 
     const handleSubmit = async (e?: React.FormEvent, replaceSessionId?: string) => {
         e?.preventDefault();
         if (loading) return;
         setError('');
+        setSessions([]);
+        setGoogleCredential('');
         setLoading(true);
 
         try {
@@ -27,6 +31,28 @@ const Login: React.FC = () => {
         } catch (err: any) {
             setError(err.message || 'อีเมลหรือรหัสผ่านไม่ถูกต้อง');
             if (err.code === 'DEVICE_LIMIT_REACHED') setSessions(err.sessions || []);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleGoogle = async (credential: string, replaceSessionId?: string) => {
+        if (loading) return;
+        setError('');
+        setSessions([]);
+        setGoogleCredential('');
+        setLoading(true);
+
+        try {
+            const needsOnboarding = await loginWithGoogle(credential, replaceSessionId);
+            const from = (location.state as any)?.from?.pathname || '/';
+            navigate(needsOnboarding ? '/questionnaire?onboarding=true' : from, { replace: true });
+        } catch (err: any) {
+            setError(err.message || 'เข้าสู่ระบบด้วย Google ไม่สำเร็จ');
+            if (err.code === 'DEVICE_LIMIT_REACHED') {
+                setGoogleCredential(credential);
+                setSessions(err.sessions || []);
+            }
         } finally {
             setLoading(false);
         }
@@ -59,7 +85,7 @@ const Login: React.FC = () => {
                         <h3 className="font-bold mb-2">เลือกอุปกรณ์ที่จะออกจากระบบ</h3>
                         <p className="text-sm text-gray-500 mb-3">เมื่อเลือกแล้ว เครื่องนี้จะเข้าสู่ระบบแทน โดยไม่กระทบอุปกรณ์อื่น</p>
                         {sessions.map(session => <button key={session.id} type="button" disabled={loading}
-                            onClick={() => handleSubmit(undefined, session.id)}
+                            onClick={() => googleCredential ? handleGoogle(googleCredential, session.id) : handleSubmit(undefined, session.id)}
                             className="block w-full text-left p-3 border-t border-gray-100 disabled:opacity-50">
                             <span className="font-medium">{session.deviceName}</span>
                             <span className="block text-xs text-gray-500">ใช้งานล่าสุด {new Date(session.lastSeenAt).toLocaleString('th-TH')}</span>
@@ -121,18 +147,9 @@ const Login: React.FC = () => {
                         </button>
                     </form>
 
-                    {/* Divider */}
-                    <div className="relative my-8">
-                        <div className="absolute inset-0 flex items-center">
-                            <div className="w-full border-t border-gray-200"></div>
-                        </div>
-                        <div className="relative flex justify-center text-xs">
-                            <span className="px-4 bg-white text-gray-400 font-bold uppercase tracking-widest">หรือ</span>
-                        </div>
-                    </div>
+                    <GoogleSignInButton disabled={loading} onCredential={handleGoogle} />
 
-                    {/* Register Link */}
-                    <div className="text-center">
+                    <div className="mt-6 text-center">
                         <p className="text-gray-600 text-sm">
                             ยังไม่มีบัญชี?{' '}
                             <Link to="/register" className="font-bold text-black hover:underline">

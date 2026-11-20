@@ -18,7 +18,8 @@ interface AuthContextType {
     isAuthenticated: boolean;
     isLoading: boolean;
     login: (email: string, password: string, replaceSessionId?: string) => Promise<void>;
-    register: (name: string, email: string, password: string) => Promise<void>;
+    loginWithGoogle: (credential: string, replaceSessionId?: string) => Promise<boolean>;
+    verifyRegistration: (email: string, otp: string) => Promise<void>;
     logout: () => Promise<void>;
     refreshUser: () => Promise<void>;
 }
@@ -69,8 +70,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(response.user);
     };
 
-    const register = async (name: string, email: string, password: string) => {
-        const response = await authAPI.register({ name, email, password });
+    const loginWithGoogle = async (credential: string, replaceSessionId?: string) => {
+        const response = await authAPI.loginWithGoogle(credential, replaceSessionId);
+        setUser(response.user);
+        return response.needsOnboarding;
+    };
+
+    const verifyRegistration = async (email: string, otp: string) => {
+        const response = await authAPI.verifyRegistration(email, otp);
         setUser(response.user);
     };
 
@@ -118,7 +125,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 isAuthenticated: !!user,
                 isLoading,
                 login,
-                register,
+                loginWithGoogle,
+                verifyRegistration,
                 logout,
                 refreshUser,
             }}

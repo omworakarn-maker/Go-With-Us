@@ -88,7 +88,7 @@ const AnimatedRoutes: React.FC = () => {
     // Determine if we should show the global Navbar (Top)
     const showNavbar = ['/', '/explore', '/activities', '/find-buddy', '/mytrips', '/profile', '/chat', '/search'].includes(location.pathname) || location.pathname.startsWith('/trip/');
 
-    // Determine if we should show Bottom Nav (Mobile) - Show on ALL pages except Auth pages & Chat
+    // Chat renders its own mobile tabs on the conversation list.
     const hideBottomNav = ['/login', '/register', '/intro', '/landing', '/questionnaire'];
     const isChatPage = location.pathname.startsWith('/chat');
     const showBottomNav = !hideBottomNav.includes(location.pathname) && !isChatPage && !location.pathname.startsWith('/admin');
@@ -97,7 +97,7 @@ const AnimatedRoutes: React.FC = () => {
         <>
             <CreateTripModal />
             {/* Desktop Navbar - Hidden on mobile via CSS */}
-            {showNavbar && <Navbar />} {/* Fixed Navbar outside AnimatePresence */}
+            {showNavbar && (isChatPage ? <div className="hidden md:block"><Navbar /></div> : <Navbar />)}
             <PromotionPopup />
 
             <div className={showBottomNav ? "pb-28 md:pb-0" : ""}>

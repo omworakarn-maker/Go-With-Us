@@ -8,6 +8,7 @@ import defaultTripImage from '../assets/Sosuke.jpg';
 interface TripCardProps {
   trip: Trip;
   onClick?: (trip: Trip) => void;
+  layout?: 'grid' | 'feed' | 'list';
 }
 
 // Helper function to format date in Thai
@@ -26,7 +27,7 @@ const formatDateThai = (dateString: string): string => {
   return `${dayName}, ${day} ${month}`;
 };
 
-export const TripCard: React.FC<TripCardProps> = ({ trip, onClick }) => {
+export const TripCard: React.FC<TripCardProps> = ({ trip, onClick, layout = 'grid' }) => {
   const participantCount = trip.participants?.length || 0;
   const displayParticipants = participantCount > 0 ? trip.participants.slice(0, 3) : [];
 
@@ -62,12 +63,12 @@ export const TripCard: React.FC<TripCardProps> = ({ trip, onClick }) => {
     <Link
       to={`/trip/${trip.id}`}
       onClick={handleClick}
-      className="group bg-white border border-gray-100 md:border-gray-200 rounded-2xl md:rounded-3xl transition-all duration-500 cursor-pointer flex flex-col items-stretch hover:border-black hover:shadow-xl shadow-sm relative overflow-hidden h-full aspect-square"
+      className={`group bg-white border border-gray-100 md:border-gray-200 rounded-2xl md:rounded-3xl transition-all duration-500 cursor-pointer flex flex-col items-stretch hover:border-black hover:shadow-xl shadow-sm relative overflow-hidden h-full ${layout === 'grid' ? 'aspect-square' : ''} ${layout === 'list' ? 'sm:flex-row' : ''}`}
     >
-      <div className="w-full h-1/2 overflow-hidden bg-gray-50 shrink-0 relative">
+      <div className={`w-full overflow-hidden bg-gray-50 shrink-0 relative ${layout === 'grid' ? 'h-1/2' : 'aspect-[16/9]'} ${layout === 'list' ? 'sm:w-2/5 sm:aspect-auto sm:min-h-36' : ''}`}>
         <img
           src={trip.imageUrl || defaultTripImage}
-          className={`w-full h-full object-cover transition-all duration-700 group-hover:scale-110 ${isEnded ? 'grayscale opacity-70' : ''}`}
+          className={`${layout === 'list' ? 'sm:absolute sm:inset-0' : ''} w-full h-full object-cover transition-all duration-700 group-hover:scale-110 ${isEnded ? 'grayscale opacity-70' : ''}`}
           alt={trip.title}
         />
 
@@ -92,7 +93,7 @@ export const TripCard: React.FC<TripCardProps> = ({ trip, onClick }) => {
         )}
       </div>
 
-      <div className="flex flex-col flex-1 p-2.5 md:p-4 h-1/2">
+      <div className={`flex flex-col flex-1 p-2.5 md:p-4 min-w-0 ${layout === 'grid' ? 'h-1/2' : ''}`}>
         <div className="flex items-center justify-between mb-1 md:mb-2">
           <span className={`text-[11px] md:text-xs font-bold tracking-wide ${isEnded ? 'text-gray-400' : 'text-indigo-500'}`}>
             {formatDateThai(trip.startDate)}

@@ -1,6 +1,6 @@
 import { startVisiblePolling } from '../services/visiblePolling';
 import React, { useState, useEffect, useRef } from 'react';
-import Navbar from '../components/Navbar';
+import MobileBottomNav from '../components/MobileBottomNav';
 import { useAuth } from '../contexts/AuthContext';
 import { messagesAPI } from '../services/api';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -143,11 +143,14 @@ const Chat: React.FC = () => {
 
     if (!user) return null;
 
+    const showMobileTabs = isMobileView && !activeConversation;
+
     return (
-        <div className="h-screen bg-white flex flex-col overflow-hidden">
+        <div className="h-screen h-[100dvh] bg-white flex flex-col overflow-hidden">
+            {showMobileTabs && <MobileBottomNav />}
 
 
-            <div className="flex-1 max-w-6xl mx-auto w-full pt-4 pb-4 px-4 flex gap-6 overflow-hidden">
+            <div className={`flex-1 max-w-6xl mx-auto w-full pt-4 px-4 flex gap-6 overflow-hidden ${showMobileTabs ? 'pb-[calc(5rem+env(safe-area-inset-bottom,0px))]' : 'pb-4'}`}>
                 {/* Sidebar - Conversation List */}
                 <div className={`w-full md:w-80 flex flex-col border-r border-gray-100 ${isMobileView && activeConversation ? 'hidden' : 'block'}`}>
                     <div className="py-4 px-2 border-b border-gray-100 flex items-center gap-3">

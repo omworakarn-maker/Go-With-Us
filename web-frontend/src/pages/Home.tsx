@@ -1,9 +1,8 @@
-import { BrandLogo } from '../components/BrandLogo';
+import { AdjustmentsHorizontalIcon, MagnifyingGlassIcon, QueueListIcon, Squares2X2Icon, XMarkIcon } from '@heroicons/react/24/outline';
 import React, { useState, useEffect } from 'react';
 import FilterBar from '../components/FilterBar';
 import { Trip } from '../types';
 import { TripCard } from '../components/TripCard';
-import { TripDetails } from '../components/TripDetails';
 import { tripsAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { TRIP_CATEGORIES } from '../constants/categories';
@@ -17,20 +16,18 @@ const CATEGORIES_FILTER = ['ทุกหมวดหมู่', ...TRIP_CATEGORI
 
 const Home: React.FC = () => {
   const { user } = useAuth();
-  const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
   const [trips, setTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('แนะนำ');
+  const [gridLayout, setGridLayout] = useState(false);
 
   // Filters
   const [searchText, setSearchText] = useState('');
   const [selectedProvince, setSelectedProvince] = useState('ทุกจังหวัด');
-  const [selectedDate, setSelectedDate] = useState<string>('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('ทุกหมวดหมู่');
-
-  const [showProvinceDropdown, setShowProvinceDropdown] = useState(false);
-  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
 
   useEffect(() => {
     fetchTrips();
@@ -44,19 +41,31 @@ const Home: React.FC = () => {
       setError('');
     } catch (err: any) {
       console.error('Failed to fetch trips:', err);
-      setError('ไม่สามารถโหลดข้อมูลกิจกรรมได้');
+      setError('ไม่สามารถโหลดทริปได้');
       setTrips([]);
     } finally {
       setLoading(false);
     }
   };
 
+  const query = searchText.trim().toLocaleLowerCase();
+  const hasFilters = Boolean(query || startDate || endDate ||
+    selectedProvince !== PROVINCES[0] || selectedCategory !== CATEGORIES_FILTER[0]);
+
+  const clearFilters = () => {
+    setSearchText('');
+    setSelectedProvince(PROVINCES[0]);
+    setSelectedCategory(CATEGORIES_FILTER[0]);
+    setStartDate('');
+    setEndDate('');
+  };
+
   const filteredTrips = trips.filter(trip => {
-    const searchMatch = !searchText ||
-      trip.title.toLowerCase().includes(searchText.toLowerCase()) ||
-      trip.description?.toLowerCase().includes(searchText.toLowerCase());
-    const provinceMatch = selectedProvince === 'ทุกจังหวัด' || trip.destination.includes(selectedProvince);
-    const dateMatch = !selectedDate || trip.startDate.split('T')[0] === selectedDate;
+    const searchMatch = !query || [trip.title, trip.destination, trip.description]
+      .some(value => value?.toLocaleLowerCase().includes(query));
+    const provinceMatch = selectedProvince === PROVINCES[0] || trip.destination.includes(selectedProvince);
+    const tripStart = trip.startDate.split('T')[0];
+    const dateMatch = (!startDate || tripStart >= startDate) && (!endDate || tripStart <= endDate);
     const categoryMatch = selectedCategory === 'ทุกหมวดหมู่' || trip.category === selectedCategory;
 
     return searchMatch && provinceMatch && dateMatch && categoryMatch;
@@ -97,105 +106,99 @@ const Home: React.FC = () => {
     return 0;
   });
 
-  const formatDateLabel = (dateStr: string) => {
-    if (!dateStr) return 'เลือกวันที่';
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' });
-  };
-
+  const LayoutIcon = gridLayout ? QueueListIcon : Squares2X2Icon;
 
   return (
-    <div className="min-h-screen bg-[#FFFFFF] flex flex-col text-[#121212]">
-
-
-      {selectedTrip ? (
-        <TripDetails trip={selectedTrip} onBack={() => setSelectedTrip(null)} />
-      ) : (
-        <main className="flex-1 w-full max-w-6xl mx-auto px-6 pt-8 pb-24">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12">
-            <header className="space-y-4">
-              <div className="inline-block px-3 py-1 bg-indigo-50 text-indigo-600 text-[10px] font-bold rounded uppercase tracking-widest">beta version</div>
-              <h1 className="text-6xl md:text-7xl font-black text-black tracking-tighter leading-[0.85]">
-                Enjoy with<br />us.
-              </h1>
-              <p className="text-gray-400 text-lg font-medium max-w-md">
-                ค้นหากิจกรรมที่คุณสนใจและทำความรู้จักกับเพื่อนใหม่ในสไตล์ที่เป็นคุณ
-              </p>
-            </header>
-
-            <div className="flex flex-col items-end gap-4 w-full md:w-auto">
-
-              <div className="flex gap-1 p-1 bg-gray-100 rounded-full">
-                {['แนะนำ', 'มาใหม่', 'ยอดนิยม'].map((tab) => (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
-                    className={`px-8 py-2.5 rounded-full text-xs font-bold transition-all ${activeTab === tab ? 'bg-white text-black shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
-                  >
-                    {tab}
-                  </button>
-                ))}
-              </div>
+    <main className="min-h-screen bg-slate-50 px-4 pb-10 pt-5 text-slate-900 sm:px-6">
+      <div className="mx-auto w-full max-w-6xl">
+        <div className="mb-5 space-y-3 rounded-2xl border border-slate-200 bg-white p-3 sm:p-4">
+          <div className="flex gap-2">
+            <div className="relative flex min-w-0 flex-1 items-center rounded-full border border-slate-200 bg-white focus-within:border-blue-500">
+              <MagnifyingGlassIcon aria-hidden="true" className="pointer-events-none absolute left-4 h-5 w-5 text-slate-500" />
+              <input
+                type="search"
+                aria-label="ค้นหาทริป"
+                placeholder="ค้นหาทริปหรือจุดหมาย"
+                value={searchText}
+                onChange={(event) => setSearchText(event.target.value)}
+                className="min-h-11 w-full rounded-full bg-transparent py-2 pl-11 pr-4 text-base outline-none"
+              />
             </div>
+            <button
+              type="button"
+              aria-label={gridLayout ? 'แสดงทริปแบบรายการ' : 'แสดงทริปแบบตาราง'}
+              title={gridLayout ? 'แสดงแบบรายการ' : 'แสดงแบบตาราง'}
+              onClick={() => setGridLayout(!gridLayout)}
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-blue-600 hover:bg-blue-50"
+            >
+              <LayoutIcon aria-hidden="true" className="h-5 w-5" />
+            </button>
           </div>
 
-          <FilterBar
-            provinces={PROVINCES}
-            categories={CATEGORIES_FILTER}
-            selectedProvince={selectedProvince}
-            setSelectedProvince={setSelectedProvince}
-            selectedDate={selectedDate}
-            setSelectedDate={setSelectedDate}
-            selectedCategory={selectedCategory}
-            setSelectedCategory={setSelectedCategory}
-            showProvinceDropdown={showProvinceDropdown}
-            setShowProvinceDropdown={setShowProvinceDropdown}
-            showCategoryDropdown={showCategoryDropdown}
-            setShowCategoryDropdown={setShowCategoryDropdown}
-            formatDateLabel={formatDateLabel}
-          />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-12">
-            {loading ? (
-              // Display New Loader
-              <div className="col-span-full">
-                <Loader />
-              </div>
-            ) : error ? (
-              <div className="col-span-full py-20 text-center border border-dashed border-red-200 rounded-3xl bg-red-50">
-                <p className="text-red-600 font-medium mb-4">{error}</p>
-                <button
-                  onClick={fetchTrips}
-                  className="text-xs font-bold text-indigo-600 hover:underline"
-                >
-                  ลองอีกครั้ง
+          <details>
+            <summary className="flex w-fit cursor-pointer list-none items-center gap-2 rounded-full bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200 [&::-webkit-details-marker]:hidden">
+              <AdjustmentsHorizontalIcon aria-hidden="true" className="h-4 w-4" />
+              {selectedProvince !== PROVINCES[0] || selectedCategory !== CATEGORIES_FILTER[0] || startDate || endDate ? 'ตัวกรองที่ใช้อยู่' : 'ตัวกรอง'}
+            </summary>
+            <div className="space-y-3 pt-3">
+              <FilterBar
+                provinces={PROVINCES}
+                categories={CATEGORIES_FILTER}
+                selectedProvince={selectedProvince}
+                setSelectedProvince={setSelectedProvince}
+                selectedCategory={selectedCategory}
+                setSelectedCategory={setSelectedCategory}
+                startDate={startDate}
+                setStartDate={setStartDate}
+                endDate={endDate}
+                setEndDate={setEndDate}
+              />
+              {hasFilters && (
+                <button type="button" onClick={clearFilters} className="inline-flex items-center gap-1 px-2 text-sm font-semibold text-blue-700 hover:underline">
+                  <XMarkIcon aria-hidden="true" className="h-4 w-4" />
+                  ล้างตัวกรอง
                 </button>
-              </div>
-            ) : filteredTrips.length > 0 ? (
-              filteredTrips.map((trip) => (
-                <TripCard key={trip.id} trip={trip} />
-              ))
-            ) : (
-              <div className="col-span-full py-20 text-center border border-dashed border-gray-200 rounded-3xl">
-                <p className="text-gray-400 font-medium">ไม่พบกิจกรรมในเงื่อนไขที่ระบุ ลองเปลี่ยนเงื่อนไขการค้นหาดูนะ</p>
-                <button onClick={() => { setSelectedProvince('ทุกจังหวัด'); setSelectedDate(''); setSelectedCategory('ทุกหมวดหมู่'); setSearchText(''); }} className="mt-4 text-xs font-bold text-indigo-600 hover:underline">ล้างตัวกรองทั้งหมด</button>
-              </div>
-            )}
-          </div>
-        </main>
-      )}
-
-      <footer className="py-20 bg-black text-white mt-auto">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="space-y-6">
-            <div className="flex items-center gap-3">
-              <BrandLogo className="w-14 h-10" />
-              <span className="font-bold text-2xl tracking-tighter">GoWithUs.</span>
+              )}
             </div>
-            <p className="text-sm text-gray-400 max-w-xs font-medium leading-relaxed">แพลตฟอร์มที่เชื่อมโยงผู้คนมาเป็นเพื่อนกัน</p>
+          </details>
+
+          <div role="group" aria-label="เรียงทริป" className="grid grid-cols-3 gap-1 rounded-full bg-slate-100 p-1 sm:max-w-sm">
+            {['แนะนำ', 'มาใหม่', 'ยอดนิยม'].map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                aria-pressed={activeTab === tab}
+                onClick={() => setActiveTab(tab)}
+                className={`min-h-10 rounded-full px-2 text-sm font-semibold transition-colors ${activeTab === tab ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+              >
+                {tab}
+              </button>
+            ))}
           </div>
         </div>
-      </footer>
-    </div>
+
+        {loading ? (
+          <div role="status" aria-label="กำลังโหลดทริป"><Loader /></div>
+        ) : error ? (
+          <div role="alert" className="rounded-3xl border border-slate-200 bg-white px-4 py-12 text-center">
+            <p className="font-medium text-slate-700">{error}</p>
+            <button type="button" onClick={fetchTrips} className="mt-4 rounded-full bg-blue-600 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-700">
+              ลองอีกครั้ง
+            </button>
+          </div>
+        ) : filteredTrips.length > 0 ? (
+          <div className={`grid gap-4 ${gridLayout ? 'grid-cols-2 md:grid-cols-3' : 'grid-cols-1 lg:grid-cols-2'}`}>
+            {filteredTrips.map((trip) => (
+              <TripCard key={trip.id} trip={trip} layout={gridLayout ? 'feed' : 'list'} />
+            ))}
+          </div>
+        ) : (
+          <p role="status" className="rounded-3xl border border-slate-200 bg-white px-4 py-12 text-center font-medium text-slate-600">
+            {hasFilters ? 'ไม่พบทริปที่ตรงกับการค้นหา' : 'ยังไม่มีทริปให้แสดง'}
+          </p>
+        )}
+      </div>
+    </main>
   );
 };
 

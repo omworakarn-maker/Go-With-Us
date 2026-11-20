@@ -44,7 +44,7 @@ const authFetch = async (url: string, options: RequestInit = {}) => {
             // If JSON parse fails, use text or status text
             errorMessage = text || response.statusText || errorMessage;
         }
-        if (token && getAuthToken() === token && (errorData.code === 'SESSION_REVOKED' || (response.status === 401 && !url.includes('/auth/login')))) {
+        if (token && getAuthToken() === token && (errorData.code === 'SESSION_REVOKED' || (response.status === 401 && !url.endsWith('/auth/login') && !url.endsWith('/auth/google')))) {
             window.dispatchEvent(new Event('session-revoked'));
         }
         throw Object.assign(new Error(errorMessage), { status: response.status, code: errorData.code, sessions: errorData.sessions });
@@ -97,11 +97,16 @@ export interface AuthResponse {
 }
 
 export const authAPI = {
-    // Register new user
-    register: async (data: RegisterData): Promise<AuthResponse> => {
-        const response = await authFetch(`${API_BASE_URL}/auth/register`, {
+    register: (data: RegisterData): Promise<{ email: string }> =>
+        authFetch(`${API_BASE_URL}/auth/register`, {
             method: 'POST',
             body: JSON.stringify(data),
+        }),
+
+    verifyRegistration: async (email: string, otp: string): Promise<AuthResponse> => {
+        const response = await authFetch(`${API_BASE_URL}/auth/verify-otp`, {
+            method: 'POST',
+            body: JSON.stringify({ email, otp, ...getDeviceIdentity() }),
         });
 
         // Save token to localStorage
@@ -110,6 +115,17 @@ export const authAPI = {
             localStorage.setItem('currentUser', JSON.stringify(response.user));
         }
 
+        return response;
+    },
+
+    loginWithGoogle: async (credential: string, replaceSessionId?: string): Promise<AuthResponse & { needsOnboarding: boolean }> => {
+        const response = await authFetch(`${API_BASE_URL}/auth/google`, {
+            method: 'POST',
+            body: JSON.stringify({ credential, replaceSessionId, ...getDeviceIdentity() }),
+        });
+
+        localStorage.setItem('authToken', response.token);
+        localStorage.setItem('currentUser', JSON.stringify(response.user));
         return response;
     },
 
@@ -321,7 +337,21 @@ export const userAPI = {
         return authFetch(`${API_BASE_URL}/users/admin/users${params.toString() ? `?${params}` : ''}`);
     },
     getProfile: () => authFetch(`${API_BASE_URL}/users/profile`),
-    updateProfile: (data: { name?: string; password?: string; interests?: string[]; travelStyle?: any }) => authFetch(`${API_BASE_URL}/users/profile`, {
+    checkUsername: (username: string, excludeUserId?: string): Promise<{ available: boolean; message: string }> => {
+        const params = new URLSearchParams({ username });
+        if (excludeUserId) params.set('excludeUserId', excludeUserId);
+        return authFetch(`${API_BASE_URL}/users/check-username?${params}`);
+    },
+    updateProfile: (data: {
+        name?: string;
+        password?: string;
+        interests?: string[];
+        travelStyle?: any;
+        username?: string;
+        profileImage?: string;
+        birthDate?: string;
+        age?: number;
+    }) => authFetch(`${API_BASE_URL}/users/profile`, {
         method: 'PUT',
         body: JSON.stringify(data),
     }),
