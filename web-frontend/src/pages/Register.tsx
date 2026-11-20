@@ -31,8 +31,13 @@ const Register: React.FC = () => {
             return;
         }
 
-        if (formData.password.length < 6) {
-            setError('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร');
+        if ([...formData.password].length < 8 || !/\p{L}/u.test(formData.password)) {
+            setError('รหัสผ่านต้องมีอย่างน้อย 8 ตัว และมีตัวอักษรอย่างน้อย 1 ตัว');
+            return;
+        }
+
+        if (new TextEncoder().encode(formData.password).length > 72) {
+            setError('รหัสผ่านยาวเกิน 72 ไบต์ ลองใช้ข้อความที่สั้นลง');
             return;
         }
 
@@ -116,7 +121,7 @@ const Register: React.FC = () => {
                                 value={formData.password}
                                 onChange={handleChange}
                                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-black placeholder-gray-400 focus:ring-2 focus:ring-black focus:border-black outline-none transition-all"
-                                placeholder="อย่างน้อย 6 ตัวอักษร"
+                                placeholder="อย่างน้อย 8 ตัว และมีตัวอักษรอย่างน้อย 1 ตัว"
                             />
                         </div>
 
