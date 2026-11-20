@@ -93,7 +93,7 @@ struct RegisterView: View {
                                     if showPassword {
                                         TextField("", text: $viewModel.password)
                                             .placeholder(when: viewModel.password.isEmpty) {
-                                                Text(tr("อย่างน้อย 6 ตัวอักษร", "At least 6 characters"))
+                                                Text(tr("อย่างน้อย 8 ตัว และมีตัวอักษรอย่างน้อย 1 ตัว", "At least 8 characters and include at least one letter"))
                                                     .foregroundColor(.gray.opacity(0.5))
                                             }
                                             .foregroundColor(.adaptiveText)
@@ -101,7 +101,7 @@ struct RegisterView: View {
                                     } else {
                                         SecureField("", text: $viewModel.password)
                                             .placeholder(when: viewModel.password.isEmpty) {
-                                                Text(tr("อย่างน้อย 6 ตัวอักษร", "At least 6 characters"))
+                                                Text(tr("อย่างน้อย 8 ตัว และมีตัวอักษรอย่างน้อย 1 ตัว", "At least 8 characters and include at least one letter"))
                                                     .foregroundColor(.gray.opacity(0.5))
                                             }
                                             .foregroundColor(.adaptiveText)

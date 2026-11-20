@@ -26,8 +26,12 @@ export const register = async (req, res, next) => {
             return res.status(400).json({ error: 'All fields are required.' });
         }
 
-        if (password.length < 6) {
-            return res.status(400).json({ error: 'Password must be at least 6 characters.' });
+        if (typeof password !== 'string' || [...password].length < 8 || !/\p{L}/u.test(password)) {
+            return res.status(400).json({ error: 'Password must be at least 8 characters and include at least one letter.' });
+        }
+
+        if (Buffer.byteLength(password, 'utf8') > 72) {
+            return res.status(400).json({ error: 'Password must be at most 72 bytes.' });
         }
 
         // Only completed registrations exist in the users table.

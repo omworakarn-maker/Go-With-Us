@@ -113,8 +113,13 @@ class AuthViewModel: ObservableObject {
             return
         }
 
-        guard password.count >= 6 else {
-            errorMessage = "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร"
+        guard password.unicodeScalars.count >= 8, password.unicodeScalars.contains(where: { CharacterSet.letters.contains($0) }) else {
+            errorMessage = "รหัสผ่านต้องมีอย่างน้อย 8 ตัว และมีตัวอักษรอย่างน้อย 1 ตัว"
+            return
+        }
+
+        guard password.utf8.count <= 72 else {
+            errorMessage = "รหัสผ่านยาวเกิน 72 ไบต์ ลองใช้ข้อความที่สั้นลง"
             return
         }
 
