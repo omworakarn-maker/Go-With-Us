@@ -6,6 +6,7 @@ struct SideMenuView: View {
     @Binding var transition: AnyTransition
     @EnvironmentObject var authViewModel: AuthViewModel
     @State private var showDevices = false
+    @State private var showHelp = false
 #if DEBUG
 #endif
     @State private var showSettings = false
@@ -36,6 +37,16 @@ struct SideMenuView: View {
         .background(Color.adaptiveBackground)
         .ignoresSafeArea(.all)
         .sheet(isPresented: $showDevices) { DeviceSessionsView() }
+        .sheet(isPresented: $showHelp) {
+            NavigationStack {
+                HelpView()
+                    .toolbar {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button(tr("ปิด", "Close"), systemImage: "xmark") { showHelp = false }
+                        }
+                    }
+            }
+        }
         .sheet(isPresented: $showLogoutAlert) {
             LogoutSheet {
                 withAnimation {
@@ -283,6 +294,18 @@ struct SideMenuView: View {
                     .padding(.horizontal, 24)
 
 
+                    Button {
+                        showHelp = true
+                    } label: {
+                        accountManagementRow(
+                            icon: "questionmark.circle",
+                            title: tr("ช่วยเหลือ", "Help"),
+                            color: .adaptiveText
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.horizontal, 24)
+
                     if authViewModel.currentUser != nil {
                         Divider()
                             .padding(.horizontal, 24)
@@ -406,6 +429,95 @@ struct SideMenuView: View {
     }
 }
 
+
+private struct HelpView: View {
+    @State private var reportText = ""
+    @State private var isSendingReport = false
+    @State private var reportResult: String?
+
+    private var reportMessage: String {
+        reportText.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    var body: some View {
+        Form {
+            Section {
+                TextField(tr("เล่าปัญหาที่พบ", "Describe the problem"), text: $reportText, axis: .vertical)
+                    .lineLimit(3...6)
+                    .disabled(isSendingReport)
+
+                Button {
+                    Task { await sendReport() }
+                } label: {
+                    Label(
+                        isSendingReport ? tr("กำลังส่ง…", "Sending…") : tr("ส่งเรื่องถึงทีมดูแล", "Send to support"),
+                        systemImage: "paperplane"
+                    )
+                }
+                .disabled(isSendingReport || reportMessage.isEmpty || reportMessage.unicodeScalars.count > 1000)
+            } header: {
+                Text(tr("แจ้งปัญหา", "Report a problem"))
+            } footer: {
+                Text(tr("อธิบายสิ่งที่เกิดขึ้นได้สูงสุด 1,000 ตัวอักษร", "Describe what happened in up to 1,000 characters."))
+            }
+
+            Section {
+                Button {} label: {
+                    Label(tr("ติดต่อทางอีเมล", "Contact by email"), systemImage: "envelope")
+                }
+                .disabled(true)
+            } footer: {
+                Text(tr(
+                    "ช่องทางอีเมลจะเปิดให้บริการภายหลัง ตอนนี้คุณส่งเรื่องถึงทีมดูแลผ่านแอปได้เลย",
+                    "Email support will be available later. For now, you can send a report directly from the app."
+                ))
+            }
+
+            Section(tr("คำถามที่พบบ่อย", "Frequently asked questions")) {
+                DisclosureGroup(tr("ไม่ได้รับรหัสยืนยันอีเมล", "I didn’t receive a verification code")) {
+                    Text(tr(
+                        "ตรวจสอบอีเมลและโฟลเดอร์สแปม แล้วลองขอรหัสใหม่จากหน้ายืนยันอีเมล",
+                        "Check your email address and spam folder, then request a new code from the verification screen."
+                    ))
+                }
+                DisclosureGroup(tr("เข้าสู่ระบบบนเครื่องอื่นไม่ได้", "I can’t sign in on another device")) {
+                    Text(tr(
+                        "เปิด ตั้งค่า → อุปกรณ์ที่เข้าสู่ระบบ บนเครื่องที่ยังเข้าบัญชีได้ แล้วออกจากอุปกรณ์ที่ไม่ได้ใช้",
+                        "On a device that is still signed in, open Settings → Signed-in devices and sign out a device you no longer use."
+                    ))
+                }
+            }
+        }
+        .navigationTitle(tr("ช่วยเหลือ", "Help"))
+        .navigationBarTitleDisplayMode(.inline)
+        .tint(.appPrimary)
+        .alert(tr("แจ้งปัญหา", "Report a problem"), isPresented: Binding(
+            get: { reportResult != nil },
+            set: { if !$0 { reportResult = nil } }
+        )) {
+            Button(tr("ตกลง", "OK"), role: .cancel) { reportResult = nil }
+        } message: {
+            Text(reportResult ?? "")
+        }
+    }
+
+    @MainActor
+    private func sendReport() async {
+        let message = reportMessage
+        guard !isSendingReport, !message.isEmpty, message.unicodeScalars.count <= 1000 else { return }
+
+        isSendingReport = true
+        defer { isSendingReport = false }
+
+        do {
+            try await NotificationService.shared.reportSupportIssue(message: message)
+            reportText = ""
+            reportResult = tr("ส่งเรื่องถึงทีมดูแลแล้ว", "Your report was sent to support.")
+        } catch {
+            reportResult = error.localizedDescription
+        }
+    }
+}
 
 struct MenuButton: View {
     let icon: String

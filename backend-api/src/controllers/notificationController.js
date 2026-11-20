@@ -66,6 +66,58 @@ export const markAsRead = async (req, res, next) => {
     }
 };
 
+export const reportSupportIssue = async (req, res, next) => {
+    const message = typeof req.body?.message === 'string' ? req.body.message.trim() : '';
+    if (!message || [...message].length > 1000) {
+        return res.status(400).json({ error: 'Enter a report between 1 and 1000 characters.' });
+    }
+
+    const reporterId = req.user.userId;
+    try {
+        const result = await prisma.$transaction(async (tx) => {
+            const recentReport = await tx.notification.findFirst({
+                where: {
+                    type: 'support_report',
+                    targetId: reporterId,
+                    createdAt: { gte: new Date(Date.now() - 60_000) },
+                },
+                select: { id: true },
+            });
+            if (recentReport) return 'rate_limited';
+
+            const admins = await tx.user.findMany({
+                where: { role: 'admin' },
+                select: { id: true },
+            });
+            if (admins.length === 0) return 'unavailable';
+
+            await tx.notification.createMany({
+                data: admins.map(({ id }) => ({
+                    userId: id,
+                    targetId: reporterId,
+                    type: 'support_report',
+                    title: 'แจ้งปัญหา Gowithus',
+                    message,
+                })),
+            });
+            return 'sent';
+        }, { isolationLevel: 'Serializable' });
+
+        if (result === 'rate_limited') {
+            return res.status(429).json({ error: 'Please wait a minute before sending another report.' });
+        }
+        if (result === 'unavailable') {
+            return res.status(503).json({ error: 'Support is temporarily unavailable.' });
+        }
+        return res.status(201).json({ message: 'Report sent.' });
+    } catch (error) {
+        if (error.code === 'P2034') {
+            return res.status(429).json({ error: 'Please wait a minute before sending another report.' });
+        }
+        return next(error);
+    }
+};
+
 // Create notification (Admin only)
 export const createNotification = async (req, res, next) => {
     try {

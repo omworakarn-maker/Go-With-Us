@@ -5,6 +5,18 @@ class NotificationService {
 
     private init() {}
 
+    func reportSupportIssue(message: String) async throws {
+        struct SupportReportRequest: Encodable {
+            let message: String
+        }
+
+        let _: EmptyResponse = try await APIService.shared.request(
+            endpoint: "/notifications/support-report",
+            method: .post,
+            body: SupportReportRequest(message: message)
+        )
+    }
+
     // MARK: - Get Notifications
     func getNotifications(includeChatMessages: Bool = false) async throws -> [AppNotification] {
         let notifications: [AppNotification] = try await APIService.shared.request(

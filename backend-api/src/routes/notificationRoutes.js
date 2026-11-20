@@ -6,6 +6,7 @@ import {
     createNotification,
     deleteNotification,
     clearAllNotifications,
+    reportSupportIssue,
 } from '../controllers/notificationController.js';
 import { verifyToken } from '../middleware/auth.js';
 
@@ -31,5 +32,6 @@ router.delete('/:id', deleteNotification);
 
 // Create notification (admin only)
 router.post('/', createNotification);
+router.post('/support-report', reportSupportIssue);
 
 export default router;
