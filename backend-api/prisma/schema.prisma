@@ -34,6 +34,7 @@ model User {
 
   email    String  @unique
   password String // Will be hashed
+  googleSubject String? @unique
   role     String  @default("user") // "user" or "admin"
   isBanned Boolean @default(false) // Whether the user is banned
 
